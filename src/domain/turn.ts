@@ -1,0 +1,180 @@
+import { GameState, Phase, TurnState, CardType, CardInstance, ShuffleFn } from '../types';
+import { drawCards, playCard, discardHand, discardPlayArea, gainCard } from './player';
+import { takeFromSupply } from './supply';
+import { createShuffleFn } from './shuffle';
+
+const defaultShuffle = createShuffleFn();
+
+export function createInitialTurnState(): TurnState {
+  return { actions: 1, buys: 1, coins: 0 };
+}
+
+export function applyBasicEffects(
+  state: GameState,
+  card: CardInstance,
+  shuffleFn: ShuffleFn = defaultShuffle,
+): GameState {
+  const { effects } = card.def;
+  let turnState = { ...state.turnState };
+  let players = [...state.players];
+  let currentPlayer = players[state.currentPlayerIndex];
+
+  if (effects.cards && effects.cards > 0) {
+    currentPlayer = drawCards(currentPlayer, effects.cards, shuffleFn);
+  }
+  if (effects.actions) {
+    turnState = { ...turnState, actions: turnState.actions + effects.actions };
+  }
+  if (effects.buys) {
+    turnState = { ...turnState, buys: turnState.buys + effects.buys };
+  }
+  if (effects.coins) {
+    turnState = { ...turnState, coins: turnState.coins + effects.coins };
+  }
+
+  players = players.map((p, i) =>
+    i === state.currentPlayerIndex ? currentPlayer : p,
+  );
+
+  return { ...state, players, turnState };
+}
+
+export function canPlayAction(state: GameState): boolean {
+  if (state.phase !== Phase.Action || state.turnState.actions <= 0) {
+    return false;
+  }
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  return currentPlayer.hand.some((c) =>
+    c.def.types.includes(CardType.Action),
+  );
+}
+
+export function playActionCard(
+  state: GameState,
+  instanceId: string,
+  shuffleFn: ShuffleFn = defaultShuffle,
+): GameState {
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  const card = currentPlayer.hand.find((c) => c.instanceId === instanceId);
+  if (!card) {
+    throw new Error(`Card ${instanceId} not found in hand`);
+  }
+  if (!card.def.types.includes(CardType.Action)) {
+    throw new Error(`${card.def.name} is not an Action card`);
+  }
+
+  const updatedPlayer = playCard(currentPlayer, instanceId);
+  const players = state.players.map((p, i) =>
+    i === state.currentPlayerIndex ? updatedPlayer : p,
+  );
+
+  const turnState = {
+    ...state.turnState,
+    actions: state.turnState.actions - 1,
+  };
+
+  const afterPlay: GameState = { ...state, players, turnState };
+  return applyBasicEffects(afterPlay, card, shuffleFn);
+}
+
+export function canBuy(state: GameState): boolean {
+  return state.phase === Phase.Buy && state.turnState.buys > 0;
+}
+
+export function autoPlayTreasures(state: GameState): GameState {
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  const treasures: CardInstance[] = [];
+  const remaining: CardInstance[] = [];
+
+  for (const card of currentPlayer.hand) {
+    if (card.def.types.includes(CardType.Treasure)) {
+      treasures.push(card);
+    } else {
+      remaining.push(card);
+    }
+  }
+
+  let coins = state.turnState.coins;
+  for (const t of treasures) {
+    coins += t.def.effects.coins ?? 0;
+  }
+
+  const updatedPlayer = {
+    ...currentPlayer,
+    hand: remaining,
+    playArea: [...currentPlayer.playArea, ...treasures],
+  };
+
+  const players = state.players.map((p, i) =>
+    i === state.currentPlayerIndex ? updatedPlayer : p,
+  );
+
+  return {
+    ...state,
+    players,
+    turnState: { ...state.turnState, coins },
+  };
+}
+
+export function buyCard(state: GameState, cardName: string): GameState {
+  const [newSupply, cardDef] = takeFromSupply(state.supply, cardName);
+
+  if (cardDef.cost > state.turnState.coins) {
+    throw new Error(
+      `Not enough coins: have ${state.turnState.coins}, need ${cardDef.cost} for ${cardName}`,
+    );
+  }
+
+  const currentPlayer = state.players[state.currentPlayerIndex];
+  const updatedPlayer = gainCard(currentPlayer, cardDef);
+  const players = state.players.map((p, i) =>
+    i === state.currentPlayerIndex ? updatedPlayer : p,
+  );
+
+  const turnState = {
+    ...state.turnState,
+    coins: state.turnState.coins - cardDef.cost,
+    buys: state.turnState.buys - 1,
+  };
+
+  return { ...state, players, supply: newSupply, turnState };
+}
+
+export function advancePhase(
+  state: GameState,
+  shuffleFn: ShuffleFn = defaultShuffle,
+): GameState {
+  switch (state.phase) {
+    case Phase.Action: {
+      const buyState = { ...state, phase: Phase.Buy };
+      return autoPlayTreasures(buyState);
+    }
+    case Phase.Buy:
+      return { ...state, phase: Phase.Cleanup };
+    case Phase.Cleanup:
+      return cleanupAndDraw(state, shuffleFn);
+    default:
+      return state;
+  }
+}
+
+export function cleanupAndDraw(
+  state: GameState,
+  shuffleFn: ShuffleFn = defaultShuffle,
+): GameState {
+  let currentPlayer = state.players[state.currentPlayerIndex];
+  currentPlayer = discardHand(currentPlayer);
+  currentPlayer = discardPlayArea(currentPlayer);
+  currentPlayer = drawCards(currentPlayer, 5, shuffleFn);
+
+  const players = state.players.map((p, i) =>
+    i === state.currentPlayerIndex ? currentPlayer : p,
+  );
+
+  return {
+    ...state,
+    players,
+    phase: Phase.Action,
+    turnState: createInitialTurnState(),
+  };
+}
