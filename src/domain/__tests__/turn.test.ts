@@ -15,7 +15,7 @@ import { getCardDef, createCardInstance } from '../card';
 import { createPlayer } from '../player';
 import { initializeSupply } from '../supply';
 import { createShuffleFn } from '../shuffle';
-import { Phase, CardType } from '../../types';
+import { Phase } from '../../types';
 import type { GameState, PlayerState } from '../../types';
 
 const shuffle = createShuffleFn(() => 0.5);

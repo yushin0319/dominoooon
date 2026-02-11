@@ -1,4 +1,4 @@
-import type { GameState, PlayerState, CardDef, ShuffleFn, TurnState } from '../types';
+import type { GameState, PlayerState, CardDef, ShuffleFn } from '../types';
 import { Phase } from '../types';
 import { createPlayer, calculateVP } from './player';
 import { initializeSupply, isGameOver } from './supply';

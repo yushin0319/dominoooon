@@ -6,7 +6,7 @@ import {
   bigMoneyTurn,
   bigMoneyDecision,
 } from '../bigMoney';
-import { getCardDef, createCardInstance } from '../../domain/card';
+import { getCardDef } from '../../domain/card';
 import { createPlayer } from '../../domain/player';
 import { createGame } from '../../domain/game';
 import { initializeSupply } from '../../domain/supply';

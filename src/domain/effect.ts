@@ -1,12 +1,11 @@
-import {
+import type {
   GameState,
   PlayerState,
   CardInstance,
-  CardDef,
-  CardType,
   ShuffleFn,
 } from '../types';
-import { getCardDef, createCardInstance } from './card';
+import { CardType } from '../types';
+import { getCardDef } from './card';
 import {
   drawCards,
   discardCard,

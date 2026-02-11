@@ -1,4 +1,5 @@
-import { CardDef, CardType, CardInstance, PlayerState } from '../types';
+import type { CardDef, CardInstance, PlayerState } from '../types';
+import { CardType } from '../types';
 
 export const CARD_DEFS: Record<string, CardDef> = {
   // ===== Treasure (3) =====

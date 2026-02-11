@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CARD_DEFS, getCardDef, createCardInstance } from '../card';
 import { CardType } from '../../types';
-import type { CardDef, PlayerState } from '../../types';
+import type { PlayerState } from '../../types';
 
 describe('CARD_DEFS', () => {
   it('should contain exactly 33 cards', () => {

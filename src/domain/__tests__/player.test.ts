@@ -14,9 +14,8 @@ import {
   calculateVP,
   getAllCards,
 } from '../player';
-import { getCardDef, createCardInstance } from '../card';
+import { getCardDef } from '../card';
 import { createShuffleFn } from '../shuffle';
-import type { PlayerState } from '../../types';
 
 const deterministicShuffle = createShuffleFn(() => 0.5);
 

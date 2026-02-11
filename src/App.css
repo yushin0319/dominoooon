@@ -1,42 +1,588 @@
+/* ===== Reset & Base ===== */
+
 #root {
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: 1rem;
+  color: #ffffff;
+}
+
+/* ===== Page Layouts ===== */
+
+.title-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  gap: 2rem;
+}
+
+.title-page h1 {
+  font-size: 3rem;
+  letter-spacing: 0.1em;
+}
+
+.setup-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
   padding: 2rem;
-  text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.game-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.result-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* ===== Game Container ===== */
+
+.game-container {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 0.75rem;
+  min-height: 90vh;
 }
+
+.game-container .supply-area {
+  grid-column: 1 / -1;
+}
+
+.game-container .turn-info {
+  grid-column: 1 / -1;
+}
+
+.game-container .game-log {
+  grid-column: 2;
+  grid-row: 3 / 5;
+}
+
+/* ===== Supply Area ===== */
+
+.supply-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.supply-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.supply-pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pile-count {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* ===== Card ===== */
 
 .card {
-  padding: 2em;
+  border: 2px solid #444;
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  background: #16213e;
+  min-width: 90px;
+  font-size: 0.8rem;
+  transition: transform 0.15s, box-shadow 0.15s;
+  user-select: none;
 }
 
-.read-the-docs {
-  color: #888;
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-name {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.card-cost {
+  background: #333;
+  border-radius: 50%;
+  width: 1.4em;
+  height: 1.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.card-types {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  margin-top: 0.25rem;
+}
+
+.card-effects {
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+  color: #ccc;
+}
+
+/* Card type colors */
+
+.card-treasure {
+  border-color: #ffd700;
+  background: linear-gradient(135deg, #16213e, #3a2e00);
+}
+
+.card-treasure .card-cost {
+  background: #ffd700;
+  color: #000;
+}
+
+.card-victory {
+  border-color: #4caf50;
+  background: linear-gradient(135deg, #16213e, #0a2e0a);
+}
+
+.card-victory .card-cost {
+  background: #4caf50;
+  color: #000;
+}
+
+.card-action {
+  border-color: #e0e0e0;
+  background: linear-gradient(135deg, #16213e, #2a2a3e);
+}
+
+.card-curse {
+  border-color: #9c27b0;
+  background: linear-gradient(135deg, #16213e, #2a0a2e);
+}
+
+.card-curse .card-cost {
+  background: #9c27b0;
+  color: #fff;
+}
+
+.card-attack {
+  border-color: #f44336;
+  background: linear-gradient(135deg, #16213e, #2e0a0a);
+}
+
+.card-attack .card-cost {
+  background: #f44336;
+  color: #fff;
+}
+
+.card-reaction {
+  border-color: #2196f3;
+  background: linear-gradient(135deg, #16213e, #0a1a2e);
+}
+
+.card-reaction .card-cost {
+  background: #2196f3;
+  color: #fff;
+}
+
+/* Card states */
+
+.card-selected {
+  box-shadow: 0 0 0 3px #ffd700, 0 0 12px rgba(255, 215, 0, 0.4);
+  transform: translateY(-4px);
+}
+
+.card-small {
+  min-width: 70px;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.7rem;
+}
+
+.card-small .card-cost {
+  width: 1.2em;
+  height: 1.2em;
+  font-size: 0.65rem;
+}
+
+.card-clickable {
+  cursor: pointer;
+}
+
+.card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.card-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ===== Hand Area ===== */
+
+.hand-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  min-height: 80px;
+}
+
+/* ===== Play Area ===== */
+
+.play-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  min-height: 50px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px dashed #333;
+}
+
+/* ===== Turn Info ===== */
+
+.turn-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  background: #0f3460;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.turn-info-player {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.turn-label {
+  opacity: 0.7;
+}
+
+.turn-player {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.turn-info-phase {
+  flex-shrink: 0;
+}
+
+.phase-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.phase-action {
+  background: #e0e0e0;
+  color: #000;
+}
+
+.phase-buy {
+  background: #ffd700;
+  color: #000;
+}
+
+.phase-cleanup {
+  background: #4caf50;
+  color: #000;
+}
+
+.turn-info-stats {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.stat {
+  white-space: nowrap;
+}
+
+/* ===== Game Log ===== */
+
+.game-log {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.log-entry {
+  padding: 0.15rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ===== Pending Effect ===== */
+
+.pending-effect {
+  padding: 1rem;
+  background: #1a1a4e;
+  border: 2px solid #ffd700;
+  border-radius: 8px;
+}
+
+.pending-label {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.pending-cards,
+.pending-supply {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.pending-select,
+.pending-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pending-confirm {
+  flex-direction: row;
+}
+
+/* ===== Buttons ===== */
+
+.btn {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: #ffd700;
+  color: #000;
+}
+
+.btn-primary:hover {
+  background: #ffed4a;
+}
+
+.btn-secondary {
+  background: #444;
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background: #555;
+}
+
+.btn-large {
+  padding: 0.8rem 2rem;
+  font-size: 1.2rem;
+}
+
+.btn-small {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+  background: #444;
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== Title Page extras ===== */
+
+.title-subtitle {
+  color: #aaa;
+  font-size: 1rem;
+}
+
+/* ===== Setup Page extras ===== */
+
+.setup-section {
+  width: 100%;
+  max-width: 800px;
+  text-align: left;
+}
+
+.setup-section h3 {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.ai-strategy-options {
+  display: flex;
+  gap: 1rem;
+}
+
+.strategy-option {
+  padding: 0.5rem 1rem;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.strategy-option.active {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.strategy-option input {
+  margin-right: 0.4rem;
+}
+
+.kingdom-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+}
+
+.kingdom-pick {
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.kingdom-pick.picked {
+  opacity: 1;
+}
+
+.kingdom-pick:hover {
+  opacity: 0.75;
+}
+
+.setup-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* ===== Game Page extras ===== */
+
+.game-top {
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.game-middle {
+  display: flex;
+  gap: 1rem;
+  min-height: 200px;
+}
+
+.game-middle-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.game-middle-right {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.game-bottom {
+  border-top: 1px solid #333;
+  padding-top: 0.5rem;
+}
+
+/* ===== Pending Overlay ===== */
+
+.pending-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+/* ===== Result Page extras ===== */
+
+.result-list {
+  width: 100%;
+  max-width: 400px;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.result-row.winner {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.result-rank {
+  font-weight: bold;
+  margin-right: 1rem;
+}
+
+.result-name {
+  flex: 1;
+}
+
+.result-vp {
+  font-weight: bold;
+  color: #4caf50;
+}
+
+.result-turns {
+  color: #aaa;
+  font-size: 0.85rem;
 }

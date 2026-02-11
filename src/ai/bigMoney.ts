@@ -1,5 +1,6 @@
-import { GameState, Phase, ShuffleFn } from '../types';
-import { advancePhase, buyCard, canBuy } from '../domain/turn';
+import type { GameState, ShuffleFn } from '../types';
+import { Phase } from '../types';
+import { advancePhase, buyCard } from '../domain/turn';
 import { endTurn } from '../domain/game';
 import { getSupplyPile } from '../domain/supply';
 import { createShuffleFn } from '../domain/shuffle';

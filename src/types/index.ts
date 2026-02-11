@@ -1,19 +1,21 @@
-// ===== Enums =====
+// ===== Card Type & Phase =====
 
-export enum CardType {
-  Action = "Action",
-  Treasure = "Treasure",
-  Victory = "Victory",
-  Curse = "Curse",
-  Attack = "Attack",
-  Reaction = "Reaction",
-}
+export const CardType = {
+  Action: "Action",
+  Treasure: "Treasure",
+  Victory: "Victory",
+  Curse: "Curse",
+  Attack: "Attack",
+  Reaction: "Reaction",
+} as const;
+export type CardType = (typeof CardType)[keyof typeof CardType];
 
-export enum Phase {
-  Action = "Action",
-  Buy = "Buy",
-  Cleanup = "Cleanup",
-}
+export const Phase = {
+  Action: "Action",
+  Buy: "Buy",
+  Cleanup: "Cleanup",
+} as const;
+export type Phase = (typeof Phase)[keyof typeof Phase];
 
 // ===== Card Interfaces =====
 

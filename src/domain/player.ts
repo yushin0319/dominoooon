@@ -1,4 +1,4 @@
-import { PlayerState, CardInstance, CardDef, ShuffleFn } from '../types';
+import type { PlayerState, CardInstance, CardDef, ShuffleFn } from '../types';
 import { getCardDef, createCardInstance } from './card';
 
 export function createPlayer(

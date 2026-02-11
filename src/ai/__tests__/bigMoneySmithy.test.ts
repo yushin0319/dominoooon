@@ -7,12 +7,9 @@ import {
   bigMoneySmithyDecision,
   countCardInDeck,
 } from "../bigMoneySmithy";
-import { createGame, getCurrentPlayer } from "../../domain/game";
+import { createGame } from "../../domain/game";
 import { createShuffleFn } from "../../domain/shuffle";
 import { CARD_DEFS, getCardDef, createCardInstance } from "../../domain/card";
-import { createPlayer } from "../../domain/player";
-import { initializeSupply } from "../../domain/supply";
-import { createInitialTurnState } from "../../domain/turn";
 import { Phase } from "../../types";
 import type { GameState, PlayerState } from "../../types";
 
@@ -33,15 +30,6 @@ const kingdom = [
 
 function makeGame(): GameState {
   return createGame(["Alice", "Bob"], kingdom, shuffle);
-}
-
-function makeGameWithHand(hand: ReturnType<typeof createCardInstance>[]): GameState {
-  const game = makeGame();
-  const player = { ...game.players[0], hand };
-  return {
-    ...game,
-    players: game.players.map((p, i) => (i === 0 ? player : p)),
-  };
 }
 
 describe("countCardInDeck", () => {

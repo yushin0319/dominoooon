@@ -1,4 +1,5 @@
-import { GameState, Phase, TurnState, CardType, CardInstance, ShuffleFn } from '../types';
+import type { GameState, TurnState, CardInstance, ShuffleFn } from '../types';
+import { Phase, CardType } from '../types';
 import { drawCards, playCard, discardHand, discardPlayArea, gainCard } from './player';
 import { takeFromSupply } from './supply';
 import { resolveCustomEffect } from './effect';
