@@ -1,6 +1,7 @@
 import { GameState, Phase, TurnState, CardType, CardInstance, ShuffleFn } from '../types';
 import { drawCards, playCard, discardHand, discardPlayArea, gainCard } from './player';
 import { takeFromSupply } from './supply';
+import { resolveCustomEffect } from './effect';
 import { createShuffleFn } from './shuffle';
 
 const defaultShuffle = createShuffleFn();
@@ -74,7 +75,13 @@ export function playActionCard(
   };
 
   const afterPlay: GameState = { ...state, players, turnState };
-  return applyBasicEffects(afterPlay, card, shuffleFn);
+  let result = applyBasicEffects(afterPlay, card, shuffleFn);
+
+  if (card.def.effects.custom) {
+    result = resolveCustomEffect(result, card, shuffleFn);
+  }
+
+  return result;
 }
 
 export function canBuy(state: GameState): boolean {
@@ -97,6 +104,15 @@ export function autoPlayTreasures(state: GameState): GameState {
   let coins = state.turnState.coins;
   for (const t of treasures) {
     coins += t.def.effects.coins ?? 0;
+  }
+
+  // Merchant bonus: +1 coin per Silver played, up to the number of Merchants in play area
+  const merchantCount = currentPlayer.playArea.filter(
+    (c) => c.def.name === 'Merchant',
+  ).length;
+  if (merchantCount > 0) {
+    const silverCount = treasures.filter((c) => c.def.name === 'Silver').length;
+    coins += Math.min(merchantCount, silverCount);
   }
 
   const updatedPlayer = {
