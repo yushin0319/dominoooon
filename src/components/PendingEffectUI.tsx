@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
 import type { PendingEffect, CardInstance, SupplyPile } from '../types';
 import type { PendingEffectChoice } from '../domain/effect';
 import CardView from './CardView';
@@ -55,8 +59,8 @@ function CardSelectUI({
   }
 
   return (
-    <div className="pending-select">
-      <div className="pending-cards">
+    <Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
         {hand.map((c) => (
           <CardView
             key={c.instanceId}
@@ -65,16 +69,14 @@ function CardSelectUI({
             onClick={() => toggle(c.instanceId)}
           />
         ))}
-      </div>
-      <button
-        className="btn btn-primary"
-        onClick={() =>
-          onResolve({ type: '', selectedCards: [...selected] })
-        }
+      </Box>
+      <Button
+        variant="contained"
+        onClick={() => onResolve({ type: '', selectedCards: [...selected] })}
       >
         Confirm
-      </button>
-    </div>
+      </Button>
+    </Box>
   );
 }
 
@@ -92,7 +94,7 @@ function SupplySelectUI({
   );
 
   return (
-    <div className="pending-supply">
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
       {available.map((p) => (
         <CardView
           key={p.card.name}
@@ -101,20 +103,20 @@ function SupplySelectUI({
           onClick={() => onResolve({ type: '', selectedCardName: p.card.name })}
         />
       ))}
-    </div>
+    </Box>
   );
 }
 
 function ConfirmUI({ onResolve }: { onResolve: (choice: PendingEffectChoice) => void }) {
   return (
-    <div className="pending-confirm">
-      <button className="btn btn-primary" onClick={() => onResolve({ type: '', confirmed: true })}>
+    <Box sx={{ display: 'flex', gap: 1.5 }}>
+      <Button variant="contained" color="primary" onClick={() => onResolve({ type: '', confirmed: true })}>
         Yes
-      </button>
-      <button className="btn btn-secondary" onClick={() => onResolve({ type: '', confirmed: false })}>
+      </Button>
+      <Button variant="outlined" onClick={() => onResolve({ type: '', confirmed: false })}>
         No
-      </button>
-    </div>
+      </Button>
+    </Box>
   );
 }
 
@@ -192,9 +194,20 @@ export default function PendingEffectUI({
   }
 
   return (
-    <div className="pending-effect">
-      <div className="pending-label">{effectLabel(type)}</div>
+    <Paper
+      elevation={8}
+      sx={{
+        p: 3,
+        borderRadius: 3,
+        border: '2px solid',
+        borderColor: 'primary.main',
+        maxWidth: 600,
+      }}
+    >
+      <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+        {effectLabel(type)}
+      </Typography>
       {renderBody()}
-    </div>
+    </Paper>
   );
 }

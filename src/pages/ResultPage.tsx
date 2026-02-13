@@ -1,3 +1,4 @@
+import { Container, Box, Typography, Button, Paper, Fade } from '@mui/material';
 import { useGameStore } from '../stores/gameStore';
 import { getGameResults } from '../domain/game';
 
@@ -10,21 +11,58 @@ export default function ResultPage() {
   const results = getGameResults(gameState);
 
   return (
-    <div className="result-page">
-      <h2>ゲーム結果</h2>
-      <div className="result-list">
-        {results.map((r, i) => (
-          <div key={r.playerId} className={`result-row ${i === 0 ? 'winner' : ''}`}>
-            <span className="result-rank">{i + 1}位</span>
-            <span className="result-name">{r.name}</span>
-            <span className="result-vp">{r.vp} VP</span>
-          </div>
-        ))}
-      </div>
-      <p className="result-turns">ターン数: {gameState.turnNumber}</p>
-      <button className="btn btn-primary" onClick={goToTitle}>
-        タイトルに戻る
-      </button>
-    </div>
+    <Fade in timeout={600}>
+      <Container maxWidth="sm">
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '60vh',
+            gap: 2,
+            py: 4,
+          }}
+        >
+          <Typography variant="h4" gutterBottom>
+            ゲーム結果
+          </Typography>
+
+          <Box sx={{ width: '100%' }}>
+            {results.map((r, i) => (
+              <Paper
+                key={r.playerId}
+                elevation={i === 0 ? 4 : 1}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  p: 2,
+                  mb: 1,
+                  ...(i === 0 && {
+                    borderLeft: '4px solid',
+                    borderColor: 'primary.main',
+                  }),
+                }}
+              >
+                <Typography fontWeight="bold">{i + 1}位</Typography>
+                <Typography sx={{ flex: 1, ml: 2 }}>{r.name}</Typography>
+                <Typography fontWeight="bold" color="success.main">
+                  {r.vp} VP
+                </Typography>
+              </Paper>
+            ))}
+          </Box>
+
+          <Typography variant="body2" color="text.secondary">
+            ターン数: {gameState.turnNumber}
+          </Typography>
+
+          <Button variant="contained" onClick={goToTitle}>
+            タイトルに戻る
+          </Button>
+        </Box>
+      </Container>
+    </Fade>
   );
 }

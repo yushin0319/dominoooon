@@ -1,3 +1,4 @@
+import { Box } from '@mui/material';
 import type { CardInstance } from '../types';
 import CardView from './CardView';
 
@@ -10,7 +11,17 @@ interface HandProps {
 
 export default function Hand({ hand, onPlay, canPlay, selectedCards }: HandProps) {
   return (
-    <div className="hand-area">
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 1,
+        justifyContent: 'center',
+        p: 1,
+        borderRadius: 2,
+        bgcolor: 'rgba(255,255,255,0.03)',
+      }}
+    >
       {hand.map((card) => (
         <CardView
           key={card.instanceId}
@@ -19,6 +30,6 @@ export default function Hand({ hand, onPlay, canPlay, selectedCards }: HandProps
           onClick={canPlay && onPlay ? () => onPlay(card.instanceId) : undefined}
         />
       ))}
-    </div>
+    </Box>
   );
 }

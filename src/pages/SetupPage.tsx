@@ -1,4 +1,8 @@
 import { useState, useMemo } from 'react';
+import {
+  Container, Box, Typography, Button, Paper, Grid,
+  Radio, RadioGroup, FormControlLabel, FormControl, FormLabel,
+} from '@mui/material';
 import { useGameStore } from '../stores/gameStore';
 import { CARD_DEFS } from '../domain/card';
 import { CardType } from '../types';
@@ -53,63 +57,69 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="setup-page">
-      <h2>ゲーム設定</h2>
+    <Container maxWidth="md" sx={{ py: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        ゲーム設定
+      </Typography>
 
-      <section className="setup-section">
-        <h3>AI戦略</h3>
-        <div className="ai-strategy-options">
-          <label className={`strategy-option ${aiStrategy === 'bigMoney' ? 'active' : ''}`}>
-            <input
-              type="radio"
-              name="ai"
-              value="bigMoney"
-              checked={aiStrategy === 'bigMoney'}
-              onChange={() => setAIStrategy('bigMoney')}
-            />
-            Big Money
-          </label>
-          <label className={`strategy-option ${aiStrategy === 'bigMoneySmithy' ? 'active' : ''}`}>
-            <input
-              type="radio"
-              name="ai"
-              value="bigMoneySmithy"
-              checked={aiStrategy === 'bigMoneySmithy'}
-              onChange={() => setAIStrategy('bigMoneySmithy')}
-            />
-            Big Money + Smithy
-          </label>
-        </div>
-      </section>
+      <Box sx={{ mb: 3 }}>
+        <FormControl>
+          <FormLabel>AI戦略</FormLabel>
+          <RadioGroup
+            row
+            value={aiStrategy}
+            onChange={(e) => setAIStrategy(e.target.value as 'bigMoney' | 'bigMoneySmithy')}
+          >
+            <FormControlLabel value="bigMoney" control={<Radio />} label="Big Money" />
+            <FormControlLabel value="bigMoneySmithy" control={<Radio />} label="Big Money + Smithy" />
+          </RadioGroup>
+        </FormControl>
+      </Box>
 
-      <section className="setup-section">
-        <h3>
-          キングダムカード ({selected.size}/10)
-          <button className="btn btn-small" onClick={handleRandom}>ランダム</button>
-        </h3>
-        <div className="kingdom-grid">
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Typography variant="h6">
+            キングダムカード ({selected.size}/10)
+          </Typography>
+          <Button variant="outlined" size="small" onClick={handleRandom}>
+            ランダム
+          </Button>
+        </Box>
+        <Grid container spacing={1}>
           {KINGDOM_CARDS.map((card) => (
-            <div
-              key={card.name}
-              className={`kingdom-pick ${selected.has(card.name) ? 'picked' : ''}`}
-              onClick={() => toggleCard(card.name)}
-            >
-              <CardView card={card} small selected={selected.has(card.name)} />
-            </div>
+            <Grid size={{ xs: 4, sm: 3, md: 2 }} key={card.name}>
+              <Paper
+                elevation={selected.has(card.name) ? 4 : 0}
+                onClick={() => toggleCard(card.name)}
+                sx={{
+                  p: 0.5,
+                  cursor: 'pointer',
+                  opacity: selected.has(card.name) ? 1 : 0.4,
+                  border: selected.has(card.name) ? '2px solid' : '2px solid transparent',
+                  borderColor: selected.has(card.name) ? 'primary.main' : 'transparent',
+                  transition: 'all 0.15s',
+                  '&:hover': { opacity: 0.8 },
+                }}
+              >
+                <CardView card={card} small selected={selected.has(card.name)} />
+              </Paper>
+            </Grid>
           ))}
-        </div>
-      </section>
+        </Grid>
+      </Box>
 
-      <div className="setup-actions">
-        <button className="btn" onClick={goToTitle}>戻る</button>
-        <button
-          className="btn btn-primary"
+      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+        <Button variant="outlined" onClick={goToTitle}>
+          戻る
+        </Button>
+        <Button
+          variant="contained"
           onClick={handleStart}
           disabled={selected.size !== 10}
         >
           対戦開始
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Box>
+    </Container>
   );
 }

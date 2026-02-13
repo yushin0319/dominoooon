@@ -1,3 +1,4 @@
+import { Box, Grid, Divider, Button } from '@mui/material';
 import { useGameStore } from '../stores/gameStore';
 import { Phase, CardType } from '../types';
 import { getCurrentPlayer } from '../domain/game';
@@ -51,18 +52,18 @@ export default function GamePage() {
   }
 
   return (
-    <div className="game-page">
-      <div className="game-top">
-        <SupplyArea
-          supply={gameState.supply}
-          onBuy={canBuyCards ? buyCard : undefined}
-          canBuy={canBuyCards}
-          maxCost={canBuyCards ? gameState.turnState.coins : undefined}
-        />
-      </div>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: { xs: 1, md: 2 } }}>
+      <SupplyArea
+        supply={gameState.supply}
+        onBuy={canBuyCards ? buyCard : undefined}
+        canBuy={canBuyCards}
+        maxCost={canBuyCards ? gameState.turnState.coins : undefined}
+      />
 
-      <div className="game-middle">
-        <div className="game-middle-left">
+      <Divider sx={{ my: 1 }} />
+
+      <Grid container spacing={1}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <PlayArea cards={currentPlayer.playArea} />
           <TurnInfo
             turnState={gameState.turnState}
@@ -70,48 +71,58 @@ export default function GamePage() {
             turnNumber={gameState.turnNumber}
             currentPlayer={currentPlayer.name}
           />
-          <div className="action-buttons">
+          <Box sx={{ display: 'flex', gap: 1, py: 1 }}>
             {humanTurn && gameState.phase === Phase.Action && !gameState.pendingEffect && (
-              <button className="btn" onClick={skipAction}>
+              <Button variant="outlined" onClick={skipAction}>
                 アクションスキップ
-              </button>
+              </Button>
             )}
             {humanTurn && gameState.phase === Phase.Buy && !gameState.pendingEffect && (
-              <button className="btn" onClick={skipBuy}>
+              <Button variant="outlined" onClick={skipBuy}>
                 購入スキップ
-              </button>
+              </Button>
             )}
             {aiTurn && (
-              <button className="btn btn-primary" onClick={executeAITurn}>
+              <Button variant="contained" onClick={executeAITurn}>
                 AIターン実行
-              </button>
+              </Button>
             )}
-          </div>
-        </div>
+          </Box>
+        </Grid>
 
-        <div className="game-middle-right">
+        <Grid size={{ xs: 12, md: 4 }}>
           <GameLog log={gameState.log} />
-        </div>
-      </div>
+        </Grid>
+      </Grid>
 
-      <div className="game-bottom">
-        <Hand
-          hand={humanPlayer.hand}
-          onPlay={canPlayActions ? handlePlayCard : undefined}
-          canPlay={canPlayActions}
-        />
-      </div>
+      <Divider sx={{ my: 1 }} />
+
+      <Hand
+        hand={humanPlayer.hand}
+        onPlay={canPlayActions ? handlePlayCard : undefined}
+        canPlay={canPlayActions}
+      />
 
       {gameState.pendingEffect && humanTurn && (
-        <div className="pending-overlay">
+        <Box
+          sx={{
+            position: 'fixed',
+            inset: 0,
+            bgcolor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1300,
+          }}
+        >
           <PendingEffectUI
             pendingEffect={gameState.pendingEffect}
             hand={humanPlayer.hand}
             supply={gameState.supply}
             onResolve={resolvePending}
           />
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
