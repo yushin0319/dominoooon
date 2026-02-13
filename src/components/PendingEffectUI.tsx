@@ -16,20 +16,20 @@ interface PendingEffectUIProps {
 
 function effectLabel(type: string): string {
   const labels: Record<string, string> = {
-    cellar: 'Cellar: Discard any number of cards, then draw that many.',
-    chapel: 'Chapel: Trash up to 4 cards from your hand.',
-    workshop: 'Workshop: Gain a card costing up to 4.',
-    remodel: 'Remodel: Choose a card.',
-    mine: 'Mine: Choose a Treasure to trash.',
-    artisan: 'Artisan: Choose a card.',
-    militia: 'Militia: Discard down to 3 cards.',
-    throneRoom: 'Throne Room: Choose an Action card to play twice.',
-    poacher: 'Poacher: Discard cards.',
-    harbinger: 'Harbinger: Put a card from discard on top of deck.',
-    vassal: 'Vassal: Play the revealed Action card?',
-    sentry: 'Sentry: Choose cards to trash.',
+    cellar: '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
+    chapel: '礼拝堂: 手札から最大4枚を廃棄する。',
+    workshop: '工房: コスト4以下のカードを1枚獲得する。',
+    remodel: '改築: カードを選んでください。',
+    mine: '鉱山: 廃棄する財宝カードを選んでください。',
+    artisan: '職人: カードを選んでください。',
+    militia: '民兵: 手札が3枚になるまで捨てる。',
+    throneRoom: '玉座の間: 2回プレイするアクションを選ぶ。',
+    poacher: '密猟者: カードを捨てる。',
+    harbinger: '先触れ: 捨て札からデッキの上に置くカードを選ぶ。',
+    vassal: '家臣: めくったアクションカードをプレイしますか？',
+    sentry: '歩哨: 廃棄するカードを選ぶ。',
   };
-  return labels[type] ?? `Resolve: ${type}`;
+  return labels[type] ?? `解決: ${type}`;
 }
 
 function CardSelectUI({
@@ -74,7 +74,7 @@ function CardSelectUI({
         variant="contained"
         onClick={() => onResolve({ type: '', selectedCards: [...selected] })}
       >
-        Confirm
+        確定
       </Button>
     </Box>
   );
@@ -111,10 +111,10 @@ function ConfirmUI({ onResolve }: { onResolve: (choice: PendingEffectChoice) => 
   return (
     <Box sx={{ display: 'flex', gap: 1.5 }}>
       <Button variant="contained" color="primary" onClick={() => onResolve({ type: '', confirmed: true })}>
-        Yes
+        はい
       </Button>
       <Button variant="outlined" onClick={() => onResolve({ type: '', confirmed: false })}>
-        No
+        いいえ
       </Button>
     </Box>
   );

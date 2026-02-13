@@ -29,6 +29,7 @@ export interface CardEffect {
 
 export interface CardDef {
   name: string;
+  nameJa: string;
   cost: number;
   types: CardType[];
   effects: CardEffect;

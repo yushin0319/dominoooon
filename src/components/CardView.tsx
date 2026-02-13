@@ -24,12 +24,20 @@ function getBorderColor(types: CardType[]): string {
 function effectText(def: CardDef): string {
   const parts: string[] = [];
   const e = def.effects;
-  if (e.cards) parts.push(`+${e.cards} Card${e.cards > 1 ? 's' : ''}`);
-  if (e.actions) parts.push(`+${e.actions} Action${e.actions > 1 ? 's' : ''}`);
-  if (e.buys) parts.push(`+${e.buys} Buy${e.buys > 1 ? 's' : ''}`);
-  if (e.coins) parts.push(`+${e.coins} Coin${e.coins > 1 ? 's' : ''}`);
+  if (e.cards) parts.push(`+${e.cards} ドロー`);
+  if (e.actions) parts.push(`+${e.actions} アクション`);
+  if (e.buys) parts.push(`+${e.buys} 購入`);
+  if (e.coins) parts.push(`+${e.coins} コイン`);
   if (def.vpValue !== undefined) parts.push(`${def.vpValue} VP`);
-  return parts.join(', ');
+  return parts.join('、');
+}
+
+function typeNameJa(type: CardType): string {
+  const map: Record<string, string> = {
+    Action: 'アクション', Treasure: '財宝', Victory: '勝利点',
+    Curse: '呪い', Attack: 'アタック', Reaction: 'リアクション',
+  };
+  return map[type] ?? type;
 }
 
 export default function CardView({ card, onClick, selected, small }: CardViewProps) {
@@ -64,7 +72,7 @@ export default function CardView({ card, onClick, selected, small }: CardViewPro
           variant={small ? 'caption' : 'body2'}
           sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
         >
-          {def.name}
+          {def.nameJa}
         </Typography>
         <Box
           sx={{
@@ -87,7 +95,7 @@ export default function CardView({ card, onClick, selected, small }: CardViewPro
       {!small && (
         <>
           <Typography variant="caption" sx={{ color: borderColor, display: 'block', mt: 0.5 }}>
-            {def.types.join(' / ')}
+            {def.types.map(typeNameJa).join(' / ')}
           </Typography>
           {effects && (
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>

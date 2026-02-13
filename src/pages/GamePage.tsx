@@ -1,13 +1,19 @@
-import { Box, Grid, Divider, Button } from '@mui/material';
+import { useEffect, useState } from 'react';
+import {
+  Box, Grid, Divider, Button, Typography,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+} from '@mui/material';
 import { useGameStore } from '../stores/gameStore';
 import { Phase, CardType } from '../types';
 import { getCurrentPlayer } from '../domain/game';
+import { getCardDef } from '../domain/card';
 import SupplyArea from '../components/SupplyArea';
 import Hand from '../components/Hand';
 import PlayArea from '../components/PlayArea';
 import TurnInfo from '../components/TurnInfo';
 import GameLog from '../components/GameLog';
 import PendingEffectUI from '../components/PendingEffectUI';
+import CardView from '../components/CardView';
 
 export default function GamePage() {
   const gameState = useGameStore((s) => s.gameState);
@@ -20,6 +26,21 @@ export default function GamePage() {
   const isHumanTurn = useGameStore((s) => s.isHumanTurn);
   const isAITurn = useGameStore((s) => s.isAITurn);
   const goToResult = useGameStore((s) => s.goToResult);
+
+  const [buyTarget, setBuyTarget] = useState<string | null>(null);
+  const [playTarget, setPlayTarget] = useState<string | null>(null);
+
+  // AI自動実行
+  useEffect(() => {
+    if (!gameState || gameState.gameOver || gameState.pendingEffect) return;
+    if (!isAITurn()) return;
+
+    const timer = setTimeout(() => {
+      executeAITurn();
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [gameState, executeAITurn, isAITurn]);
 
   if (!gameState) return null;
 
@@ -48,14 +69,14 @@ export default function GamePage() {
   function handlePlayCard(instanceId: string) {
     const card = humanPlayer.hand.find((c) => c.instanceId === instanceId);
     if (!card || !card.def.types.includes(CardType.Action)) return;
-    playAction(instanceId);
+    setPlayTarget(instanceId);
   }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: { xs: 1, md: 2 } }}>
       <SupplyArea
         supply={gameState.supply}
-        onBuy={canBuyCards ? buyCard : undefined}
+        onBuy={canBuyCards ? (cardName: string) => setBuyTarget(cardName) : undefined}
         canBuy={canBuyCards}
         maxCost={canBuyCards ? gameState.turnState.coins : undefined}
       />
@@ -83,9 +104,9 @@ export default function GamePage() {
               </Button>
             )}
             {aiTurn && (
-              <Button variant="contained" onClick={executeAITurn}>
-                AIターン実行
-              </Button>
+              <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+                AIが考えています...
+              </Typography>
             )}
           </Box>
         </Grid>
@@ -123,6 +144,53 @@ export default function GamePage() {
           />
         </Box>
       )}
+
+      {buyTarget && (() => {
+        const cardDef = getCardDef(buyTarget);
+        return (
+          <Dialog open onClose={() => setBuyTarget(null)}>
+            <DialogTitle>{cardDef.nameJa ?? cardDef.name}</DialogTitle>
+            <DialogContent>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                <CardView card={cardDef} />
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                コスト: {cardDef.cost} コイン
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                種別: {cardDef.types.join(' / ')}
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setBuyTarget(null)}>やめる</Button>
+              <Button variant="contained" onClick={() => { buyCard(buyTarget); setBuyTarget(null); }}>
+                購入する
+              </Button>
+            </DialogActions>
+          </Dialog>
+        );
+      })()}
+
+      {playTarget && (() => {
+        const card = humanPlayer.hand.find((c) => c.instanceId === playTarget);
+        if (!card) return null;
+        return (
+          <Dialog open onClose={() => setPlayTarget(null)}>
+            <DialogTitle>{card.def.nameJa ?? card.def.name}</DialogTitle>
+            <DialogContent>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                <CardView card={card} />
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setPlayTarget(null)}>やめる</Button>
+              <Button variant="contained" onClick={() => { playAction(playTarget); setPlayTarget(null); }}>
+                プレイする
+              </Button>
+            </DialogActions>
+          </Dialog>
+        );
+      })()}
     </Box>
   );
 }

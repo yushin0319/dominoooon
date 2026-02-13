@@ -10,6 +10,7 @@ import type { CardInstance, CardDef, CardType, ShuffleFn } from "../../types";
 function makeCard(id: string): CardInstance {
   const def: CardDef = {
     name: `Card_${id}`,
+    nameJa: `カード_${id}`,
     cost: 0,
     types: [] as CardType[],
     effects: {},
