@@ -1,8 +1,9 @@
 import type { GameState, PlayerState, ShuffleFn } from '../types';
 import { Phase } from '../types';
-import { getCurrentPlayer, endTurn } from '../domain/game';
+import { addLog, getCurrentPlayer, endTurn } from '../domain/game';
 import { playActionCard, buyCard, advancePhase, canBuy } from '../domain/turn';
 import { getSupplyPile } from '../domain/supply';
+import { getCardDef } from '../domain/card';
 import { createShuffleFn } from '../domain/shuffle';
 import { getAllCards } from '../domain/player';
 
@@ -30,6 +31,7 @@ export function bigMoneySmithyAction(
 
     if (smithy && s.turnState.actions > 0) {
       s = playActionCard(s, smithy.instanceId, shuffleFn);
+      s = addLog(s, `AIが鍛冶屋をプレイ`);
     }
 
     // Advance to Buy phase (auto-plays treasures)
@@ -76,6 +78,7 @@ export function bigMoneySmithyBuy(state: GameState): GameState {
     const cardName = decideBuy(s);
     if (!cardName) break;
     s = buyCard(s, cardName);
+    s = addLog(s, `AIが${getCardDef(cardName).nameJa}を購入`);
   }
 
   return s;
@@ -88,7 +91,8 @@ export function bigMoneySmithyTurn(
   state: GameState,
   shuffleFn: ShuffleFn = defaultShuffle,
 ): GameState {
-  let s = bigMoneySmithyAction(state, shuffleFn);
+  let s = addLog(state, `--- ターン${state.turnNumber}: AIのターン ---`);
+  s = bigMoneySmithyAction(s, shuffleFn);
   s = bigMoneySmithyBuy(s);
   s = endTurn(s, shuffleFn);
   return s;

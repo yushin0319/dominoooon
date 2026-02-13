@@ -1,8 +1,9 @@
 import type { GameState, ShuffleFn } from '../types';
 import { Phase } from '../types';
 import { advancePhase, buyCard } from '../domain/turn';
-import { endTurn } from '../domain/game';
+import { addLog, endTurn } from '../domain/game';
 import { getSupplyPile } from '../domain/supply';
+import { getCardDef } from '../domain/card';
 import { createShuffleFn } from '../domain/shuffle';
 
 const defaultShuffle = createShuffleFn();
@@ -52,6 +53,7 @@ export function bigMoneyBuy(state: GameState): GameState {
     const cardName = chooseBuy(current);
     if (!cardName) break;
     current = buyCard(current, cardName);
+    current = addLog(current, `AIが${getCardDef(cardName).nameJa}を購入`);
   }
 
   return current;
@@ -64,7 +66,8 @@ export function bigMoneyTurn(
   state: GameState,
   shuffleFn: ShuffleFn = defaultShuffle,
 ): GameState {
-  let current = bigMoneyAction(state, shuffleFn);
+  let current = addLog(state, `--- ターン${state.turnNumber}: AIのターン ---`);
+  current = bigMoneyAction(current, shuffleFn);
   current = bigMoneyBuy(current);
   current = endTurn(current, shuffleFn);
   return current;
