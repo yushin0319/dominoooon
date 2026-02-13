@@ -42,6 +42,32 @@ export default function GamePage() {
     return () => clearTimeout(timer);
   }, [gameState, executeAITurn, isAITurn]);
 
+  // AI対象のpendingEffect自動解決（民兵等の攻撃カード）
+  useEffect(() => {
+    if (!gameState || !gameState.pendingEffect) return;
+    const humanId = gameState.players[0].id;
+    if (gameState.pendingEffect.playerId === humanId) return; // 人間対象なら手動解決
+
+    const timer = setTimeout(() => {
+      const targetPlayer = gameState.players.find(
+        (p) => p.id === gameState.pendingEffect!.playerId,
+      );
+      if (!targetPlayer) return;
+
+      // 民兵: 手札が3枚以下になるまで末尾から捨てる
+      if (gameState.pendingEffect!.type === 'militia') {
+        const excess = targetPlayer.hand.length - 3;
+        const toDiscard = targetPlayer.hand.slice(-excess).map((c) => c.instanceId);
+        resolvePending({ selectedCards: toDiscard });
+      } else {
+        // その他のpendingEffect: 空選択で解決
+        resolvePending({ selectedCards: [] });
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [gameState, resolvePending]);
+
   if (!gameState) return null;
 
   if (gameState.gameOver) {
@@ -124,7 +150,7 @@ export default function GamePage() {
         canPlay={canPlayActions}
       />
 
-      {gameState.pendingEffect && humanTurn && (
+      {gameState.pendingEffect && gameState.pendingEffect.playerId === humanPlayer.id && (
         <Box
           sx={{
             position: 'fixed',
