@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../stores/gameStore';
-import { Phase, CardType, GameState } from '../types';
+import { Phase, CardType } from '../types';
+import type { GameState } from '../types';
 import { getCurrentPlayer } from '../domain/game';
 import { getCardDef } from '../domain/card';
 import SupplyArea from '../components/SupplyArea';
@@ -10,7 +11,6 @@ import TurnInfo from '../components/TurnInfo';
 import GameLog from '../components/GameLog';
 import PendingEffectUI from '../components/PendingEffectUI';
 import CardView from '../components/CardView';
-import { Snackbar, CircularProgress } from '@mui/material';
 
 // Timing constants
 const AI_TURN_DELAY_MS = 400;
@@ -62,6 +62,13 @@ export default function GamePage() {
       setPrevPhase(gameState.phase);
     }
   }, [gameState, prevPhase, isHumanTurn]);
+
+  // Auto-dismiss phase notification
+  useEffect(() => {
+    if (!phaseNotification) return;
+    const timer = setTimeout(() => setPhaseNotification(null), 2500);
+    return () => clearTimeout(timer);
+  }, [phaseNotification]);
 
   // Unified game flow state machine
   useEffect(() => {
@@ -181,7 +188,7 @@ export default function GamePage() {
                 )}
                 {aiTurn && (
                   <div className="flex items-center gap-2 py-2">
-                    <CircularProgress size={20} sx={{ color: '#94a3b8' }} />
+                    <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
                     <p className="text-sm text-slate-400">
                       AIが考えています...
                     </p>
@@ -297,22 +304,11 @@ export default function GamePage() {
       })()}
 
       {/* Phase transition notification */}
-      <Snackbar
-        open={phaseNotification !== null}
-        autoHideDuration={2500}
-        onClose={() => setPhaseNotification(null)}
-        message={phaseNotification}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        sx={{
-          '& .MuiSnackbarContent-root': {
-            backgroundColor: '#1e293b',
-            color: '#f1f5f9',
-            border: '1px solid #475569',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-          },
-        }}
-      />
+      {phaseNotification && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-800 text-slate-100 text-sm font-medium border border-slate-600 rounded shadow-lg animate-fade-in">
+          {phaseNotification}
+        </div>
+      )}
     </div>
   );
 }
