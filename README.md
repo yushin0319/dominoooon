@@ -1,73 +1,142 @@
-# React + TypeScript + Vite
+# Dominoooon
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ドミニオン基本第二版のWebゲーム実装（人間 vs AI）
 
-Currently, two official plugins are available:
+## 概要
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+このプロジェクトは、カードゲーム「ドミニオン（基本第二版）」をブラウザでプレイできるWebアプリケーションです。プレイヤーは2種類のAI戦略から相手を選び、対戦することができます。
 
-## React Compiler
+## 実装状況
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Phase 1-6 完了**
+- **実装カード数**: 29種類（王国カード）+ 7種類（基本カード）
+- **AI戦略**: 2種類（Big Money、Big Money + Smithy）
+- **テスト数**: 247テスト（ドメインロジック + ストア + AI）
+- **UI**: Material-UI ベースのモダンなデザイン
+- **日本語対応**: カード名・効果説明が日本語
 
-## Expanding the ESLint configuration
+## 技術スタック
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **言語**: TypeScript 5.9
+- **フレームワーク**: React 19.2
+- **ビルドツール**: Vite 7.3
+- **状態管理**: Zustand 5.0
+- **UIライブラリ**: Material-UI (MUI)
+- **スタイリング**: Tailwind CSS 3.4 + class-variance-authority
+- **アニメーション**: Framer Motion 11.18
+- **テスト**: Vitest 4.0 + @testing-library/react
+- **その他**: Lucide React (アイコン)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## ディレクトリ構造
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── domain/              # ゲームロジック（純粋関数、React非依存）
+│   ├── card.ts          # カード定義
+│   ├── effect.ts        # カード効果解決エンジン
+│   ├── game.ts          # ゲーム状態管理
+│   ├── turn.ts          # ターン進行・フェーズ管理
+│   ├── player.ts        # プレイヤー操作
+│   ├── supply.ts        # サプライ管理
+│   └── shuffle.ts       # シャッフル処理
+├── components/          # Reactコンポーネント
+│   ├── ErrorBoundary.tsx
+│   ├── PendingEffectUI.tsx
+│   ├── CardView.tsx
+│   └── ...
+├── pages/               # ページレベルコンポーネント
+│   ├── TitlePage.tsx
+│   ├── SetupPage.tsx
+│   ├── GamePage.tsx
+│   └── ResultPage.tsx
+├── stores/              # Zustand ストア
+│   └── gameStore.ts
+├── ai/                  # AI戦略
+│   ├── bigMoney.ts
+│   └── bigMoneySmithy.ts
+├── types/               # TypeScript型定義
+│   └── index.ts
+├── lib/                 # ユーティリティ関数
+│   └── utils.ts
+└── assets/              # 静的アセット
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## セットアップ
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 前提条件
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js 18以上
+
+### インストール
+
+```bash
+npm install
 ```
+
+### 開発サーバー起動
+
+```bash
+npm run dev
+```
+
+ブラウザで `http://localhost:5173` を開いてください。
+
+### ビルド
+
+```bash
+npm run build
+```
+
+ビルド成果物は `dist/` ディレクトリに生成されます。
+
+### プレビュー
+
+```bash
+npm run preview
+```
+
+ビルド後のアプリケーションをローカルでプレビューできます。
+
+## テスト
+
+### 全テスト実行
+
+```bash
+npm test
+```
+
+### テスト（ウォッチモード）
+
+```bash
+npx vitest
+```
+
+### テストカバレッジ
+
+```bash
+npx vitest run --coverage
+```
+
+## Lint
+
+```bash
+npm run lint
+```
+
+## 開発方針
+
+### アーキテクチャ
+
+- **ドメイン駆動設計**: `src/domain/` はReactから完全に独立した純粋関数群
+- **不変性**: すべての状態更新は新しいオブジェクトを返す（イミュータブル）
+- **型安全**: TypeScript strict mode で型チェックを厳格化
+
+### テスト戦略
+
+- ドメインロジック（ゲームルール）は100%カバレッジを目指す
+- React コンポーネントは主要な UI フローをテスト
+- AI 戦略は基本動作を検証
+
+## ライセンス
+
+このプロジェクトは個人的な学習・研究目的で作成されています。

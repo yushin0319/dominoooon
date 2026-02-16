@@ -56,7 +56,11 @@ function CardSelectUI({
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 mb-4">
+      <p className="text-slate-300 text-sm mb-3">
+        カードをクリックして選択してください
+        {maxSelect && ` (最大${maxSelect}枚)`}
+      </p>
+      <div className="flex flex-wrap gap-2 mb-3">
         {hand.map((c) => (
           <CardView
             key={c.instanceId}
@@ -66,12 +70,17 @@ function CardSelectUI({
           />
         ))}
       </div>
-      <button
-        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors"
-        onClick={() => onResolve({ type: '', selectedCards: [...selected] })}
-      >
-        確定
-      </button>
+      <div className="flex items-center justify-between">
+        <span className="text-slate-400 text-sm">
+          選択中: {selected.size}枚
+        </span>
+        <button
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors"
+          onClick={() => onResolve({ type: '', selectedCards: [...selected] })}
+        >
+          確定
+        </button>
+      </div>
     </div>
   );
 }
@@ -90,15 +99,21 @@ function SupplySelectUI({
   );
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {available.map((p) => (
-        <CardView
-          key={p.card.name}
-          card={p.card}
-          small
-          onClick={() => onResolve({ type: '', selectedCardName: p.card.name })}
-        />
-      ))}
+    <div>
+      <p className="text-slate-300 text-sm mb-3">
+        獲得するカードをクリックしてください
+        {maxCost !== undefined && ` (コスト${maxCost}以下)`}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {available.map((p) => (
+          <CardView
+            key={p.card.name}
+            card={p.card}
+            small
+            onClick={() => onResolve({ type: '', selectedCardName: p.card.name })}
+          />
+        ))}
+      </div>
     </div>
   );
 }
