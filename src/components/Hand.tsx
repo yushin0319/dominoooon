@@ -14,7 +14,13 @@ export default function Hand({ hand, onPlay, canPlay, selectedCards }: HandProps
   const totalCards = hand.length;
 
   return (
-    <div className="relative flex items-end justify-center p-2 rounded-xl bg-white/5 min-h-[200px]">
+    <div className="relative flex flex-col items-center justify-end p-2 rounded-xl bg-white/5 min-h-[200px]">
+      {/* Help text for card interaction */}
+      {canPlay && onPlay && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-slate-400 dark:text-slate-500 font-medium">
+          カードをクリックしてプレイ
+        </div>
+      )}
       <div className="flex items-end justify-center">
         {hand.map((card, index) => {
           const centerIdx = (totalCards - 1) / 2;

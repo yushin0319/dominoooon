@@ -257,7 +257,10 @@ export const CARD_DEFS: Record<string, CardDef> = {
 export function getCardDef(name: string): CardDef {
   const def = CARD_DEFS[name];
   if (!def) {
-    throw new Error(`Unknown card: ${name}`);
+    const available = Object.keys(CARD_DEFS).join(', ');
+    throw new Error(
+      `Unknown card: "${name}". Available cards: ${available}`,
+    );
   }
   return def;
 }

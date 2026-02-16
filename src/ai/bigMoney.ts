@@ -1,3 +1,16 @@
+/**
+ * Naming Convention: AI Strategy Functions vs Domain Functions
+ *
+ * - bigMoneyAction, bigMoneyBuy, bigMoneyTurn: AI-specific strategy functions
+ *   These implement the "Big Money" strategy and are only called by AI agents.
+ *
+ * - playActionCard, buyCard, advancePhase: Domain functions (from turn.ts)
+ *   These are player-agnostic core game rules used by both human and AI.
+ *
+ * This naming distinction clarifies that AI strategy functions are higher-level
+ * decision-making logic, while domain functions are low-level game mechanics.
+ */
+
 import type { GameState, ShuffleFn } from '../types';
 import { Phase } from '../types';
 import { advancePhase, buyCard } from '../domain/turn';

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { PendingEffect, CardInstance, SupplyPile } from '../types';
 import type { PendingEffectChoice } from '../domain/effect';
+import { getEffectLabel } from '../constants/effectLabels';
 import CardView from './CardView';
 
 interface PendingEffectUIProps {
@@ -28,58 +29,49 @@ interface PendingEffectConfig {
   ) => JSX.Element;
 }
 
-const PENDING_EFFECT_CONFIGS: Record<string, PendingEffectConfig> = {
+const PENDING_EFFECT_CONFIGS: Record<string, Omit<PendingEffectConfig, 'title'>> = {
   cellar: {
-    title: '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
     selectionType: 'hand',
     multiSelect: true,
   },
   chapel: {
-    title: '礼拝堂: 手札から最大4枚を廃棄する。',
     selectionType: 'hand',
     multiSelect: true,
     maxSelect: 4,
   },
   workshop: {
-    title: '工房: コスト4以下のカードを1枚獲得する。',
     selectionType: 'supply',
     maxCost: 4,
   },
   militia: {
-    title: '民兵: 手札が3枚になるまで捨てる。',
     selectionType: 'hand',
     multiSelect: true,
   },
   poacher: {
-    title: '密猟者: カードを捨てる。',
     selectionType: 'hand',
     multiSelect: true,
   },
   throneRoom: {
-    title: '玉座の間: 2回プレイするアクションを選ぶ。',
     selectionType: 'hand',
     multiSelect: false,
     maxSelect: 1,
+    // Type assertion needed: CardType is enum but types array is string[]
     filterHand: (c) => c.def.types.includes('Action' as never),
   },
   harbinger: {
-    title: '先触れ: 捨て札からデッキの上に置くカードを選ぶ。',
     selectionType: 'hand',
     multiSelect: false,
     maxSelect: 1,
   },
   sentry: {
-    title: '歩哨: 廃棄するカードを選ぶ。',
     selectionType: 'hand',
     multiSelect: true,
   },
   vassal: {
-    title: '家臣: めくったアクションカードをプレイしますか？',
     selectionType: 'confirm',
   },
   // Multi-phase effects (require custom rendering)
   remodel: {
-    title: '改築: カードを選んでください。',
     selectionType: 'custom',
     customRenderer: (data, hand, supply, onResolve) => {
       const phase = data.phase as string | undefined;
@@ -98,13 +90,13 @@ const PENDING_EFFECT_CONFIGS: Record<string, PendingEffectConfig> = {
     },
   },
   mine: {
-    title: '鉱山: 廃棄する財宝カードを選んでください。',
     selectionType: 'custom',
     customRenderer: (data, hand, supply, onResolve) => {
       const phase = data.phase as string | undefined;
       if (phase === 'trash') {
         return (
           <CardSelectUI
+            // Type assertion needed: CardType enum vs string[] types
             hand={hand.filter((c) => c.def.types.includes('Treasure' as never))}
             multi={false}
             maxSelect={1}
@@ -115,6 +107,7 @@ const PENDING_EFFECT_CONFIGS: Record<string, PendingEffectConfig> = {
       const maxCost = ((data.trashedCost as number) ?? 0) + 3;
       return (
         <SupplySelectUI
+          // Type assertion needed: CardType enum vs string[] types
           supply={supply.filter((p) => p.card.types.includes('Treasure' as never))}
           maxCost={maxCost}
           onResolve={onResolve}
@@ -123,7 +116,6 @@ const PENDING_EFFECT_CONFIGS: Record<string, PendingEffectConfig> = {
     },
   },
   artisan: {
-    title: '職人: カードを選んでください。',
     selectionType: 'custom',
     customRenderer: (data, hand, supply, onResolve) => {
       const phase = data.phase as string | undefined;
@@ -136,12 +128,12 @@ const PENDING_EFFECT_CONFIGS: Record<string, PendingEffectConfig> = {
 };
 
 function getEffectConfig(type: string): PendingEffectConfig {
-  return (
-    PENDING_EFFECT_CONFIGS[type] ?? {
-      title: `解決: ${type}`,
-      selectionType: 'confirm',
-    }
-  );
+  const baseConfig = PENDING_EFFECT_CONFIGS[type];
+  return {
+    title: getEffectLabel(type),
+    selectionType: baseConfig?.selectionType ?? 'confirm',
+    ...baseConfig,
+  };
 }
 
 function CardSelectUI({

@@ -1,6 +1,18 @@
 import type { SupplyPile, CardDef, CardType } from '../types';
 import { CARD_DEFS } from './card';
 
+/**
+ * Design Decision: Supply Pile Direct Mutability
+ *
+ * Supply piles are directly mutable objects. This is acceptable for single-player games
+ * where there's no competitive advantage to manipulating state, and the simplified
+ * architecture reduces complexity without sacrificing correctness.
+ *
+ * For multiplayer in the future:
+ * - Server-side validation would be required regardless of client-side protection
+ * - Consider immutability patterns (Immer) or readonly wrappers if needed
+ */
+
 /** Number of victory/curse cards based on player count */
 function victoryCount(numPlayers: number): number {
   return numPlayers === 2 ? 8 : 12;
@@ -50,11 +62,11 @@ export function takeFromSupply(
 ): [SupplyPile[], CardDef] {
   const pileIndex = supply.findIndex((p) => p.card.name === cardName);
   if (pileIndex === -1) {
-    throw new Error(`Card not found in supply: ${cardName}`);
+    throw new Error(`サプライにカードが見つかりません: ${cardName}`);
   }
   const target = supply[pileIndex];
   if (target.count <= 0) {
-    throw new Error(`Supply pile is empty: ${cardName}`);
+    throw new Error(`サプライの山札が空です: ${cardName}`);
   }
 
   const newSupply = supply.map((p, i) =>

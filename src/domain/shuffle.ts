@@ -1,6 +1,17 @@
 import type { CardInstance, ShuffleFn } from "../types";
 
 /**
+ * Design Decision: Shuffle Dependency Injection
+ *
+ * This module uses DI pattern for testability:
+ * - Production: Uses cryptoRandom() with crypto.getRandomValues() for secure RNG
+ * - Tests: Can inject deterministic RNG (e.g., seeded Math.random) for reproducible tests
+ *
+ * While this adds abstraction, it's essential for unit testing card game logic
+ * where deterministic shuffles are needed to verify specific game scenarios.
+ */
+
+/**
  * Cryptographically secure random number generator.
  * Returns a random number in [0, 1) using crypto.getRandomValues().
  */

@@ -1,3 +1,7 @@
+// Function names are intentionally verbose for clarity in this domain-heavy module.
+// e.g., resolveMilitiaChoice clearly indicates it handles the Militia's pending choice resolution.
+// This verbosity improves code readability and reduces ambiguity in game logic.
+
 import type {
   GameState,
   PlayerState,

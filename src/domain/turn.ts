@@ -4,6 +4,7 @@ import { drawCards, playCard, discardHand, discardPlayArea, gainCard } from './p
 import { takeFromSupply } from './supply';
 import { resolveCustomEffect } from './effect';
 import { createShuffleFn } from './shuffle';
+import { getCardDef } from './card';
 
 const defaultShuffle = createShuffleFn();
 
@@ -59,10 +60,11 @@ export function playActionCard(
   const currentPlayer = state.players[state.currentPlayerIndex];
   const card = currentPlayer.hand.find((c) => c.instanceId === instanceId);
   if (!card) {
-    throw new Error(`Card ${instanceId} not found in hand`);
+    throw new Error(`手札にカードが見つかりません`);
   }
   if (!card.def.types.includes(CardType.Action)) {
-    throw new Error(`${card.def.name} is not an Action card`);
+    const cardName = card.def.nameJa ?? card.def.name;
+    throw new Error(`${cardName}はアクションカードではありません`);
   }
 
   const updatedPlayer = playCard(currentPlayer, instanceId);
@@ -134,11 +136,20 @@ export function autoPlayTreasures(state: GameState): GameState {
 }
 
 export function buyCard(state: GameState, cardName: string): GameState {
+  // Validate card name exists in card definitions
+  try {
+    getCardDef(cardName);
+  } catch (error) {
+    console.warn(`Invalid card name for buyCard: ${cardName}`);
+    return state; // Early return if card doesn't exist
+  }
+
   const [newSupply, cardDef] = takeFromSupply(state.supply, cardName);
 
   if (cardDef.cost > state.turnState.coins) {
+    const displayName = cardDef.nameJa ?? cardName;
     throw new Error(
-      `Not enough coins: have ${state.turnState.coins}, need ${cardDef.cost} for ${cardName}`,
+      `コインが足りません（所持: ${state.turnState.coins}、必要: ${cardDef.cost}）: ${displayName}`,
     );
   }
 
