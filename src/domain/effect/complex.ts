@@ -16,6 +16,7 @@ import {
 import { takeFromSupply } from '../supply';
 import { getCurrentPlayer, updateCurrentPlayer } from '../game';
 import type { PendingEffectChoice } from './types';
+import { resolveCustomEffect } from './index';
 
 // ===== Complex Card Effects =====
 
@@ -91,41 +92,6 @@ export function resolveSentry(
   };
 }
 
-export function resolvePoacherOrPending(
-  state: GameState,
-  card: CardInstance,
-): GameState {
-  const emptyPiles = getEmptyPileCount(state.supply);
-  if (emptyPiles === 0) return state;
-  const player = getCurrentPlayer(state);
-  if (player.hand.length === 0) return state;
-  return {
-    ...state,
-    pendingEffect: {
-      type: 'poacher',
-      sourceCard: card.def,
-      playerId: player.id,
-      data: { discardCount: emptyPiles },
-    },
-  };
-}
-
-export function resolveHarbingerOrPending(
-  state: GameState,
-  card: CardInstance,
-): GameState {
-  const player = getCurrentPlayer(state);
-  if (player.discard.length === 0) return state;
-  return {
-    ...state,
-    pendingEffect: {
-      type: 'harbinger',
-      sourceCard: card.def,
-      playerId: player.id,
-    },
-  };
-}
-
 export function createMinePending(state: GameState, card: CardInstance): GameState {
   const player = getCurrentPlayer(state);
   const hasTreasure = player.hand.some((c) =>
@@ -139,21 +105,6 @@ export function createMinePending(state: GameState, card: CardInstance): GameSta
       sourceCard: card.def,
       playerId: player.id,
       data: { phase: 'trash' },
-    },
-  };
-}
-
-export function resolveMilitia(state: GameState, card: CardInstance): GameState {
-  const targets = getAttackTargets(state);
-  const needsDiscard = targets.filter((i) => state.players[i].hand.length > 3);
-  if (needsDiscard.length === 0) return state;
-  return {
-    ...state,
-    pendingEffect: {
-      type: 'militia',
-      sourceCard: card.def,
-      playerId: state.players[needsDiscard[0]].id,
-      data: { targetIndices: needsDiscard, currentTargetIdx: 0 },
     },
   };
 }
@@ -178,56 +129,6 @@ export function createThroneRoomPending(
 }
 
 // ===== PendingEffect Resolvers =====
-
-export function resolveCellar(
-  state: GameState,
-  choice: PendingEffectChoice,
-  shuffleFn: ShuffleFn,
-): GameState {
-  const selected = choice.selectedCards || [];
-  let player = getCurrentPlayer(state);
-  for (const id of selected) {
-    player = discardCard(player, id);
-  }
-  player = drawCards(player, selected.length, shuffleFn);
-  return { ...updateCurrentPlayer(state, player), pendingEffect: null };
-}
-
-export function resolveChapel(
-  state: GameState,
-  choice: PendingEffectChoice,
-): GameState {
-  const selected = (choice.selectedCards || []).slice(0, 4);
-  let player = getCurrentPlayer(state);
-  let trash = [...state.trash];
-  for (const id of selected) {
-    const [updated, trashed] = trashCardFromHand(player, id);
-    player = updated;
-    trash.push(trashed);
-  }
-  return { ...updateCurrentPlayer(state, player), trash, pendingEffect: null };
-}
-
-export function resolveWorkshop(
-  state: GameState,
-  choice: PendingEffectChoice,
-): GameState {
-  if (!choice.selectedCardName) return { ...state, pendingEffect: null };
-  const [newSupply, cardDef] = takeFromSupply(
-    state.supply,
-    choice.selectedCardName,
-  );
-  if (cardDef.cost > 4) {
-    throw new Error(`Workshop: card cost must be <= 4, got ${cardDef.cost}`);
-  }
-  const player = getCurrentPlayer(state);
-  const updated = gainCard(player, cardDef);
-  return {
-    ...updateCurrentPlayer(state, updated),
-    supply: newSupply,
-    pendingEffect: null,
-  };
-}
 
 export function resolveRemodel(
   state: GameState,
@@ -420,42 +321,6 @@ export function resolveArtisan(
   return { ...state, pendingEffect: null };
 }
 
-export function resolveMilitiaChoice(
-  state: GameState,
-  choice: PendingEffectChoice,
-): GameState {
-  const data = state.pendingEffect!.data || {};
-  const targetIndices = data.targetIndices as number[];
-  const currentTargetIdx = data.currentTargetIdx as number;
-  const playerIdx = targetIndices[currentTargetIdx];
-  let player = state.players[playerIdx];
-
-  const selected = choice.selectedCards || [];
-  for (const id of selected) {
-    player = discardCard(player, id);
-  }
-
-  let result = updatePlayer(state, playerIdx, player);
-
-  // Check for more targets
-  const nextIdx = currentTargetIdx + 1;
-  if (nextIdx < targetIndices.length) {
-    const nextPlayerIdx = targetIndices[nextIdx];
-    if (result.players[nextPlayerIdx].hand.length > 3) {
-      return {
-        ...result,
-        pendingEffect: {
-          ...state.pendingEffect!,
-          playerId: result.players[nextPlayerIdx].id,
-          data: { ...data, currentTargetIdx: nextIdx },
-        },
-      };
-    }
-  }
-
-  return { ...result, pendingEffect: null };
-}
-
 export function resolveThroneRoom(
   state: GameState,
   choice: PendingEffectChoice,
@@ -530,41 +395,6 @@ export function resolveThroneRoom(
   }
 
   return result;
-}
-
-export function resolvePoacher(
-  state: GameState,
-  choice: PendingEffectChoice,
-): GameState {
-  const selected = choice.selectedCards || [];
-  let player = getCurrentPlayer(state);
-  for (const id of selected) {
-    player = discardCard(player, id);
-  }
-  return { ...updateCurrentPlayer(state, player), pendingEffect: null };
-}
-
-export function resolveHarbinger(
-  state: GameState,
-  choice: PendingEffectChoice,
-): GameState {
-  if (!choice.selectedCards || choice.selectedCards.length === 0) {
-    return { ...state, pendingEffect: null };
-  }
-  const player = getCurrentPlayer(state);
-  const cardId = choice.selectedCards[0];
-  const idx = player.discard.findIndex((c) => c.instanceId === cardId);
-  if (idx === -1) return { ...state, pendingEffect: null };
-
-  const card = player.discard[idx];
-  const newDiscard = [...player.discard];
-  newDiscard.splice(idx, 1);
-  const updated = {
-    ...player,
-    discard: newDiscard,
-    deck: [card, ...player.deck],
-  };
-  return { ...updateCurrentPlayer(state, updated), pendingEffect: null };
 }
 
 export function resolveVassalChoice(

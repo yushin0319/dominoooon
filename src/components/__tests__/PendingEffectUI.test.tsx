@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { EFFECT_LABELS, getEffectLabel } from '../../constants/effectLabels';
 
 // Basic smoke tests for PendingEffectUI component
 // Full integration tests with rendering can be added once jsdom + Tailwind CSS compatibility is resolved
@@ -6,33 +7,15 @@ import { describe, it, expect } from 'vitest';
 describe('PendingEffectUI', () => {
   it('effect label helper returns correct label for cellar', () => {
     // This test verifies the logic without rendering
-    const labels: Record<string, string> = {
-      cellar: '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
-      chapel: '礼拝堂: 手札から最大4枚を廃棄する。',
-      workshop: '工房: コスト4以下のカードを1枚獲得する。',
-    };
-
-    expect(labels['cellar']).toBe('地下貯蔵庫: 好きな枚数を捨て、同数ドローする。');
+    expect(EFFECT_LABELS['cellar']).toBe('地下貯蔵庫: 好きな枚数を捨て、同数ドローする。');
   });
 
   it('effect label helper returns correct label for chapel', () => {
-    const labels: Record<string, string> = {
-      cellar: '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
-      chapel: '礼拝堂: 手札から最大4枚を廃棄する。',
-      workshop: '工房: コスト4以下のカードを1枚獲得する。',
-    };
-
-    expect(labels['chapel']).toBe('礼拝堂: 手札から最大4枚を廃棄する。');
+    expect(EFFECT_LABELS['chapel']).toBe('礼拝堂: 手札から最大4枚を廃棄する。');
   });
 
   it('effect label helper returns correct label for workshop', () => {
-    const labels: Record<string, string> = {
-      cellar: '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
-      chapel: '礼拝堂: 手札から最大4枚を廃棄する。',
-      workshop: '工房: コスト4以下のカードを1枚獲得する。',
-    };
-
-    expect(labels['workshop']).toBe('工房: コスト4以下のカードを1枚獲得する。');
+    expect(EFFECT_LABELS['workshop']).toBe('工房: コスト4以下のカードを1枚獲得する。');
   });
 
   it('component exists and can be imported', async () => {

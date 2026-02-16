@@ -171,7 +171,7 @@ describe('executeAITurn', () => {
 });
 
 describe('game over', () => {
-  it('transitions to result page when game ends', () => {
+  it('sets gameOver flag when game ends', () => {
     useGameStore.getState().startGame(kingdom, 'bigMoney');
     // Empty Province pile to trigger game over
     const gs = useGameStore.getState().gameState!;
@@ -183,7 +183,9 @@ describe('game over', () => {
     });
 
     useGameStore.getState().skipBuy();
-    expect(useGameStore.getState().page).toBe('result');
+    // Store はページ遷移せず、gameOver フラグのみセット（GamePage の useEffect が遷移処理）
+    expect(useGameStore.getState().gameState?.gameOver).toBe(true);
+    expect(useGameStore.getState().page).toBe('game'); // ページ遷移は GamePage 側で行う
   });
 });
 

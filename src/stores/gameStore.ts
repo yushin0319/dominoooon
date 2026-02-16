@@ -119,11 +119,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
     const next = endTurn(gameState, shuffleFn);
-    if (next.gameOver) {
-      set({ gameState: next, page: 'result' });
-    } else {
-      set({ gameState: next });
-    }
+    // GamePage.tsx の useEffect が gameOver 検知してページ遷移を行う
+    set({ gameState: next });
   },
 
   resolvePending: (choice) => {
@@ -148,11 +145,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     const turnFn = aiStrategy === 'bigMoneySmithy' ? bigMoneySmithyTurn : bigMoneyTurn;
     const next = turnFn(gameState, shuffleFn);
-    if (next.gameOver) {
-      set({ gameState: next, page: 'result' });
-    } else {
-      set({ gameState: next });
-    }
+    // GamePage.tsx の useEffect が gameOver 検知してページ遷移を行う
+    set({ gameState: next });
   },
 
   isHumanTurn: () => {
