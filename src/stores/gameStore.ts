@@ -51,28 +51,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   playAction: (instanceId) => {
     const { gameState, shuffleFn } = get();
-    if (!gameState) return;
+    if (!gameState) {
+      console.warn('playAction called with no gameState');
+      return;
+    }
     const next = playActionCard(gameState, instanceId, shuffleFn);
     set({ gameState: next });
   },
 
   skipAction: () => {
     const { gameState, shuffleFn } = get();
-    if (!gameState) return;
+    if (!gameState) {
+      console.warn('skipAction called with no gameState');
+      return;
+    }
     const next = advancePhase(gameState, shuffleFn);
     set({ gameState: next });
   },
 
   buyCard: (cardName) => {
     const { gameState } = get();
-    if (!gameState) return;
+    if (!gameState) {
+      console.warn('buyCard called with no gameState');
+      return;
+    }
     const next = turnBuyCard(gameState, cardName);
     set({ gameState: next });
   },
 
   skipBuy: () => {
     const { gameState, shuffleFn } = get();
-    if (!gameState) return;
+    if (!gameState) {
+      console.warn('skipBuy called with no gameState');
+      return;
+    }
     const next = endTurn(gameState, shuffleFn);
     if (next.gameOver) {
       set({ gameState: next, page: 'result' });
@@ -83,14 +95,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   resolvePending: (choice) => {
     const { gameState, shuffleFn } = get();
-    if (!gameState || !gameState.pendingEffect) return;
+    if (!gameState) {
+      console.warn('resolvePending called with no gameState');
+      return;
+    }
+    if (!gameState.pendingEffect) {
+      console.warn('resolvePending called with no pendingEffect');
+      return;
+    }
     const next = resolvePendingEffect(gameState, choice, shuffleFn);
     set({ gameState: next });
   },
 
   executeAITurn: () => {
     const { gameState, aiStrategy, shuffleFn } = get();
-    if (!gameState) return;
+    if (!gameState) {
+      console.warn('executeAITurn called with no gameState');
+      return;
+    }
     const turnFn = aiStrategy === 'bigMoneySmithy' ? bigMoneySmithyTurn : bigMoneyTurn;
     const next = turnFn(gameState, shuffleFn);
     if (next.gameOver) {

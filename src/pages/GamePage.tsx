@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../stores/gameStore';
-import { Phase, CardType } from '../types';
+import { Phase, CardType, GameState } from '../types';
 import { getCurrentPlayer } from '../domain/game';
 import { getCardDef } from '../domain/card';
 import SupplyArea from '../components/SupplyArea';
@@ -10,6 +10,21 @@ import TurnInfo from '../components/TurnInfo';
 import GameLog from '../components/GameLog';
 import PendingEffectUI from '../components/PendingEffectUI';
 import CardView from '../components/CardView';
+
+// Timing constants
+const AI_TURN_DELAY_MS = 400;
+const EFFECT_RESOLVE_DELAY_MS = 400;
+
+// Game flow state machine
+type GameFlowState = 'player-turn' | 'ai-turn' | 'pending-effect' | 'game-over' | 'idle';
+
+function getGameFlowState(gameState: GameState | null, isAITurn: () => boolean): GameFlowState {
+  if (!gameState) return 'idle';
+  if (gameState.gameOver) return 'game-over';
+  if (gameState.pendingEffect) return 'pending-effect';
+  if (isAITurn()) return 'ai-turn';
+  return 'player-turn';
+}
 
 export default function GamePage() {
   const gameState = useGameStore((s) => s.gameState);
@@ -26,51 +41,53 @@ export default function GamePage() {
   const [buyTarget, setBuyTarget] = useState<string | null>(null);
   const [playTarget, setPlayTarget] = useState<string | null>(null);
 
-  // AI自動実行
+  // Unified game flow state machine
   useEffect(() => {
-    if (!gameState || gameState.gameOver || gameState.pendingEffect) return;
-    if (!isAITurn()) return;
+    const flowState = getGameFlowState(gameState, isAITurn);
 
-    const timer = setTimeout(() => {
-      executeAITurn();
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [gameState, executeAITurn, isAITurn]);
-
-  // AI対象のpendingEffect自動解決（民兵等の攻撃カード）
-  useEffect(() => {
-    if (!gameState || !gameState.pendingEffect) return;
-    const humanId = gameState.players[0].id;
-    if (gameState.pendingEffect.playerId === humanId) return; // 人間対象なら手動解決
-
-    const timer = setTimeout(() => {
-      const targetPlayer = gameState.players.find(
-        (p) => p.id === gameState.pendingEffect!.playerId,
-      );
-      if (!targetPlayer) return;
-
-      // 民兵: 手札が3枚以下になるまで末尾から捨てる
-      if (gameState.pendingEffect!.type === 'militia') {
-        const excess = targetPlayer.hand.length - 3;
-        const toDiscard = targetPlayer.hand.slice(-excess).map((c) => c.instanceId);
-        resolvePending({ type: gameState.pendingEffect!.type, selectedCards: toDiscard });
-      } else {
-        // その他のpendingEffect: 空選択で解決
-        resolvePending({ type: gameState.pendingEffect!.type, selectedCards: [] });
+    switch (flowState) {
+      case 'ai-turn': {
+        const timer = setTimeout(() => {
+          executeAITurn();
+        }, AI_TURN_DELAY_MS);
+        return () => clearTimeout(timer);
       }
-    }, 400);
 
-    return () => clearTimeout(timer);
-  }, [gameState, resolvePending]);
+      case 'pending-effect': {
+        if (!gameState || !gameState.pendingEffect) return;
+        const humanId = gameState.players[0].id;
+        if (gameState.pendingEffect.playerId === humanId) return; // 人間対象なら手動解決
 
-  // ゲーム終了時にリザルト画面へ遷移
-  useEffect(() => {
-    if (!gameState) return;
-    if (gameState.gameOver) {
-      goToResult();
+        const timer = setTimeout(() => {
+          const targetPlayer = gameState.players.find(
+            (p) => p.id === gameState.pendingEffect!.playerId,
+          );
+          if (!targetPlayer) return;
+
+          // 民兵: 手札が3枚以下になるまで末尾から捨てる
+          if (gameState.pendingEffect!.type === 'militia') {
+            const excess = targetPlayer.hand.length - 3;
+            const toDiscard = targetPlayer.hand.slice(-excess).map((c) => c.instanceId);
+            resolvePending({ type: gameState.pendingEffect!.type, selectedCards: toDiscard });
+          } else {
+            // その他のpendingEffect: 空選択で解決
+            resolvePending({ type: gameState.pendingEffect!.type, selectedCards: [] });
+          }
+        }, EFFECT_RESOLVE_DELAY_MS);
+        return () => clearTimeout(timer);
+      }
+
+      case 'game-over': {
+        goToResult();
+        return;
+      }
+
+      case 'player-turn':
+      case 'idle':
+      default:
+        return;
     }
-  }, [gameState, goToResult]);
+  }, [gameState, executeAITurn, isAITurn, resolvePending, goToResult]);
 
   if (!gameState) return null;
 

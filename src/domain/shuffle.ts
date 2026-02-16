@@ -1,15 +1,25 @@
 import type { CardInstance, ShuffleFn } from "../types";
 
 /**
+ * Cryptographically secure random number generator.
+ * Returns a random number in [0, 1) using crypto.getRandomValues().
+ */
+function cryptoRandom(): number {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return array[0] / (0xFFFFFFFF + 1);
+}
+
+/**
  * Fisher-Yates (Knuth) shuffle.
  * Returns a new shuffled array without mutating the original.
  *
  * @param array  - The array of CardInstance to shuffle
- * @param rng    - Optional random number generator returning [0, 1). Defaults to Math.random.
+ * @param rng    - Optional random number generator returning [0, 1). Defaults to cryptoRandom.
  */
 export function fisherYatesShuffle(
   array: CardInstance[],
-  rng: () => number = Math.random,
+  rng: () => number = cryptoRandom,
 ): CardInstance[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
@@ -22,7 +32,7 @@ export function fisherYatesShuffle(
 /**
  * Factory that returns a ShuffleFn.
  *
- * @param rng - Optional custom RNG. If omitted, uses Math.random.
+ * @param rng - Optional custom RNG. If omitted, uses cryptoRandom.
  */
 export function createShuffleFn(rng?: () => number): ShuffleFn {
   return (array: CardInstance[]) => fisherYatesShuffle(array, rng);

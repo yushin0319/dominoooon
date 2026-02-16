@@ -1,11 +1,10 @@
 import type {
   GameState,
-  PlayerState,
   CardInstance,
   ShuffleFn,
-} from '../types';
-import { CardType } from '../types';
-import { getCardDef } from './card';
+} from '../../types';
+import { CardType } from '../../types';
+import { getCardDef } from '../card';
 import {
   drawCards,
   discardCard,
@@ -13,319 +12,14 @@ import {
   gainCard,
   gainCardToHand,
   gainCardToDeck,
-} from './player';
-import { takeFromSupply, getSupplyPile, getEmptyPileCount } from './supply';
-import { getCurrentPlayer, updateCurrentPlayer, updatePlayer } from './game';
-import { createShuffleFn } from './shuffle';
+} from '../player';
+import { takeFromSupply } from '../supply';
+import { getCurrentPlayer, updateCurrentPlayer } from '../game';
+import type { PendingEffectChoice } from './types';
 
-const defaultShuffle = createShuffleFn();
+// ===== Complex Card Effects =====
 
-// ===== Types =====
-
-export type PendingEffectChoice = {
-  type: string;
-  selectedCards?: string[];
-  selectedCardName?: string;
-  confirmed?: boolean;
-};
-
-// ===== Public API =====
-
-export function hasMoatReaction(player: PlayerState): boolean {
-  return player.hand.some((c) => c.def.name === 'Moat');
-}
-
-export function resolveCustomEffect(
-  state: GameState,
-  card: CardInstance,
-  shuffleFn: ShuffleFn = defaultShuffle,
-): GameState {
-  const custom = card.def.effects.custom;
-  if (!custom) return state;
-
-  switch (custom) {
-    // Immediate resolvers
-    case 'councilRoom':
-      return resolveCouncilRoom(state, shuffleFn);
-    case 'witch':
-      return resolveWitch(state);
-    case 'moneylender':
-      return resolveMoneylender(state);
-    case 'library':
-      return resolveLibrary(state, shuffleFn);
-    case 'bandit':
-      return resolveBandit(state, shuffleFn);
-    case 'bureaucrat':
-      return resolveBureaucrat(state);
-    // Merchant: basic effects (+1 card, +1 action) handled by applyBasicEffects.
-    // TODO: Silver bonus (+1 coin on first Silver) to be handled in turn.ts autoPlayTreasures.
-    case 'merchant':
-      return state;
-    case 'vassal':
-      return resolveVassal(state, card, shuffleFn);
-    case 'sentry':
-      return resolveSentry(state, card, shuffleFn);
-    // Conditional immediate/pending
-    case 'poacher':
-      return resolvePoacherOrPending(state, card);
-    case 'harbinger':
-      return resolveHarbingerOrPending(state, card);
-    // PendingEffect creators
-    case 'cellar':
-      return createPending(state, 'cellar', card);
-    case 'chapel':
-      return createPending(state, 'chapel', card);
-    case 'workshop':
-      return createPending(state, 'workshop', card);
-    case 'remodel':
-      return createPendingWithData(state, 'remodel', card, { phase: 'trash' });
-    case 'mine':
-      return createMinePending(state, card);
-    case 'artisan':
-      return createPendingWithData(state, 'artisan', card, { phase: 'gain' });
-    case 'militia':
-      return resolveMilitia(state, card);
-    case 'throneRoom':
-      return createThroneRoomPending(state, card);
-    default:
-      return state;
-  }
-}
-
-export function resolvePendingEffect(
-  state: GameState,
-  choice: PendingEffectChoice,
-  shuffleFn: ShuffleFn = defaultShuffle,
-): GameState {
-  if (!state.pendingEffect) return state;
-
-  switch (state.pendingEffect.type) {
-    case 'cellar':
-      return resolveCellar(state, choice, shuffleFn);
-    case 'chapel':
-      return resolveChapel(state, choice);
-    case 'workshop':
-      return resolveWorkshop(state, choice);
-    case 'remodel':
-      return resolveRemodel(state, choice);
-    case 'mine':
-      return resolveMine(state, choice);
-    case 'artisan':
-      return resolveArtisan(state, choice);
-    case 'militia':
-      return resolveMilitiaChoice(state, choice);
-    case 'throneRoom':
-      return resolveThroneRoom(state, choice, shuffleFn);
-    case 'poacher':
-      return resolvePoacher(state, choice);
-    case 'harbinger':
-      return resolveHarbinger(state, choice);
-    case 'vassal':
-      return resolveVassalChoice(state, choice, shuffleFn);
-    case 'sentry':
-      return resolveSentryChoice(state, choice);
-    default:
-      return { ...state, pendingEffect: null };
-  }
-}
-
-// ===== Helpers =====
-
-function getAttackTargets(state: GameState): number[] {
-  return state.players
-    .map((_, i) => i)
-    .filter(
-      (i) => i !== state.currentPlayerIndex && !hasMoatReaction(state.players[i]),
-    );
-}
-
-function createPending(
-  state: GameState,
-  type: string,
-  card: CardInstance,
-): GameState {
-  const player = getCurrentPlayer(state);
-  if (player.hand.length === 0) return state;
-  return {
-    ...state,
-    pendingEffect: {
-      type,
-      sourceCard: card.def,
-      playerId: player.id,
-    },
-  };
-}
-
-function createPendingWithData(
-  state: GameState,
-  type: string,
-  card: CardInstance,
-  data: Record<string, unknown>,
-): GameState {
-  const player = getCurrentPlayer(state);
-  if (type !== 'artisan' && player.hand.length === 0) return state;
-  return {
-    ...state,
-    pendingEffect: {
-      type,
-      sourceCard: card.def,
-      playerId: player.id,
-      data,
-    },
-  };
-}
-
-// ===== Immediate Resolvers =====
-
-function resolveCouncilRoom(state: GameState, shuffleFn: ShuffleFn): GameState {
-  let result = state;
-  for (let i = 0; i < result.players.length; i++) {
-    if (i === state.currentPlayerIndex) continue;
-    const updated = drawCards(result.players[i], 1, shuffleFn);
-    result = updatePlayer(result, i, updated);
-  }
-  return result;
-}
-
-function resolveWitch(state: GameState): GameState {
-  let result = state;
-  for (const i of getAttackTargets(state)) {
-    const cursePile = getSupplyPile(result.supply, 'Curse');
-    if (!cursePile || cursePile.count <= 0) break;
-    const [newSupply, curseDef] = takeFromSupply(result.supply, 'Curse');
-    result = { ...result, supply: newSupply };
-    const updated = gainCard(result.players[i], curseDef);
-    result = updatePlayer(result, i, updated);
-  }
-  return result;
-}
-
-function resolveMoneylender(state: GameState): GameState {
-  const player = getCurrentPlayer(state);
-  const copperIdx = player.hand.findIndex((c) => c.def.name === 'Copper');
-  if (copperIdx === -1) return state;
-
-  const [updatedPlayer, trashed] = trashCardFromHand(
-    player,
-    player.hand[copperIdx].instanceId,
-  );
-  let result = updateCurrentPlayer(state, updatedPlayer);
-  result = { ...result, trash: [...result.trash, trashed] };
-  result = {
-    ...result,
-    turnState: { ...result.turnState, coins: result.turnState.coins + 3 },
-  };
-  return result;
-}
-
-function resolveLibrary(state: GameState, shuffleFn: ShuffleFn): GameState {
-  const player = getCurrentPlayer(state);
-  const needed = 7 - player.hand.length;
-  if (needed <= 0) return state;
-  const updated = drawCards(player, needed, shuffleFn);
-  return updateCurrentPlayer(state, updated);
-}
-
-function resolveBandit(state: GameState, shuffleFn: ShuffleFn): GameState {
-  let result = state;
-
-  // Gain Gold
-  const goldPile = getSupplyPile(result.supply, 'Gold');
-  if (goldPile && goldPile.count > 0) {
-    const [newSupply, goldDef] = takeFromSupply(result.supply, 'Gold');
-    result = { ...result, supply: newSupply };
-    const player = getCurrentPlayer(result);
-    const updated = gainCard(player, goldDef);
-    result = updateCurrentPlayer(result, updated);
-  }
-
-  // Attack targets
-  for (const i of getAttackTargets(result)) {
-    let target = result.players[i];
-
-    // Ensure at least 2 cards to reveal (reshuffle if needed)
-    if (target.deck.length < 2 && target.discard.length > 0) {
-      const reshuffled = shuffleFn(target.discard);
-      target = { ...target, deck: [...target.deck, ...reshuffled], discard: [] };
-    }
-
-    const revealCount = Math.min(2, target.deck.length);
-    if (revealCount === 0) {
-      result = updatePlayer(result, i, target);
-      continue;
-    }
-
-    const revealed = target.deck.slice(0, revealCount);
-    const remainingDeck = target.deck.slice(revealCount);
-
-    // Find non-Copper Treasures
-    const trashable = revealed.filter(
-      (c) => c.def.types.includes(CardType.Treasure) && c.def.name !== 'Copper',
-    );
-    const nonTrashable = revealed.filter(
-      (c) => !c.def.types.includes(CardType.Treasure) || c.def.name === 'Copper',
-    );
-
-    if (trashable.length > 0) {
-      // Trash the most expensive one
-      trashable.sort((a, b) => b.def.cost - a.def.cost);
-      result = { ...result, trash: [...result.trash, trashable[0]] };
-      const otherTreasures = trashable.slice(1);
-      target = {
-        ...target,
-        deck: remainingDeck,
-        discard: [...target.discard, ...nonTrashable, ...otherTreasures],
-      };
-    } else {
-      target = {
-        ...target,
-        deck: remainingDeck,
-        discard: [...target.discard, ...revealed],
-      };
-    }
-
-    result = updatePlayer(result, i, target);
-  }
-
-  return result;
-}
-
-function resolveBureaucrat(state: GameState): GameState {
-  let result = state;
-
-  // Gain Silver to deck top
-  const silverPile = getSupplyPile(result.supply, 'Silver');
-  if (silverPile && silverPile.count > 0) {
-    const [newSupply, silverDef] = takeFromSupply(result.supply, 'Silver');
-    result = { ...result, supply: newSupply };
-    const player = getCurrentPlayer(result);
-    const updated = gainCardToDeck(player, silverDef);
-    result = updateCurrentPlayer(result, updated);
-  }
-
-  // Attack targets: put Victory on deck top
-  for (const i of getAttackTargets(result)) {
-    const target = result.players[i];
-    const victoryIdx = target.hand.findIndex((c) =>
-      c.def.types.includes(CardType.Victory),
-    );
-    if (victoryIdx !== -1) {
-      const card = target.hand[victoryIdx];
-      const newHand = [...target.hand];
-      newHand.splice(victoryIdx, 1);
-      const updated = {
-        ...target,
-        hand: newHand,
-        deck: [card, ...target.deck],
-      };
-      result = updatePlayer(result, i, updated);
-    }
-  }
-
-  return result;
-}
-
-function resolveVassal(
+export function resolveVassal(
   state: GameState,
   card: CardInstance,
   shuffleFn: ShuffleFn,
@@ -360,7 +54,7 @@ function resolveVassal(
   return result;
 }
 
-function resolveSentry(
+export function resolveSentry(
   state: GameState,
   card: CardInstance,
   shuffleFn: ShuffleFn,
@@ -397,7 +91,7 @@ function resolveSentry(
   };
 }
 
-function resolvePoacherOrPending(
+export function resolvePoacherOrPending(
   state: GameState,
   card: CardInstance,
 ): GameState {
@@ -416,7 +110,7 @@ function resolvePoacherOrPending(
   };
 }
 
-function resolveHarbingerOrPending(
+export function resolveHarbingerOrPending(
   state: GameState,
   card: CardInstance,
 ): GameState {
@@ -432,7 +126,7 @@ function resolveHarbingerOrPending(
   };
 }
 
-function createMinePending(state: GameState, card: CardInstance): GameState {
+export function createMinePending(state: GameState, card: CardInstance): GameState {
   const player = getCurrentPlayer(state);
   const hasTreasure = player.hand.some((c) =>
     c.def.types.includes(CardType.Treasure),
@@ -449,7 +143,7 @@ function createMinePending(state: GameState, card: CardInstance): GameState {
   };
 }
 
-function resolveMilitia(state: GameState, card: CardInstance): GameState {
+export function resolveMilitia(state: GameState, card: CardInstance): GameState {
   const targets = getAttackTargets(state);
   const needsDiscard = targets.filter((i) => state.players[i].hand.length > 3);
   if (needsDiscard.length === 0) return state;
@@ -464,7 +158,7 @@ function resolveMilitia(state: GameState, card: CardInstance): GameState {
   };
 }
 
-function createThroneRoomPending(
+export function createThroneRoomPending(
   state: GameState,
   card: CardInstance,
 ): GameState {
@@ -485,7 +179,7 @@ function createThroneRoomPending(
 
 // ===== PendingEffect Resolvers =====
 
-function resolveCellar(
+export function resolveCellar(
   state: GameState,
   choice: PendingEffectChoice,
   shuffleFn: ShuffleFn,
@@ -499,7 +193,7 @@ function resolveCellar(
   return { ...updateCurrentPlayer(state, player), pendingEffect: null };
 }
 
-function resolveChapel(
+export function resolveChapel(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
@@ -514,7 +208,7 @@ function resolveChapel(
   return { ...updateCurrentPlayer(state, player), trash, pendingEffect: null };
 }
 
-function resolveWorkshop(
+export function resolveWorkshop(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
@@ -535,7 +229,7 @@ function resolveWorkshop(
   };
 }
 
-function resolveRemodel(
+export function resolveRemodel(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
@@ -582,7 +276,7 @@ function resolveRemodel(
   return { ...state, pendingEffect: null };
 }
 
-function resolveMine(
+export function resolveMine(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
@@ -635,7 +329,7 @@ function resolveMine(
   return { ...state, pendingEffect: null };
 }
 
-function resolveArtisan(
+export function resolveArtisan(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
@@ -683,7 +377,7 @@ function resolveArtisan(
   return { ...state, pendingEffect: null };
 }
 
-function resolveMilitiaChoice(
+export function resolveMilitiaChoice(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
@@ -719,7 +413,7 @@ function resolveMilitiaChoice(
   return { ...result, pendingEffect: null };
 }
 
-function resolveThroneRoom(
+export function resolveThroneRoom(
   state: GameState,
   choice: PendingEffectChoice,
   shuffleFn: ShuffleFn,
@@ -795,7 +489,7 @@ function resolveThroneRoom(
   return result;
 }
 
-function resolvePoacher(
+export function resolvePoacher(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
@@ -807,7 +501,7 @@ function resolvePoacher(
   return { ...updateCurrentPlayer(state, player), pendingEffect: null };
 }
 
-function resolveHarbinger(
+export function resolveHarbinger(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
@@ -830,7 +524,7 @@ function resolveHarbinger(
   return { ...updateCurrentPlayer(state, updated), pendingEffect: null };
 }
 
-function resolveVassalChoice(
+export function resolveVassalChoice(
   state: GameState,
   choice: PendingEffectChoice,
   shuffleFn: ShuffleFn,
@@ -902,7 +596,7 @@ function resolveVassalChoice(
   return result;
 }
 
-function resolveSentryChoice(
+export function resolveSentryChoice(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
