@@ -64,10 +64,17 @@ export default function GamePage() {
     return () => clearTimeout(timer);
   }, [gameState, resolvePending]);
 
+  // ゲーム終了時にリザルト画面へ遷移
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.gameOver) {
+      goToResult();
+    }
+  }, [gameState, goToResult]);
+
   if (!gameState) return null;
 
   if (gameState.gameOver) {
-    goToResult();
     return null;
   }
 
