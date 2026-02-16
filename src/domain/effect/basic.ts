@@ -96,10 +96,19 @@ export function resolveCellar(
 ): GameState {
   const selected = choice.selectedCards || [];
   let player = getCurrentPlayer(state);
-  for (const id of selected) {
+
+  // Validate: all selected cards must exist in hand
+  const validCards = selected.filter((id) =>
+    player.hand.some((c) => c.instanceId === id),
+  );
+  if (validCards.length !== selected.length) {
+    console.warn('Cellar: some selected cards not found in hand');
+  }
+
+  for (const id of validCards) {
     player = discardCard(player, id);
   }
-  player = drawCards(player, selected.length, shuffleFn);
+  player = drawCards(player, validCards.length, shuffleFn);
   return { ...updateCurrentPlayer(state, player), pendingEffect: null };
 }
 
@@ -107,10 +116,26 @@ export function resolveChapel(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
-  const selected = (choice.selectedCards || []).slice(0, 4);
+  const selected = choice.selectedCards || [];
+
+  // Validate: max 4 cards
+  if (selected.length > 4) {
+    console.warn('Chapel: max 4 cards allowed, ignoring excess');
+  }
+  const validSelected = selected.slice(0, 4);
+
   let player = getCurrentPlayer(state);
+
+  // Validate: all selected cards must exist in hand
+  const existingCards = validSelected.filter((id) =>
+    player.hand.some((c) => c.instanceId === id),
+  );
+  if (existingCards.length !== validSelected.length) {
+    console.warn('Chapel: some selected cards not found in hand');
+  }
+
   let trash = [...state.trash];
-  for (const id of selected) {
+  for (const id of existingCards) {
     const [updated, trashed] = trashCardFromHand(player, id);
     player = updated;
     trash.push(trashed);
@@ -123,13 +148,18 @@ export function resolveWorkshop(
   choice: PendingEffectChoice,
 ): GameState {
   if (!choice.selectedCardName) return { ...state, pendingEffect: null };
+
   const [newSupply, cardDef] = takeFromSupply(
     state.supply,
     choice.selectedCardName,
   );
+
+  // Validate: cost must be <= 4
   if (cardDef.cost > 4) {
-    throw new Error(`Workshop: card cost must be <= 4, got ${cardDef.cost}`);
+    console.warn(`Workshop: card cost must be <= 4, got ${cardDef.cost}`);
+    return { ...state, pendingEffect: null };
   }
+
   const player = getCurrentPlayer(state);
   const updated = gainCard(player, cardDef);
   return {
@@ -146,11 +176,25 @@ export function resolvePoacher(
   const selected = choice.selectedCards || [];
   const data = state.pendingEffect!.data || {};
   const needed = (data.discardCount as number) || 0;
+
+  // Validate: must have at least 'needed' cards
   if (selected.length < needed) {
-    throw new Error(`Poacher: must discard ${needed} cards`);
+    console.warn(`Poacher: must discard ${needed} cards, got ${selected.length}`);
+    return { ...state, pendingEffect: null };
   }
+
   let player = getCurrentPlayer(state);
-  for (const id of selected.slice(0, needed)) {
+  const toDiscard = selected.slice(0, needed);
+
+  // Validate: all cards must exist in hand
+  const validCards = toDiscard.filter((id) =>
+    player.hand.some((c) => c.instanceId === id),
+  );
+  if (validCards.length !== toDiscard.length) {
+    console.warn('Poacher: some selected cards not found in hand');
+  }
+
+  for (const id of validCards) {
     player = discardCard(player, id);
   }
   return { ...updateCurrentPlayer(state, player), pendingEffect: null };

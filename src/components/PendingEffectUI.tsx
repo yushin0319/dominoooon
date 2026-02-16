@@ -10,22 +10,138 @@ interface PendingEffectUIProps {
   onResolve: (choice: PendingEffectChoice) => void;
 }
 
-function effectLabel(type: string): string {
-  const labels: Record<string, string> = {
-    cellar: '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
-    chapel: '礼拝堂: 手札から最大4枚を廃棄する。',
-    workshop: '工房: コスト4以下のカードを1枚獲得する。',
-    remodel: '改築: カードを選んでください。',
-    mine: '鉱山: 廃棄する財宝カードを選んでください。',
-    artisan: '職人: カードを選んでください。',
-    militia: '民兵: 手札が3枚になるまで捨てる。',
-    throneRoom: '玉座の間: 2回プレイするアクションを選ぶ。',
-    poacher: '密猟者: カードを捨てる。',
-    harbinger: '先触れ: 捨て札からデッキの上に置くカードを選ぶ。',
-    vassal: '家臣: めくったアクションカードをプレイしますか？',
-    sentry: '歩哨: 廃棄するカードを選ぶ。',
-  };
-  return labels[type] ?? `解決: ${type}`;
+type SelectionType = 'hand' | 'supply' | 'confirm' | 'custom';
+
+interface PendingEffectConfig {
+  title: string;
+  selectionType: SelectionType;
+  multiSelect?: boolean;
+  maxSelect?: number;
+  maxCost?: number;
+  filterHand?: (card: CardInstance) => boolean;
+  filterSupply?: (pile: SupplyPile) => boolean;
+  customRenderer?: (
+    data: Record<string, unknown>,
+    hand: CardInstance[],
+    supply: SupplyPile[],
+    onResolve: (choice: PendingEffectChoice) => void,
+  ) => JSX.Element;
+}
+
+const PENDING_EFFECT_CONFIGS: Record<string, PendingEffectConfig> = {
+  cellar: {
+    title: '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
+    selectionType: 'hand',
+    multiSelect: true,
+  },
+  chapel: {
+    title: '礼拝堂: 手札から最大4枚を廃棄する。',
+    selectionType: 'hand',
+    multiSelect: true,
+    maxSelect: 4,
+  },
+  workshop: {
+    title: '工房: コスト4以下のカードを1枚獲得する。',
+    selectionType: 'supply',
+    maxCost: 4,
+  },
+  militia: {
+    title: '民兵: 手札が3枚になるまで捨てる。',
+    selectionType: 'hand',
+    multiSelect: true,
+  },
+  poacher: {
+    title: '密猟者: カードを捨てる。',
+    selectionType: 'hand',
+    multiSelect: true,
+  },
+  throneRoom: {
+    title: '玉座の間: 2回プレイするアクションを選ぶ。',
+    selectionType: 'hand',
+    multiSelect: false,
+    maxSelect: 1,
+    filterHand: (c) => c.def.types.includes('Action' as never),
+  },
+  harbinger: {
+    title: '先触れ: 捨て札からデッキの上に置くカードを選ぶ。',
+    selectionType: 'hand',
+    multiSelect: false,
+    maxSelect: 1,
+  },
+  sentry: {
+    title: '歩哨: 廃棄するカードを選ぶ。',
+    selectionType: 'hand',
+    multiSelect: true,
+  },
+  vassal: {
+    title: '家臣: めくったアクションカードをプレイしますか？',
+    selectionType: 'confirm',
+  },
+  // Multi-phase effects (require custom rendering)
+  remodel: {
+    title: '改築: カードを選んでください。',
+    selectionType: 'custom',
+    customRenderer: (data, hand, supply, onResolve) => {
+      const phase = data.phase as string | undefined;
+      if (phase === 'trash') {
+        return (
+          <CardSelectUI
+            hand={hand}
+            multi={false}
+            maxSelect={1}
+            onResolve={onResolve}
+          />
+        );
+      }
+      const maxCost = ((data.trashedCost as number) ?? 0) + 2;
+      return <SupplySelectUI supply={supply} maxCost={maxCost} onResolve={onResolve} />;
+    },
+  },
+  mine: {
+    title: '鉱山: 廃棄する財宝カードを選んでください。',
+    selectionType: 'custom',
+    customRenderer: (data, hand, supply, onResolve) => {
+      const phase = data.phase as string | undefined;
+      if (phase === 'trash') {
+        return (
+          <CardSelectUI
+            hand={hand.filter((c) => c.def.types.includes('Treasure' as never))}
+            multi={false}
+            maxSelect={1}
+            onResolve={onResolve}
+          />
+        );
+      }
+      const maxCost = ((data.trashedCost as number) ?? 0) + 3;
+      return (
+        <SupplySelectUI
+          supply={supply.filter((p) => p.card.types.includes('Treasure' as never))}
+          maxCost={maxCost}
+          onResolve={onResolve}
+        />
+      );
+    },
+  },
+  artisan: {
+    title: '職人: カードを選んでください。',
+    selectionType: 'custom',
+    customRenderer: (data, hand, supply, onResolve) => {
+      const phase = data.phase as string | undefined;
+      if (phase === 'gain') {
+        return <SupplySelectUI supply={supply} maxCost={5} onResolve={onResolve} />;
+      }
+      return <CardSelectUI hand={hand} multi={false} maxSelect={1} onResolve={onResolve} />;
+    },
+  },
+};
+
+function getEffectConfig(type: string): PendingEffectConfig {
+  return (
+    PENDING_EFFECT_CONFIGS[type] ?? {
+      title: `解決: ${type}`,
+      selectionType: 'confirm',
+    }
+  );
 }
 
 function CardSelectUI({
@@ -144,75 +260,50 @@ export default function PendingEffectUI({
   onResolve,
 }: PendingEffectUIProps) {
   const { type, data } = pendingEffect;
+  const config = getEffectConfig(type);
 
   function renderBody() {
-    switch (type) {
-      case 'cellar':
-        return <CardSelectUI hand={hand} multi onResolve={onResolve} />;
-      case 'chapel':
-        return <CardSelectUI hand={hand} multi maxSelect={4} onResolve={onResolve} />;
-      case 'militia':
-      case 'poacher':
-        return <CardSelectUI hand={hand} multi onResolve={onResolve} />;
-      case 'throneRoom':
+    // Custom renderer takes precedence
+    if (config.customRenderer) {
+      return config.customRenderer(data || {}, hand, supply, onResolve);
+    }
+
+    // Config-driven rendering
+    switch (config.selectionType) {
+      case 'hand': {
+        const filteredHand = config.filterHand ? hand.filter(config.filterHand) : hand;
         return (
           <CardSelectUI
-            hand={hand.filter((c) => c.def.types.includes('Action' as never))}
-            multi={false}
-            maxSelect={1}
+            hand={filteredHand}
+            multi={config.multiSelect ?? false}
+            maxSelect={config.maxSelect}
             onResolve={onResolve}
           />
         );
-      case 'harbinger':
-        return <CardSelectUI hand={hand} multi={false} maxSelect={1} onResolve={onResolve} />;
-      case 'sentry':
-        return <CardSelectUI hand={hand} multi onResolve={onResolve} />;
-      case 'workshop':
-        return <SupplySelectUI supply={supply} maxCost={4} onResolve={onResolve} />;
-      case 'remodel':
-        if ((data as Record<string, unknown>)?.phase === 'trash') {
-          return <CardSelectUI hand={hand} multi={false} maxSelect={1} onResolve={onResolve} />;
-        }
+      }
+      case 'supply':
         return (
           <SupplySelectUI
-            supply={supply}
-            maxCost={((data as Record<string, unknown>)?.trashedCost as number ?? 0) + 2}
+            supply={
+              config.filterSupply
+                ? supply.filter(config.filterSupply)
+                : supply
+            }
+            maxCost={config.maxCost}
             onResolve={onResolve}
           />
         );
-      case 'mine':
-        if ((data as Record<string, unknown>)?.phase === 'trash') {
-          return (
-            <CardSelectUI
-              hand={hand.filter((c) => c.def.types.includes('Treasure' as never))}
-              multi={false}
-              maxSelect={1}
-              onResolve={onResolve}
-            />
-          );
-        }
-        return (
-          <SupplySelectUI
-            supply={supply.filter((p) => p.card.types.includes('Treasure' as never))}
-            maxCost={((data as Record<string, unknown>)?.trashedCost as number ?? 0) + 3}
-            onResolve={onResolve}
-          />
-        );
-      case 'artisan':
-        if ((data as Record<string, unknown>)?.phase === 'gain') {
-          return <SupplySelectUI supply={supply} maxCost={5} onResolve={onResolve} />;
-        }
-        return <CardSelectUI hand={hand} multi={false} maxSelect={1} onResolve={onResolve} />;
-      case 'vassal':
+      case 'confirm':
         return <ConfirmUI onResolve={onResolve} />;
       default:
+        // Fallback for unknown types
         return <ConfirmUI onResolve={onResolve} />;
     }
   }
 
   return (
     <div className="bg-slate-800 border-2 border-purple-500 shadow-2xl rounded-2xl p-6 max-w-2xl">
-      <h2 className="text-xl font-bold text-white mb-4">{effectLabel(type)}</h2>
+      <h2 className="text-xl font-bold text-white mb-4">{config.title}</h2>
       {renderBody()}
     </div>
   );

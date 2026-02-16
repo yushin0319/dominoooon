@@ -25,11 +25,25 @@ export default function SupplyArea({ supply, onBuy, canBuy, maxCost }: SupplyAre
   function renderPile(pile: SupplyPile) {
     const affordable = canBuy && maxCost !== undefined && pile.card.cost <= maxCost && pile.count > 0;
     const empty = pile.count === 0;
+    const coinShortage = canBuy && maxCost !== undefined && pile.card.cost > maxCost && pile.count > 0;
+
+    // バッジテキストと色を決定
+    let badgeText = '';
+    let badgeColor = '';
+    if (empty) {
+      badgeText = '売り切れ';
+      badgeColor = 'bg-gray-500';
+    } else if (coinShortage) {
+      const shortage = pile.card.cost - maxCost;
+      badgeText = `コイン不足 (-${shortage})`;
+      badgeColor = 'bg-orange-500';
+    }
 
     return (
       <div
         key={pile.card.name}
         className={`
+          relative
           transition-all duration-200
           ${empty ? 'opacity-35 pointer-events-none' : 'opacity-100'}
         `}
@@ -41,6 +55,19 @@ export default function SupplyArea({ supply, onBuy, canBuy, maxCost }: SupplyAre
           onClick={affordable && onBuy ? () => onBuy(pile.card.name) : undefined}
           remaining={pile.count}
         />
+        {/* 購入不可理由バッジ */}
+        {badgeText && (
+          <div
+            className={`
+              absolute -bottom-1 left-1/2 -translate-x-1/2
+              px-2 py-0.5 rounded-full text-[8px] font-bold text-white
+              shadow-md whitespace-nowrap
+              ${badgeColor}
+            `}
+          >
+            {badgeText}
+          </div>
+        )}
       </div>
     );
   }

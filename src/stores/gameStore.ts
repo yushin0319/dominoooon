@@ -1,12 +1,24 @@
 import { create } from 'zustand';
 import type { GameState, CardDef, ShuffleFn } from '../types';
-import { createGame, endTurn } from '../domain/game';
+import { createGame, endTurn, addLog } from '../domain/game';
 import { playActionCard, buyCard as turnBuyCard, advancePhase } from '../domain/turn';
 import { resolvePendingEffect } from '../domain/effect';
 import type { PendingEffectChoice } from '../domain/effect';
 import { bigMoneyTurn } from '../ai/bigMoney';
 import { bigMoneySmithyTurn } from '../ai/bigMoneySmithy';
 import { createShuffleFn } from '../domain/shuffle';
+
+/**
+ * Design Decision: Store Security
+ *
+ * This store exposes mutable state directly. This is intentional because:
+ * - This is a single-player game against AI, so there's no competitive advantage
+ *   to manipulating state
+ * - Adding immutability layers (Immer, readonly wrappers) would add complexity
+ *   without meaningful benefit
+ * - If multiplayer is added in the future, server-side validation will be needed
+ *   regardless of client-side protection
+ */
 
 type Page = 'title' | 'setup' | 'game' | 'result';
 type AIStrategy = 'bigMoney' | 'bigMoneySmithy';
@@ -55,7 +67,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.warn('playAction called with no gameState');
       return;
     }
-    const next = playActionCard(gameState, instanceId, shuffleFn);
+    const player = gameState.players[gameState.currentPlayerIndex];
+    const card = player.hand.find((c) => c.instanceId === instanceId);
+    if (!card) {
+      console.warn('playAction: card not found');
+      return;
+    }
+    const cardName = card.def.nameJa ?? card.def.name;
+    const effects = card.def.effects;
+    let effectText = '';
+    const parts: string[] = [];
+    if (effects.cards && effects.cards > 0) parts.push(`+${effects.cards}枚ドロー`);
+    if (effects.actions && effects.actions > 0) parts.push(`+${effects.actions}アクション`);
+    if (effects.buys && effects.buys > 0) parts.push(`+${effects.buys}購入`);
+    if (effects.coins && effects.coins > 0) parts.push(`+${effects.coins}コイン`);
+    if (effects.custom) parts.push('特殊効果');
+    if (parts.length > 0) effectText = `（${parts.join('、')}）`;
+
+    const withLog = addLog(gameState, `あなたは${cardName}をプレイしました${effectText}`);
+    const next = playActionCard(withLog, instanceId, shuffleFn);
     set({ gameState: next });
   },
 
@@ -75,7 +105,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.warn('buyCard called with no gameState');
       return;
     }
-    const next = turnBuyCard(gameState, cardName);
+    const supplyEntry = gameState.supply.find((s) => s.card.name === cardName);
+    const displayName = supplyEntry?.card.nameJa ?? cardName;
+    const withLog = addLog(gameState, `あなたは${displayName}を購入しました`);
+    const next = turnBuyCard(withLog, cardName);
     set({ gameState: next });
   },
 

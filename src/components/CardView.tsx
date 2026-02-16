@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import type { CardInstance, CardDef, CardType } from '../types';
 import { cn } from '../lib/utils';
 
@@ -72,9 +73,54 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
   const borderColor = getBorderColor(def.types);
   const textColor = getTextColor(def.types);
   const effects = effectText(def);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   return (
-    <motion.div
+    <div
+      className="relative"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {/* Tooltip */}
+      {showTooltip && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 border-2 border-slate-600 rounded-lg shadow-2xl text-white text-sm pointer-events-none"
+        >
+          <div className="font-bold text-base mb-2">{def.nameJa}</div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">コスト:</span>
+              <span className="font-semibold">{def.cost}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">種類:</span>
+              <span className={cn('font-semibold', textColor)}>
+                {def.types.map(typeNameJa).join(' / ')}
+              </span>
+            </div>
+            {effects && (
+              <div className="flex items-start gap-2">
+                <span className="text-slate-400">効果:</span>
+                <span>{effects}</span>
+              </div>
+            )}
+            {def.vpValue !== undefined && (
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400">勝利点:</span>
+                <span className="font-semibold">{def.vpValue}</span>
+              </div>
+            )}
+          </div>
+          {/* 矢印 */}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+            <div className="border-8 border-transparent border-t-slate-600" />
+          </div>
+        </motion.div>
+      )}
+
+      <motion.div
       onClick={onClick}
       whileHover={
         onClick
@@ -135,5 +181,6 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
         </div>
       )}
     </motion.div>
+    </div>
   );
 }

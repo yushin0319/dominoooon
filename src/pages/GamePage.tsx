@@ -10,6 +10,7 @@ import TurnInfo from '../components/TurnInfo';
 import GameLog from '../components/GameLog';
 import PendingEffectUI from '../components/PendingEffectUI';
 import CardView from '../components/CardView';
+import { Snackbar, CircularProgress } from '@mui/material';
 
 // Timing constants
 const AI_TURN_DELAY_MS = 400;
@@ -40,6 +41,27 @@ export default function GamePage() {
 
   const [buyTarget, setBuyTarget] = useState<string | null>(null);
   const [playTarget, setPlayTarget] = useState<string | null>(null);
+  const [phaseNotification, setPhaseNotification] = useState<string | null>(null);
+  const [prevPhase, setPrevPhase] = useState<Phase | null>(null);
+
+  // Phase transition notification
+  useEffect(() => {
+    if (!gameState || !isHumanTurn()) return;
+    if (prevPhase === null) {
+      setPrevPhase(gameState.phase);
+      return;
+    }
+    if (prevPhase !== gameState.phase) {
+      const phaseNames: Record<Phase, string> = {
+        [Phase.Action]: 'アクションフェーズ',
+        [Phase.Buy]: '購入フェーズ',
+        [Phase.Cleanup]: 'クリーンアップフェーズ',
+      };
+      const newPhaseName = phaseNames[gameState.phase];
+      setPhaseNotification(`${newPhaseName}に移りました`);
+      setPrevPhase(gameState.phase);
+    }
+  }, [gameState, prevPhase, isHumanTurn]);
 
   // Unified game flow state machine
   useEffect(() => {
@@ -140,7 +162,7 @@ export default function GamePage() {
               <PlayArea cards={currentPlayer.playArea} />
 
               {/* Action buttons */}
-              <div className="flex gap-2 justify-center">
+              <div className="flex gap-2 justify-center items-center">
                 {humanTurn && gameState.phase === Phase.Action && !gameState.pendingEffect && (
                   <button
                     onClick={skipAction}
@@ -158,9 +180,12 @@ export default function GamePage() {
                   </button>
                 )}
                 {aiTurn && (
-                  <p className="text-sm text-slate-400 py-2">
-                    AIが考えています...
-                  </p>
+                  <div className="flex items-center gap-2 py-2">
+                    <CircularProgress size={20} sx={{ color: '#94a3b8' }} />
+                    <p className="text-sm text-slate-400">
+                      AIが考えています...
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -270,6 +295,24 @@ export default function GamePage() {
           </div>
         );
       })()}
+
+      {/* Phase transition notification */}
+      <Snackbar
+        open={phaseNotification !== null}
+        autoHideDuration={2500}
+        onClose={() => setPhaseNotification(null)}
+        message={phaseNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          '& .MuiSnackbarContent-root': {
+            backgroundColor: '#1e293b',
+            color: '#f1f5f9',
+            border: '1px solid #475569',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+          },
+        }}
+      />
     </div>
   );
 }

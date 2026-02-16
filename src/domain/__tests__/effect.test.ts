@@ -257,12 +257,15 @@ describe('resolveCustomEffect + resolvePendingEffect', () => {
       expect(after.players[0].discard.some((c) => c.def.name === 'Silver')).toBe(true);
     });
 
-    it('throws for card costing > 4', () => {
+    it('ignores invalid card costing > 4', () => {
       const card = createCardInstance(getCardDef('Workshop'));
       const state = makeGameState();
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = { type: 'workshop', selectedCardName: 'Market' };
-      expect(() => resolvePendingEffect(withPending, choice, shuffle)).toThrow();
+      const after = resolvePendingEffect(withPending, choice, shuffle);
+      // Should clear pending effect but not gain the invalid card
+      expect(after.pendingEffect).toBeNull();
+      expect(after.players[0].discard.some((c) => c.def.name === 'Market')).toBe(false);
     });
   });
 

@@ -166,7 +166,25 @@ export function resolveMilitiaChoice(
   let player = state.players[playerIdx];
 
   const selected = choice.selectedCards || [];
-  for (const id of selected) {
+
+  // Validate: after discarding, hand should have at most 3 cards
+  const finalHandSize = player.hand.length - selected.length;
+  if (finalHandSize > 3) {
+    console.warn(
+      `Militia: player must discard down to 3 cards (current: ${player.hand.length}, selected: ${selected.length})`,
+    );
+    return { ...state, pendingEffect: null };
+  }
+
+  // Validate: all selected cards must exist in hand
+  const validCards = selected.filter((id) =>
+    player.hand.some((c) => c.instanceId === id),
+  );
+  if (validCards.length !== selected.length) {
+    console.warn('Militia: some selected cards not found in hand');
+  }
+
+  for (const id of validCards) {
     player = discardCard(player, id);
   }
 

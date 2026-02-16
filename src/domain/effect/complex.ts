@@ -239,8 +239,17 @@ export function resolveRemodel(
     if (!choice.selectedCards || choice.selectedCards.length === 0) {
       return { ...state, pendingEffect: null };
     }
+
     const player = getCurrentPlayer(state);
-    const [updated, trashed] = trashCardFromHand(player, choice.selectedCards[0]);
+    const cardId = choice.selectedCards[0];
+
+    // Validate: card must exist in hand
+    if (!player.hand.some((c) => c.instanceId === cardId)) {
+      console.warn('Remodel: selected card not found in hand');
+      return { ...state, pendingEffect: null };
+    }
+
+    const [updated, trashed] = trashCardFromHand(player, cardId);
     const result = {
       ...updateCurrentPlayer(state, updated),
       trash: [...state.trash, trashed],
@@ -261,9 +270,13 @@ export function resolveRemodel(
       state.supply,
       choice.selectedCardName,
     );
+
+    // Validate: cost constraint
     if (cardDef.cost > maxCost) {
-      throw new Error(`Remodel: card cost must be <= ${maxCost}`);
+      console.warn(`Remodel: card cost must be <= ${maxCost}, got ${cardDef.cost}`);
+      return { ...state, pendingEffect: null };
     }
+
     const player = getCurrentPlayer(state);
     const updated = gainCard(player, cardDef);
     return {
@@ -286,11 +299,24 @@ export function resolveMine(
     if (!choice.selectedCards || choice.selectedCards.length === 0) {
       return { ...state, pendingEffect: null };
     }
+
     const player = getCurrentPlayer(state);
-    const [updated, trashed] = trashCardFromHand(player, choice.selectedCards[0]);
-    if (!trashed.def.types.includes(CardType.Treasure)) {
-      throw new Error('Mine: must trash a Treasure card');
+    const cardId = choice.selectedCards[0];
+
+    // Validate: card must exist in hand
+    if (!player.hand.some((c) => c.instanceId === cardId)) {
+      console.warn('Mine: selected card not found in hand');
+      return { ...state, pendingEffect: null };
     }
+
+    const [updated, trashed] = trashCardFromHand(player, cardId);
+
+    // Validate: must be a Treasure card
+    if (!trashed.def.types.includes(CardType.Treasure)) {
+      console.warn('Mine: must trash a Treasure card');
+      return { ...state, pendingEffect: null };
+    }
+
     const result = {
       ...updateCurrentPlayer(state, updated),
       trash: [...state.trash, trashed],
@@ -311,12 +337,19 @@ export function resolveMine(
       state.supply,
       choice.selectedCardName,
     );
+
+    // Validate: cost constraint
     if (cardDef.cost > maxCost) {
-      throw new Error(`Mine: card cost must be <= ${maxCost}`);
+      console.warn(`Mine: card cost must be <= ${maxCost}, got ${cardDef.cost}`);
+      return { ...state, pendingEffect: null };
     }
+
+    // Validate: must be a Treasure card
     if (!cardDef.types.includes(CardType.Treasure)) {
-      throw new Error('Mine: must gain a Treasure card');
+      console.warn('Mine: must gain a Treasure card');
+      return { ...state, pendingEffect: null };
     }
+
     const player = getCurrentPlayer(state);
     const updated = gainCardToHand(player, cardDef);
     return {
@@ -341,9 +374,13 @@ export function resolveArtisan(
       state.supply,
       choice.selectedCardName,
     );
+
+    // Validate: cost constraint
     if (cardDef.cost > 5) {
-      throw new Error('Artisan: card cost must be <= 5');
+      console.warn(`Artisan: card cost must be <= 5, got ${cardDef.cost}`);
+      return { ...state, pendingEffect: null };
     }
+
     const player = getCurrentPlayer(state);
     const updated = gainCardToHand(player, cardDef);
     const result = {
@@ -366,7 +403,13 @@ export function resolveArtisan(
     const player = getCurrentPlayer(state);
     const cardId = choice.selectedCards[0];
     const idx = player.hand.findIndex((c) => c.instanceId === cardId);
-    if (idx === -1) throw new Error('Artisan: card not found in hand');
+
+    // Validate: card must exist in hand
+    if (idx === -1) {
+      console.warn('Artisan: card not found in hand');
+      return { ...state, pendingEffect: null };
+    }
+
     const card = player.hand[idx];
     const newHand = [...player.hand];
     newHand.splice(idx, 1);
