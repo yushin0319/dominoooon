@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { CardInstance, CardDef, CardType } from '../types';
+import { cn } from '../lib/utils';
 
 interface CardViewProps {
   card: CardInstance | CardDef;
@@ -32,6 +33,16 @@ function getBorderColor(types: CardType[]): string {
   return 'border-gray-500';
 }
 
+function getTextColor(types: CardType[]): string {
+  if (types.includes('Attack' as CardType)) return 'text-red-400';
+  if (types.includes('Reaction' as CardType)) return 'text-blue-400';
+  if (types.includes('Treasure' as CardType)) return 'text-amber-300';
+  if (types.includes('Victory' as CardType)) return 'text-green-300';
+  if (types.includes('Curse' as CardType)) return 'text-purple-400';
+  if (types.includes('Action' as CardType)) return 'text-gray-300';
+  return 'text-gray-400';
+}
+
 function effectText(def: CardDef): string {
   const parts: string[] = [];
   const e = def.effects;
@@ -59,6 +70,7 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
   const def = getDef(card);
   const gradient = getTypeGradient(def.types);
   const borderColor = getBorderColor(def.types);
+  const textColor = getTextColor(def.types);
   const effects = effectText(def);
 
   return (
@@ -73,20 +85,21 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
           : undefined
       }
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className={`
-        relative rounded-lg border-2 ${borderColor}
-        bg-gradient-to-br ${gradient}
-        overflow-hidden
-        ${small ? 'w-20 h-28 p-1' : 'w-[120px] h-[170px]'}
-        ${onClick ? 'cursor-pointer' : 'cursor-default'}
-        ${selected ? 'ring-4 ring-yellow-400 shadow-2xl shadow-yellow-400/50' : 'shadow-xl'}
-        ${onClick ? 'hover:shadow-2xl' : ''}
-        transition-shadow duration-200
-        flex flex-col
-      `}
+      className={cn(
+        'relative rounded-lg border-2 overflow-hidden flex flex-col transition-shadow duration-200',
+        'bg-gradient-to-br',
+        gradient,
+        borderColor,
+        small ? 'w-20 h-28 p-1' : 'w-[120px] h-[170px]',
+        onClick ? 'cursor-pointer hover:shadow-2xl' : 'cursor-default',
+        selected ? 'ring-4 ring-yellow-400 shadow-2xl shadow-yellow-400/50' : 'shadow-xl',
+      )}
     >
       {/* Card Header */}
-      <div className={`px-2 py-1 ${small ? 'text-[8px]' : 'text-[10px]'} font-bold text-white truncate bg-black/20`}>
+      <div className={cn(
+        'px-2 py-1 font-bold text-white truncate bg-black/20',
+        small ? 'text-[8px]' : 'text-[10px]',
+      )}>
         {def.nameJa}
       </div>
 
@@ -94,7 +107,7 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
       {!small && (
         <>
           <div className="flex-1 px-2 py-2 flex flex-col justify-center gap-1">
-            <div className={`text-xs text-white/90 font-semibold ${borderColor.replace('border-', 'text-')}`}>
+            <div className={cn('text-xs font-semibold', textColor)}>
               {def.types.map(typeNameJa).join(' / ')}
             </div>
             {effects && (
@@ -107,11 +120,11 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
       )}
 
       {/* Cost Badge - Absolute positioned at bottom-left */}
-      <div className={`
-        absolute ${small ? 'bottom-1 left-1 w-4 h-4 text-[8px]' : 'bottom-2 left-2 w-8 h-8 text-xs'}
-        bg-slate-800/90 rounded-full flex items-center justify-center
-        font-bold text-white border-2 ${borderColor}
-      `}>
+      <div className={cn(
+        'absolute bg-slate-800/90 rounded-full flex items-center justify-center font-bold text-white border-2',
+        borderColor,
+        small ? 'bottom-1 left-1 w-4 h-4 text-[8px]' : 'bottom-2 left-2 w-8 h-8 text-xs',
+      )}>
         {def.cost}
       </div>
 

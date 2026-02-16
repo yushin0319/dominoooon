@@ -67,7 +67,7 @@ function CardSelectUI({
         ))}
       </div>
       <button
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors"
+        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors"
         onClick={() => onResolve({ type: '', selectedCards: [...selected] })}
       >
         確定
@@ -107,13 +107,13 @@ function ConfirmUI({ onResolve }: { onResolve: (choice: PendingEffectChoice) => 
   return (
     <div className="flex gap-4">
       <button
-        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-medium transition-colors"
+        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-medium transition-colors"
         onClick={() => onResolve({ type: '', confirmed: true })}
       >
         はい
       </button>
       <button
-        className="border border-gray-400 hover:bg-gray-100 text-gray-700 px-6 py-2 rounded font-medium transition-colors"
+        className="border border-slate-500 hover:bg-slate-700 text-slate-300 px-6 py-2 rounded font-medium transition-colors"
         onClick={() => onResolve({ type: '', confirmed: false })}
       >
         いいえ
@@ -196,8 +196,8 @@ export default function PendingEffectUI({
   }
 
   return (
-    <div className="bg-white shadow-2xl rounded-2xl p-6 border-2 border-blue-600 max-w-2xl">
-      <h2 className="text-xl font-bold mb-4">{effectLabel(type)}</h2>
+    <div className="bg-slate-800 border-2 border-purple-500 shadow-2xl rounded-2xl p-6 max-w-2xl">
+      <h2 className="text-xl font-bold text-white mb-4">{effectLabel(type)}</h2>
       {renderBody()}
     </div>
   );

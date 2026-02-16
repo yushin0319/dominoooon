@@ -53,15 +53,15 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 py-6 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 py-6 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-slate-900 mb-6">
+        <h1 className="text-3xl font-bold text-white mb-6">
           ゲーム設定
         </h1>
 
         {/* AI戦略選択 */}
-        <div className="mb-6 p-4 bg-white rounded-lg shadow">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
+        <div className="mb-6 p-4 bg-slate-800/70 backdrop-blur-sm rounded-lg shadow border border-slate-600">
+          <label className="block text-sm font-medium text-slate-300 mb-2">
             AI戦略
           </label>
           <div className="flex gap-4">
@@ -73,7 +73,7 @@ export default function SetupPage() {
                 onChange={(e) => setAIStrategy(e.target.value as 'bigMoney' | 'bigMoneySmithy')}
                 className="mr-2 w-4 h-4 text-purple-600 focus:ring-purple-500"
               />
-              <span className="text-slate-700">Big Money</span>
+              <span className="text-slate-300">Big Money</span>
             </label>
             <label className="flex items-center cursor-pointer">
               <input
@@ -83,7 +83,7 @@ export default function SetupPage() {
                 onChange={(e) => setAIStrategy(e.target.value as 'bigMoney' | 'bigMoneySmithy')}
                 className="mr-2 w-4 h-4 text-purple-600 focus:ring-purple-500"
               />
-              <span className="text-slate-700">Big Money + Smithy</span>
+              <span className="text-slate-300">Big Money + Smithy</span>
             </label>
           </div>
         </div>
@@ -91,12 +91,12 @@ export default function SetupPage() {
         {/* キングダムカード選択 */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-semibold text-slate-900">
+            <h2 className="text-xl font-semibold text-white">
               キングダムカード ({selected.size}/10)
             </h2>
             <button
               onClick={handleRandom}
-              className="px-4 py-2 text-sm font-medium text-purple-700 bg-white border border-purple-300 rounded hover:bg-purple-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-purple-300 bg-slate-800/80 border border-purple-500/50 rounded hover:bg-purple-500/20 transition-colors"
             >
               ランダム
             </button>
@@ -111,8 +111,8 @@ export default function SetupPage() {
                   className={`
                     p-2 rounded cursor-pointer transition-all
                     ${isSelected
-                      ? 'bg-white shadow-lg border-2 border-purple-500 opacity-100'
-                      : 'bg-white/40 border-2 border-transparent opacity-40 hover:opacity-60'
+                      ? 'bg-slate-800/90 shadow-lg border-2 border-purple-500 opacity-100'
+                      : 'bg-slate-800/30 border-2 border-transparent opacity-40 hover:opacity-60'
                     }
                   `}
                 >
@@ -127,7 +127,7 @@ export default function SetupPage() {
         <div className="flex gap-4 justify-center">
           <button
             onClick={goToTitle}
-            className="px-6 py-3 font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            className="px-6 py-3 font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded-lg hover:bg-slate-700/80 transition-colors"
           >
             戻る
           </button>
@@ -138,7 +138,7 @@ export default function SetupPage() {
               px-6 py-3 font-medium text-white rounded-lg transition-all
               ${selected.size === 10
                 ? 'bg-purple-600 hover:bg-purple-700 cursor-pointer'
-                : 'bg-slate-400 cursor-not-allowed'
+                : 'bg-slate-600 cursor-not-allowed'
               }
             `}
           >

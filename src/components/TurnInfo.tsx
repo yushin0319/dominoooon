@@ -6,7 +6,6 @@ interface TurnInfoProps {
   phase: Phase;
   turnNumber: number;
   currentPlayer: string;
-  onEndPhase?: () => void;
 }
 
 function phaseColor(phase: Phase): string {
@@ -20,7 +19,7 @@ function phaseColor(phase: Phase): string {
   }
 }
 
-export default function TurnInfo({ turnState, phase, turnNumber, currentPlayer, onEndPhase }: TurnInfoProps) {
+export default function TurnInfo({ turnState, phase, turnNumber, currentPlayer }: TurnInfoProps) {
   return (
     <div className="absolute right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-3 p-3 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-300 dark:border-slate-600 shadow-xl">
       {/* Player Info */}
@@ -57,20 +56,6 @@ export default function TurnInfo({ turnState, phase, turnNumber, currentPlayer, 
         <span className="text-xl font-black text-yellow-600 dark:text-yellow-400">{turnState.coins}</span>
       </div>
 
-      {/* End Phase Button */}
-      {onEndPhase && (
-        <>
-          <div className="w-full h-px bg-slate-300 dark:bg-slate-600" />
-          <button
-            onClick={onEndPhase}
-            className="text-[11px] font-bold whitespace-nowrap px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 active:scale-95 transition-all shadow"
-          >
-            フェーズ
-            <br />
-            終了
-          </button>
-        </>
-      )}
     </div>
   );
 }
