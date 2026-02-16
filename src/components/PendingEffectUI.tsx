@@ -1,8 +1,4 @@
 import { useState } from 'react';
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 import type { PendingEffect, CardInstance, SupplyPile } from '../types';
 import type { PendingEffectChoice } from '../domain/effect';
 import CardView from './CardView';
@@ -59,8 +55,8 @@ function CardSelectUI({
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+    <div>
+      <div className="flex flex-wrap gap-2 mb-4">
         {hand.map((c) => (
           <CardView
             key={c.instanceId}
@@ -69,14 +65,14 @@ function CardSelectUI({
             onClick={() => toggle(c.instanceId)}
           />
         ))}
-      </Box>
-      <Button
-        variant="contained"
+      </div>
+      <button
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors"
         onClick={() => onResolve({ type: '', selectedCards: [...selected] })}
       >
         確定
-      </Button>
-    </Box>
+      </button>
+    </div>
   );
 }
 
@@ -94,7 +90,7 @@ function SupplySelectUI({
   );
 
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+    <div className="flex flex-wrap gap-2">
       {available.map((p) => (
         <CardView
           key={p.card.name}
@@ -103,20 +99,26 @@ function SupplySelectUI({
           onClick={() => onResolve({ type: '', selectedCardName: p.card.name })}
         />
       ))}
-    </Box>
+    </div>
   );
 }
 
 function ConfirmUI({ onResolve }: { onResolve: (choice: PendingEffectChoice) => void }) {
   return (
-    <Box sx={{ display: 'flex', gap: 1.5 }}>
-      <Button variant="contained" color="primary" onClick={() => onResolve({ type: '', confirmed: true })}>
+    <div className="flex gap-4">
+      <button
+        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-medium transition-colors"
+        onClick={() => onResolve({ type: '', confirmed: true })}
+      >
         はい
-      </Button>
-      <Button variant="outlined" onClick={() => onResolve({ type: '', confirmed: false })}>
+      </button>
+      <button
+        className="border border-gray-400 hover:bg-gray-100 text-gray-700 px-6 py-2 rounded font-medium transition-colors"
+        onClick={() => onResolve({ type: '', confirmed: false })}
+      >
         いいえ
-      </Button>
-    </Box>
+      </button>
+    </div>
   );
 }
 
@@ -194,20 +196,9 @@ export default function PendingEffectUI({
   }
 
   return (
-    <Paper
-      elevation={8}
-      sx={{
-        p: 3,
-        borderRadius: 3,
-        border: '2px solid',
-        borderColor: 'primary.main',
-        maxWidth: 600,
-      }}
-    >
-      <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-        {effectLabel(type)}
-      </Typography>
+    <div className="bg-white shadow-2xl rounded-2xl p-6 border-2 border-blue-600 max-w-2xl">
+      <h2 className="text-xl font-bold mb-4">{effectLabel(type)}</h2>
       {renderBody()}
-    </Paper>
+    </div>
   );
 }

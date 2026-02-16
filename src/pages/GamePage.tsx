@@ -1,8 +1,4 @@
 import { useEffect, useState } from 'react';
-import {
-  Box, Grid, Divider, Button, Typography,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-} from '@mui/material';
 import { useGameStore } from '../stores/gameStore';
 import { Phase, CardType } from '../types';
 import { getCurrentPlayer } from '../domain/game';
@@ -58,10 +54,10 @@ export default function GamePage() {
       if (gameState.pendingEffect!.type === 'militia') {
         const excess = targetPlayer.hand.length - 3;
         const toDiscard = targetPlayer.hand.slice(-excess).map((c) => c.instanceId);
-        resolvePending({ selectedCards: toDiscard });
+        resolvePending({ type: gameState.pendingEffect!.type, selectedCards: toDiscard });
       } else {
         // その他のpendingEffect: 空選択で解決
-        resolvePending({ selectedCards: [] });
+        resolvePending({ type: gameState.pendingEffect!.type, selectedCards: [] });
       }
     }, 400);
 
@@ -99,124 +95,157 @@ export default function GamePage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: { xs: 1, md: 2 } }}>
-      <SupplyArea
-        supply={gameState.supply}
-        onBuy={canBuyCards ? (cardName: string) => setBuyTarget(cardName) : undefined}
-        canBuy={canBuyCards}
-        maxCost={canBuyCards ? gameState.turnState.coins : undefined}
-      />
+    <div className="relative w-full h-screen overflow-hidden flex flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
+      {/* Dark overlay for depth */}
+      <div className="absolute inset-0 bg-slate-950/40 z-0" />
 
-      <Divider sx={{ my: 1 }} />
+      {/* Content */}
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Main area */}
+        <div className="flex-1 relative flex">
+          {/* Supply and Play Area (center) */}
+          <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto">
+            <div className="w-full max-w-5xl space-y-6">
+              <SupplyArea
+                supply={gameState.supply}
+                onBuy={canBuyCards ? (cardName: string) => setBuyTarget(cardName) : undefined}
+                canBuy={canBuyCards}
+                maxCost={canBuyCards ? gameState.turnState.coins : undefined}
+              />
 
-      <Grid container spacing={1}>
-        <Grid size={{ xs: 12, md: 8 }}>
-          <PlayArea cards={currentPlayer.playArea} />
+              <PlayArea cards={currentPlayer.playArea} />
+
+              {/* Action buttons */}
+              <div className="flex gap-2 justify-center">
+                {humanTurn && gameState.phase === Phase.Action && !gameState.pendingEffect && (
+                  <button
+                    onClick={skipAction}
+                    className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded hover:bg-slate-700/80 transition-colors"
+                  >
+                    アクションスキップ
+                  </button>
+                )}
+                {humanTurn && gameState.phase === Phase.Buy && !gameState.pendingEffect && (
+                  <button
+                    onClick={skipBuy}
+                    className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded hover:bg-slate-700/80 transition-colors"
+                  >
+                    購入スキップ
+                  </button>
+                )}
+                {aiTurn && (
+                  <p className="text-sm text-slate-400 py-2">
+                    AIが考えています...
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* TurnInfo - フローティング（コンポーネント内で absolute 配置） */}
           <TurnInfo
             turnState={gameState.turnState}
             phase={gameState.phase}
             turnNumber={gameState.turnNumber}
             currentPlayer={currentPlayer.name}
           />
-          <Box sx={{ display: 'flex', gap: 1, py: 1 }}>
-            {humanTurn && gameState.phase === Phase.Action && !gameState.pendingEffect && (
-              <Button variant="outlined" onClick={skipAction}>
-                アクションスキップ
-              </Button>
-            )}
-            {humanTurn && gameState.phase === Phase.Buy && !gameState.pendingEffect && (
-              <Button variant="outlined" onClick={skipBuy}>
-                購入スキップ
-              </Button>
-            )}
-            {aiTurn && (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-                AIが考えています...
-              </Typography>
-            )}
-          </Box>
-        </Grid>
 
-        <Grid size={{ xs: 12, md: 4 }}>
+          {/* GameLog - フローティング（コンポーネント内で absolute 配置） */}
           <GameLog log={gameState.log} />
-        </Grid>
-      </Grid>
+        </div>
 
-      <Divider sx={{ my: 1 }} />
+        {/* Player hand - bottom */}
+        <div className="relative z-20">
+          <Hand
+            hand={humanPlayer.hand}
+            onPlay={canPlayActions ? handlePlayCard : undefined}
+            canPlay={canPlayActions}
+          />
+        </div>
+      </div>
 
-      <Hand
-        hand={humanPlayer.hand}
-        onPlay={canPlayActions ? handlePlayCard : undefined}
-        canPlay={canPlayActions}
-      />
-
+      {/* PendingEffect オーバーレイ（人間プレイヤー対象） */}
       {gameState.pendingEffect && gameState.pendingEffect.playerId === humanPlayer.id && (
-        <Box
-          sx={{
-            position: 'fixed',
-            inset: 0,
-            bgcolor: 'rgba(0,0,0,0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1300,
-          }}
-        >
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <PendingEffectUI
             pendingEffect={gameState.pendingEffect}
             hand={humanPlayer.hand}
             supply={gameState.supply}
             onResolve={resolvePending}
           />
-        </Box>
+        </div>
       )}
 
+      {/* 購入確認ダイアログ */}
       {buyTarget && (() => {
         const cardDef = getCardDef(buyTarget);
         return (
-          <Dialog open onClose={() => setBuyTarget(null)}>
-            <DialogTitle>{cardDef.nameJa ?? cardDef.name}</DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setBuyTarget(null)}>
+            <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold text-slate-100 mb-4">
+                {cardDef.nameJa ?? cardDef.name}
+              </h2>
+              <div className="flex justify-center mb-4">
                 <CardView card={cardDef} />
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                コスト: {cardDef.cost} コイン
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                種別: {cardDef.types.join(' / ')}
-              </Typography>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setBuyTarget(null)}>やめる</Button>
-              <Button variant="contained" onClick={() => { buyCard(buyTarget); setBuyTarget(null); }}>
-                購入する
-              </Button>
-            </DialogActions>
-          </Dialog>
+              </div>
+              <div className="space-y-1 mb-6">
+                <p className="text-sm text-slate-300">
+                  コスト: {cardDef.cost} コイン
+                </p>
+                <p className="text-sm text-slate-300">
+                  種別: {cardDef.types.join(' / ')}
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setBuyTarget(null)}
+                  className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
+                >
+                  やめる
+                </button>
+                <button
+                  onClick={() => { buyCard(buyTarget); setBuyTarget(null); }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
+                >
+                  購入する
+                </button>
+              </div>
+            </div>
+          </div>
         );
       })()}
 
+      {/* プレイ確認ダイアログ */}
       {playTarget && (() => {
         const card = humanPlayer.hand.find((c) => c.instanceId === playTarget);
         if (!card) return null;
         return (
-          <Dialog open onClose={() => setPlayTarget(null)}>
-            <DialogTitle>{card.def.nameJa ?? card.def.name}</DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setPlayTarget(null)}>
+            <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold text-slate-100 mb-4">
+                {card.def.nameJa ?? card.def.name}
+              </h2>
+              <div className="flex justify-center mb-6">
                 <CardView card={card} />
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setPlayTarget(null)}>やめる</Button>
-              <Button variant="contained" onClick={() => { playAction(playTarget); setPlayTarget(null); }}>
-                プレイする
-              </Button>
-            </DialogActions>
-          </Dialog>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setPlayTarget(null)}
+                  className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
+                >
+                  やめる
+                </button>
+                <button
+                  onClick={() => { playAction(playTarget); setPlayTarget(null); }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
+                >
+                  プレイする
+                </button>
+              </div>
+            </div>
+          </div>
         );
       })()}
-    </Box>
+    </div>
   );
 }

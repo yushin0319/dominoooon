@@ -1,4 +1,4 @@
-import { Box } from '@mui/material';
+import { motion } from 'framer-motion';
 import type { CardInstance } from '../types';
 import CardView from './CardView';
 
@@ -10,26 +10,59 @@ interface HandProps {
 }
 
 export default function Hand({ hand, onPlay, canPlay, selectedCards }: HandProps) {
+  const fanAngle = 5;
+  const totalCards = hand.length;
+
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 1,
-        justifyContent: 'center',
-        p: 1,
-        borderRadius: 2,
-        bgcolor: 'rgba(255,255,255,0.03)',
-      }}
-    >
-      {hand.map((card) => (
-        <CardView
-          key={card.instanceId}
-          card={card}
-          selected={selectedCards?.includes(card.instanceId)}
-          onClick={canPlay && onPlay ? () => onPlay(card.instanceId) : undefined}
-        />
-      ))}
-    </Box>
+    <div className="relative flex items-end justify-center p-2 rounded-xl bg-white/5 min-h-[200px]">
+      <div className="flex items-end justify-center">
+        {hand.map((card, index) => {
+          const centerIdx = (totalCards - 1) / 2;
+          const rotation = (index - centerIdx) * fanAngle;
+          const yOffset = Math.abs(index - centerIdx) * 6;
+          const isSelected = selectedCards?.includes(card.instanceId);
+
+          return (
+            <motion.div
+              key={card.instanceId}
+              drag={canPlay && onPlay}
+              dragSnapToOrigin={true}
+              dragElastic={0.1}
+              initial={{ y: 100, opacity: 0 }}
+              animate={{
+                y: isSelected ? yOffset - 30 : yOffset,
+                opacity: 1,
+                rotate: rotation,
+                scale: isSelected ? 1.05 : 1,
+              }}
+              whileHover={
+                canPlay && onPlay
+                  ? {
+                      y: yOffset - 30,
+                      scale: 1.08,
+                      rotate: 0,
+                      zIndex: 50,
+                    }
+                  : undefined
+              }
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              style={{
+                marginLeft: index === 0 ? 0 : -16,
+                zIndex: isSelected ? 100 : index,
+              }}
+              className={`
+                ${canPlay && onPlay ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
+              `}
+            >
+              <CardView
+                card={card}
+                selected={isSelected}
+                onClick={canPlay && onPlay ? () => onPlay(card.instanceId) : undefined}
+              />
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

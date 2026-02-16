@@ -1,8 +1,4 @@
 import { useEffect, useRef } from 'react';
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 
 interface GameLogProps {
   log: string[];
@@ -16,23 +12,27 @@ export default function GameLog({ log }: GameLogProps) {
   }, [log.length]);
 
   return (
-    <Paper elevation={1} sx={{ maxHeight: 400, overflowY: 'auto', p: 1.5, borderRadius: 2 }}>
-      {log.map((entry, i) => (
-        <Box key={i}>
-          <Box
-            sx={{
-              py: 0.3,
-              px: 0.5,
-              borderRadius: 0.5,
-              bgcolor: i >= log.length - 2 ? 'rgba(240,192,64,0.08)' : 'transparent',
-            }}
+    <div className="absolute bottom-3 left-3 z-30 w-64 h-48 p-3 bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-600 shadow-xl overflow-y-auto">
+      <h3 className="text-xs font-bold text-white mb-2 sticky top-0 bg-slate-800/90 py-1">
+        ゲームログ
+      </h3>
+      <div className="space-y-1">
+        {log.map((entry, i) => (
+          <div
+            key={i}
+            className={`
+              py-1 px-2 rounded text-xs
+              ${i >= log.length - 2
+                ? 'bg-yellow-500/20 text-yellow-100'
+                : 'text-slate-300'
+              }
+            `}
           >
-            <Typography variant="body2">{entry}</Typography>
-          </Box>
-          {i < log.length - 1 && <Divider sx={{ opacity: 0.15 }} />}
-        </Box>
-      ))}
-      <div ref={endRef} />
-    </Paper>
+            {entry}
+          </div>
+        ))}
+        <div ref={endRef} />
+      </div>
+    </div>
   );
 }

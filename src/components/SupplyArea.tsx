@@ -1,7 +1,3 @@
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Chip from '@mui/material/Chip';
 import type { SupplyPile } from '../types';
 import CardView from './CardView';
 
@@ -13,62 +9,90 @@ interface SupplyAreaProps {
 }
 
 const BASIC_NAMES = new Set(['Copper', 'Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Curse']);
+const TREASURE_NAMES = new Set(['Copper', 'Silver', 'Gold']);
+const VICTORY_NAMES = new Set(['Estate', 'Duchy', 'Province']);
 
 export default function SupplyArea({ supply, onBuy, canBuy, maxCost }: SupplyAreaProps) {
-  const basic = supply.filter((p) => BASIC_NAMES.has(p.card.name));
   const kingdom = supply.filter((p) => !BASIC_NAMES.has(p.card.name));
+  const treasure = supply.filter((p) => TREASURE_NAMES.has(p.card.name));
+  const victory = supply.filter((p) => VICTORY_NAMES.has(p.card.name));
+  const curse = supply.filter((p) => p.card.name === 'Curse');
+
+  // キングダムカードを2行に分割
+  const kingdomRow1 = kingdom.slice(0, 5);
+  const kingdomRow2 = kingdom.slice(5, 10);
 
   function renderPile(pile: SupplyPile) {
     const affordable = canBuy && maxCost !== undefined && pile.card.cost <= maxCost && pile.count > 0;
     const empty = pile.count === 0;
 
     return (
-      <Grid size={{ xs: 6, sm: 4, md: 3 }} key={pile.card.name}>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 0.5,
-            opacity: empty ? 0.35 : 1,
-            pointerEvents: empty ? 'none' : 'auto',
-            cursor: affordable ? 'pointer' : 'default',
-            transition: 'box-shadow 0.15s, transform 0.15s',
-            borderRadius: 1,
-            p: 0.5,
-            '&:hover': affordable
-              ? { boxShadow: 4, transform: 'translateY(-2px)' }
-              : {},
-          }}
+      <div
+        key={pile.card.name}
+        className={`
+          transition-all duration-200
+          ${empty ? 'opacity-35 pointer-events-none' : 'opacity-100'}
+        `}
+        onClick={affordable && onBuy ? () => onBuy(pile.card.name) : undefined}
+      >
+        <CardView
+          card={pile.card}
+          small
           onClick={affordable && onBuy ? () => onBuy(pile.card.name) : undefined}
-        >
-          <CardView card={pile.card} small />
-          <Chip
-            label={`×${pile.count}`}
-            size="small"
-            variant={empty ? 'outlined' : 'filled'}
-            sx={{ fontSize: '0.75rem' }}
-          />
-        </Box>
-      </Grid>
+          remaining={pile.count}
+        />
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Typography variant="subtitle2" sx={{ mb: 0.5, opacity: 0.7 }}>
-        基本カード
-      </Typography>
-      <Grid container spacing={1} sx={{ mb: 1.5 }}>
-        {basic.map(renderPile)}
-      </Grid>
+    <div className="flex flex-col gap-6 py-4">
+      {/* キングダムカード（2行配置） */}
+      <div className="flex flex-col items-center gap-3">
+        <h3 className="text-sm font-semibold opacity-70 mb-1">キングダム</h3>
 
-      <Typography variant="subtitle2" sx={{ mb: 0.5, opacity: 0.7 }}>
-        キングダム
-      </Typography>
-      <Grid container spacing={1}>
-        {kingdom.map(renderPile)}
-      </Grid>
-    </Box>
+        {/* Row 1 */}
+        <div className="flex items-center gap-3">
+          {kingdomRow1.map(renderPile)}
+        </div>
+
+        {/* Row 2 */}
+        {kingdomRow2.length > 0 && (
+          <div className="flex items-center gap-3">
+            {kingdomRow2.map(renderPile)}
+          </div>
+        )}
+      </div>
+
+      {/* 基本カード（財宝 + 勝利点） */}
+      <div className="flex flex-col items-center gap-3">
+        <h3 className="text-sm font-semibold opacity-70 mb-1">基本カード</h3>
+
+        <div className="flex items-center gap-6">
+          {/* 財宝カード */}
+          <div className="flex items-center gap-3">
+            {treasure.map(renderPile)}
+          </div>
+
+          {/* 区切り線 */}
+          <div className="w-px h-16 bg-gray-300" />
+
+          {/* 勝利点カード */}
+          <div className="flex items-center gap-3">
+            {victory.map(renderPile)}
+          </div>
+
+          {/* 呪いカード（存在する場合） */}
+          {curse.length > 0 && (
+            <>
+              <div className="w-px h-16 bg-gray-300" />
+              <div className="flex items-center gap-3">
+                {curse.map(renderPile)}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
