@@ -50,7 +50,7 @@ const HandCard = memo(function HandCard({
       }}
       whileHover={
         canPlay && onPlay
-          ? { y: yOffset - 30, scale: 1.08, rotate: 0, zIndex: 50 }
+          ? { y: yOffset - 5, zIndex: 50 }
           : undefined
       }
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -71,7 +71,7 @@ const HandCard = memo(function HandCard({
 
 const Hand = memo(function Hand({ hand, onPlay, canPlay, selectedCards }: HandProps) {
   return (
-    <div className="relative flex flex-col items-center justify-end p-2 rounded-xl bg-white/5 min-h-[200px]">
+    <div className="relative flex flex-col items-center justify-start p-2 rounded-xl bg-white/5 min-h-[200px]">
       {canPlay && onPlay && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-slate-400 dark:text-slate-500 font-medium">
           カードをクリックしてプレイ

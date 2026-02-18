@@ -117,8 +117,8 @@ const CardView = memo(function CardView({ card, onClick, selected, small, remain
       whileHover={
         onClick
           ? {
-              scale: 1.08,
-              y: -30,
+              scale: 1.05,
+              y: -2,
             }
           : undefined
       }

@@ -77,17 +77,15 @@ const SupplyPileItem = memo(function SupplyPileItem({ pile, onBuy, canBuy, maxCo
   );
 });
 
+// 基本サプライカード名（王国カードと区別するため）
+const BASIC_CARDS = new Set(['Copper', 'Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Curse']);
+
 const SupplyArea = memo(function SupplyArea({ supply, onBuy, canBuy, maxCost }: SupplyAreaProps) {
-  // CardType ベースで分類（useMemo で毎レンダリングの再計算を防止）
-  const treasure = useMemo(() => supply.filter((p) => p.card.types.includes(CardType.Treasure)), [supply]);
-  const victory = useMemo(() => supply.filter((p) => p.card.types.includes(CardType.Victory)), [supply]);
+  // 基本カード vs 王国カードで分類（Gardens等のVictory王国カードを正しく分類）
+  const treasure = useMemo(() => supply.filter((p) => p.card.types.includes(CardType.Treasure) && BASIC_CARDS.has(p.card.name)), [supply]);
+  const victory = useMemo(() => supply.filter((p) => p.card.types.includes(CardType.Victory) && BASIC_CARDS.has(p.card.name)), [supply]);
   const curse = useMemo(() => supply.filter((p) => p.card.types.includes(CardType.Curse)), [supply]);
-  const kingdom = useMemo(() => supply.filter(
-    (p) =>
-      !p.card.types.includes(CardType.Treasure) &&
-      !p.card.types.includes(CardType.Victory) &&
-      !p.card.types.includes(CardType.Curse),
-  ), [supply]);
+  const kingdom = useMemo(() => supply.filter((p) => !BASIC_CARDS.has(p.card.name)), [supply]);
 
   // キングダムカードを2行に分割
   const kingdomRow1 = kingdom.slice(0, 5);
