@@ -235,19 +235,16 @@ export default function GamePage() {
       )}
 
       {/* 購入確認ダイアログ */}
-      {buyTarget && (() => {
-        const cardDef = getCardDef(buyTarget);
-        return (
-          <ConfirmDialog
-            title={cardDef.nameJa ?? cardDef.name}
-            cardDef={cardDef}
-            confirmLabel="購入する"
-            onConfirm={() => { buyCard(buyTarget); setBuyTarget(null); }}
-            onCancel={() => setBuyTarget(null)}
-            details={{ cost: cardDef.cost, types: cardDef.types }}
-          />
-        );
-      })()}
+      {buyTarget && (
+        <ConfirmDialog
+          title={(getCardDef(buyTarget).nameJa ?? getCardDef(buyTarget).name)}
+          cardDef={getCardDef(buyTarget)}
+          confirmLabel="購入する"
+          onConfirm={() => { buyCard(buyTarget); setBuyTarget(null); }}
+          onCancel={() => setBuyTarget(null)}
+          details={{ cost: getCardDef(buyTarget).cost, types: getCardDef(buyTarget).types }}
+        />
+      )}
 
       {/* プレイ確認ダイアログ */}
       {playTarget && (() => {
@@ -260,8 +257,7 @@ export default function GamePage() {
             confirmLabel="プレイする"
             onConfirm={() => { playAction(playTarget); setPlayTarget(null); }}
             onCancel={() => setPlayTarget(null)}
-          />
-        );
+          />);
       })()}
 
       {/* Phase transition notification */}

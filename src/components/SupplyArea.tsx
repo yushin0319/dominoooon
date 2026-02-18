@@ -65,7 +65,7 @@ const SupplyPileItem = memo(function SupplyPileItem({ pile, onBuy, canBuy, maxCo
         <div
           className={`
             absolute -bottom-1 left-1/2 -translate-x-1/2
-            px-2 py-0.5 rounded-full text-[8px] font-bold text-white
+            px-2 py-0.5 rounded-full text-[11px] font-bold text-white
             shadow-md whitespace-nowrap
             ${badgeColor}
           `}

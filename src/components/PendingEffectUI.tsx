@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PendingEffect, CardInstance, SupplyPile } from '../types';
+import type { PendingEffect, PendingEffectType, CardInstance, SupplyPile } from '../types';
 import { CardType } from '../types';
 import type { PendingEffectChoice } from '../domain/effect';
 import { getEffectLabel } from '../constants/effectLabels';
@@ -30,7 +30,7 @@ interface PendingEffectConfig {
   ) => JSX.Element;
 }
 
-const PENDING_EFFECT_CONFIGS: Record<string, Omit<PendingEffectConfig, 'title'>> = {
+const PENDING_EFFECT_CONFIGS: Partial<Record<PendingEffectType, Omit<PendingEffectConfig, 'title'>>> = {
   cellar: {
     selectionType: 'hand',
     multiSelect: true,
@@ -125,7 +125,7 @@ const PENDING_EFFECT_CONFIGS: Record<string, Omit<PendingEffectConfig, 'title'>>
   },
 };
 
-function getEffectConfig(type: string): PendingEffectConfig {
+function getEffectConfig(type: PendingEffectType): PendingEffectConfig {
   const baseConfig = PENDING_EFFECT_CONFIGS[type];
   return {
     title: getEffectLabel(type),
