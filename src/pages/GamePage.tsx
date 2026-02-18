@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { Phase, CardType } from '../types';
-import type { GameState } from '../types';
-import { getCurrentPlayer } from '../domain/game';
+import type { PendingEffect, PlayerState } from '../types';
 import { getCardDef } from '../domain/card';
 import SupplyArea from '../components/SupplyArea';
 import Hand from '../components/Hand';
@@ -10,7 +9,8 @@ import PlayArea from '../components/PlayArea';
 import TurnInfo from '../components/TurnInfo';
 import GameLog from '../components/GameLog';
 import PendingEffectUI from '../components/PendingEffectUI';
-import CardView from '../components/CardView';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { resolveAIPendingEffect } from '../ai/aiPendingResolver';
 
 // Timing constants
 const AI_TURN_DELAY_MS = 400;
@@ -19,24 +19,40 @@ const EFFECT_RESOLVE_DELAY_MS = 400;
 // Game flow state machine
 type GameFlowState = 'player-turn' | 'ai-turn' | 'pending-effect' | 'game-over' | 'idle';
 
-function getGameFlowState(gameState: GameState | null, isAITurn: () => boolean): GameFlowState {
-  if (!gameState) return 'idle';
-  if (gameState.gameOver) return 'game-over';
-  if (gameState.pendingEffect) return 'pending-effect';
-  if (isAITurn()) return 'ai-turn';
+function getGameFlowState(
+  players: PlayerState[] | undefined,
+  gameOver: boolean,
+  pendingEffect: PendingEffect | null,
+  isAITurn: boolean,
+): GameFlowState {
+  if (!players) return 'idle';
+  if (gameOver) return 'game-over';
+  if (pendingEffect) return 'pending-effect';
+  if (isAITurn) return 'ai-turn';
   return 'player-turn';
 }
 
 export default function GamePage() {
-  const gameState = useGameStore((s) => s.gameState);
+  // 粒度の細かいセレクタ（gameState 丸ごとの subscribe を廃止）
+  const phase = useGameStore((s) => s.gameState?.phase);
+  const turnState = useGameStore((s) => s.gameState?.turnState);
+  const supply = useGameStore((s) => s.gameState?.supply);
+  const players = useGameStore((s) => s.gameState?.players);
+  const log = useGameStore((s) => s.gameState?.log);
+  const turnNumber = useGameStore((s) => s.gameState?.turnNumber);
+  const gameOver = useGameStore((s) => s.gameState?.gameOver ?? false);
+  const pendingEffect = useGameStore((s) => s.gameState?.pendingEffect ?? null);
+  const currentPlayerIndex = useGameStore((s) => s.gameState?.currentPlayerIndex ?? 0);
+  // boolean セレクタ（isHumanTurn / isAITurn をストアから分離）
+  const isHumanTurn = useGameStore((s) => s.gameState?.currentPlayerIndex === 0);
+  const isAITurn = useGameStore((s) => s.gameState?.currentPlayerIndex === 1);
+
   const playAction = useGameStore((s) => s.playAction);
   const skipAction = useGameStore((s) => s.skipAction);
   const buyCard = useGameStore((s) => s.buyCard);
   const skipBuy = useGameStore((s) => s.skipBuy);
   const resolvePending = useGameStore((s) => s.resolvePending);
   const executeAITurn = useGameStore((s) => s.executeAITurn);
-  const isHumanTurn = useGameStore((s) => s.isHumanTurn);
-  const isAITurn = useGameStore((s) => s.isAITurn);
   const goToResult = useGameStore((s) => s.goToResult);
 
   const [buyTarget, setBuyTarget] = useState<string | null>(null);
@@ -46,22 +62,22 @@ export default function GamePage() {
 
   // Phase transition notification
   useEffect(() => {
-    if (!gameState || !isHumanTurn()) return;
+    if (!phase || !isHumanTurn) return;
     if (prevPhase === null) {
-      setPrevPhase(gameState.phase);
+      setPrevPhase(phase);
       return;
     }
-    if (prevPhase !== gameState.phase) {
+    if (prevPhase !== phase) {
       const phaseNames: Record<Phase, string> = {
         [Phase.Action]: 'アクションフェーズ',
         [Phase.Buy]: '購入フェーズ',
         [Phase.Cleanup]: 'クリーンアップフェーズ',
       };
-      const newPhaseName = phaseNames[gameState.phase];
+      const newPhaseName = phaseNames[phase];
       setPhaseNotification(`${newPhaseName}に移りました`);
-      setPrevPhase(gameState.phase);
+      setPrevPhase(phase);
     }
-  }, [gameState, prevPhase, isHumanTurn]);
+  }, [phase, isHumanTurn, prevPhase]);
 
   // Auto-dismiss phase notification
   useEffect(() => {
@@ -72,7 +88,7 @@ export default function GamePage() {
 
   // Unified game flow state machine
   useEffect(() => {
-    const flowState = getGameFlowState(gameState, isAITurn);
+    const flowState = getGameFlowState(players, gameOver, pendingEffect, isAITurn);
 
     switch (flowState) {
       case 'ai-turn': {
@@ -83,25 +99,14 @@ export default function GamePage() {
       }
 
       case 'pending-effect': {
-        if (!gameState || !gameState.pendingEffect) return;
-        const humanId = gameState.players[0].id;
-        if (gameState.pendingEffect.playerId === humanId) return; // 人間対象なら手動解決
+        if (!pendingEffect || !players) return;
+        const humanId = players[0].id;
+        if (pendingEffect.playerId === humanId) return; // 人間対象なら手動解決
 
+        const capturedPendingEffect = pendingEffect;
+        const capturedPlayers = players;
         const timer = setTimeout(() => {
-          const targetPlayer = gameState.players.find(
-            (p) => p.id === gameState.pendingEffect!.playerId,
-          );
-          if (!targetPlayer) return;
-
-          // 民兵: 手札が3枚以下になるまで末尾から捨てる
-          if (gameState.pendingEffect!.type === 'militia') {
-            const excess = targetPlayer.hand.length - 3;
-            const toDiscard = targetPlayer.hand.slice(-excess).map((c) => c.instanceId);
-            resolvePending({ type: gameState.pendingEffect!.type, selectedCards: toDiscard });
-          } else {
-            // その他のpendingEffect: 空選択で解決
-            resolvePending({ type: gameState.pendingEffect!.type, selectedCards: [] });
-          }
+          resolveAIPendingEffect(capturedPendingEffect, capturedPlayers, resolvePending);
         }, EFFECT_RESOLVE_DELAY_MS);
         return () => clearTimeout(timer);
       }
@@ -116,30 +121,27 @@ export default function GamePage() {
       default:
         return;
     }
-  }, [gameState, executeAITurn, isAITurn, resolvePending, goToResult]);
+  }, [players, gameOver, pendingEffect, isAITurn, executeAITurn, resolvePending, goToResult]);
 
-  if (!gameState) return null;
+  if (!players || !turnState || phase === undefined || supply === undefined ||
+      log === undefined || turnNumber === undefined) return null;
 
-  if (gameState.gameOver) {
-    return null;
-  }
+  if (gameOver) return null;
 
-  const currentPlayer = getCurrentPlayer(gameState);
-  const humanPlayer = gameState.players[0];
-  const aiTurn = isAITurn();
-  const humanTurn = isHumanTurn();
+  const humanPlayer = players[0];
+  const currentPlayer = players[currentPlayerIndex];
 
   const canPlayActions =
-    humanTurn &&
-    gameState.phase === Phase.Action &&
-    gameState.turnState.actions > 0 &&
-    !gameState.pendingEffect;
+    isHumanTurn &&
+    phase === Phase.Action &&
+    turnState.actions > 0 &&
+    !pendingEffect;
 
   const canBuyCards =
-    humanTurn &&
-    gameState.phase === Phase.Buy &&
-    gameState.turnState.buys > 0 &&
-    !gameState.pendingEffect;
+    isHumanTurn &&
+    phase === Phase.Buy &&
+    turnState.buys > 0 &&
+    !pendingEffect;
 
   function handlePlayCard(instanceId: string) {
     const card = humanPlayer.hand.find((c) => c.instanceId === instanceId);
@@ -160,17 +162,17 @@ export default function GamePage() {
           <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto">
             <div className="w-full max-w-5xl space-y-6">
               <SupplyArea
-                supply={gameState.supply}
+                supply={supply}
                 onBuy={canBuyCards ? (cardName: string) => setBuyTarget(cardName) : undefined}
                 canBuy={canBuyCards}
-                maxCost={canBuyCards ? gameState.turnState.coins : undefined}
+                maxCost={canBuyCards ? turnState.coins : undefined}
               />
 
               <PlayArea cards={currentPlayer.playArea} />
 
               {/* Action buttons */}
               <div className="flex gap-2 justify-center items-center">
-                {humanTurn && gameState.phase === Phase.Action && !gameState.pendingEffect && (
+                {isHumanTurn && phase === Phase.Action && !pendingEffect && (
                   <button
                     onClick={skipAction}
                     className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded hover:bg-slate-700/80 transition-colors"
@@ -178,7 +180,7 @@ export default function GamePage() {
                     アクションスキップ
                   </button>
                 )}
-                {humanTurn && gameState.phase === Phase.Buy && !gameState.pendingEffect && (
+                {isHumanTurn && phase === Phase.Buy && !pendingEffect && (
                   <button
                     onClick={skipBuy}
                     className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded hover:bg-slate-700/80 transition-colors"
@@ -186,7 +188,7 @@ export default function GamePage() {
                     購入スキップ
                   </button>
                 )}
-                {aiTurn && (
+                {isAITurn && (
                   <div className="flex items-center gap-2 py-2">
                     <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
                     <p className="text-sm text-slate-400">
@@ -200,14 +202,14 @@ export default function GamePage() {
 
           {/* TurnInfo - フローティング（コンポーネント内で absolute 配置） */}
           <TurnInfo
-            turnState={gameState.turnState}
-            phase={gameState.phase}
-            turnNumber={gameState.turnNumber}
+            turnState={turnState}
+            phase={phase}
+            turnNumber={turnNumber}
             currentPlayer={currentPlayer.name}
           />
 
           {/* GameLog - フローティング（コンポーネント内で absolute 配置） */}
-          <GameLog log={gameState.log} />
+          <GameLog log={log} />
         </div>
 
         {/* Player hand - bottom */}
@@ -221,12 +223,12 @@ export default function GamePage() {
       </div>
 
       {/* PendingEffect オーバーレイ（人間プレイヤー対象） */}
-      {gameState.pendingEffect && gameState.pendingEffect.playerId === humanPlayer.id && (
+      {pendingEffect && pendingEffect.playerId === humanPlayer.id && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <PendingEffectUI
-            pendingEffect={gameState.pendingEffect}
+            pendingEffect={pendingEffect}
             hand={humanPlayer.hand}
-            supply={gameState.supply}
+            supply={supply}
             onResolve={resolvePending}
           />
         </div>
@@ -236,38 +238,14 @@ export default function GamePage() {
       {buyTarget && (() => {
         const cardDef = getCardDef(buyTarget);
         return (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setBuyTarget(null)}>
-            <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-              <h2 className="text-2xl font-bold text-slate-100 mb-4">
-                {cardDef.nameJa ?? cardDef.name}
-              </h2>
-              <div className="flex justify-center mb-4">
-                <CardView card={cardDef} />
-              </div>
-              <div className="space-y-1 mb-6">
-                <p className="text-sm text-slate-300">
-                  コスト: {cardDef.cost} コイン
-                </p>
-                <p className="text-sm text-slate-300">
-                  種別: {cardDef.types.join(' / ')}
-                </p>
-              </div>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setBuyTarget(null)}
-                  className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
-                >
-                  やめる
-                </button>
-                <button
-                  onClick={() => { buyCard(buyTarget); setBuyTarget(null); }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
-                >
-                  購入する
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmDialog
+            title={cardDef.nameJa ?? cardDef.name}
+            cardDef={cardDef}
+            confirmLabel="購入する"
+            onConfirm={() => { buyCard(buyTarget); setBuyTarget(null); }}
+            onCancel={() => setBuyTarget(null)}
+            details={{ cost: cardDef.cost, types: cardDef.types }}
+          />
         );
       })()}
 
@@ -276,36 +254,22 @@ export default function GamePage() {
         const card = humanPlayer.hand.find((c) => c.instanceId === playTarget);
         if (!card) return null;
         return (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setPlayTarget(null)}>
-            <div className="bg-slate-800 border border-slate-600 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-              <h2 className="text-2xl font-bold text-slate-100 mb-4">
-                {card.def.nameJa ?? card.def.name}
-              </h2>
-              <div className="flex justify-center mb-6">
-                <CardView card={card} />
-              </div>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setPlayTarget(null)}
-                  className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
-                >
-                  やめる
-                </button>
-                <button
-                  onClick={() => { playAction(playTarget); setPlayTarget(null); }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
-                >
-                  プレイする
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmDialog
+            title={card.def.nameJa ?? card.def.name}
+            cardDef={card.def}
+            confirmLabel="プレイする"
+            onConfirm={() => { playAction(playTarget); setPlayTarget(null); }}
+            onCancel={() => setPlayTarget(null)}
+          />
         );
       })()}
 
       {/* Phase transition notification */}
       {phaseNotification && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-800 text-slate-100 text-sm font-medium border border-slate-600 rounded shadow-lg animate-fade-in">
+        <div
+          aria-live="polite"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-800 text-slate-100 text-sm font-medium border border-slate-600 rounded shadow-lg animate-fade-in"
+        >
           {phaseNotification}
         </div>
       )}

@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 
 interface GameLogProps {
   log: string[];
 }
 
-export default function GameLog({ log }: GameLogProps) {
+const GameLog = memo(function GameLog({ log }: GameLogProps) {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function GameLog({ log }: GameLogProps) {
       <div className="space-y-1">
         {log.map((entry, i) => (
           <div
-            key={i}
+            key={`${i}-${entry.substring(0, 20)}`}
             className={`
               py-1 px-2 rounded text-xs
               ${i >= log.length - 2
@@ -35,4 +35,6 @@ export default function GameLog({ log }: GameLogProps) {
       </div>
     </div>
   );
-}
+});
+
+export default GameLog;

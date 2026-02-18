@@ -65,8 +65,9 @@ describe('startGame', () => {
 describe('isHumanTurn / isAITurn', () => {
   it('isHumanTurn returns true when currentPlayerIndex=0', () => {
     useGameStore.getState().startGame(kingdom, 'bigMoney');
-    expect(useGameStore.getState().isHumanTurn()).toBe(true);
-    expect(useGameStore.getState().isAITurn()).toBe(false);
+    const gs = useGameStore.getState().gameState;
+    expect(gs?.currentPlayerIndex === 0).toBe(true);
+    expect(gs?.currentPlayerIndex === 1).toBe(false);
   });
 });
 

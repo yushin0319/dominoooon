@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Swords, ShoppingCart, Coins } from 'lucide-react';
 import type { TurnState, Phase } from '../types';
 
@@ -7,6 +8,12 @@ interface TurnInfoProps {
   turnNumber: number;
   currentPlayer: string;
 }
+
+const phaseNameJa: Record<string, string> = {
+  Action: 'アクションフェーズ',
+  Buy: '購入フェーズ',
+  Cleanup: 'クリーンアップ',
+};
 
 function phaseColor(phase: Phase): string {
   switch (phase) {
@@ -19,7 +26,7 @@ function phaseColor(phase: Phase): string {
   }
 }
 
-export default function TurnInfo({ turnState, phase, turnNumber, currentPlayer }: TurnInfoProps) {
+const TurnInfo = memo(function TurnInfo({ turnState, phase, turnNumber, currentPlayer }: TurnInfoProps) {
   return (
     <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-300 dark:border-slate-600 shadow-xl">
       {/* Player Info */}
@@ -31,7 +38,7 @@ export default function TurnInfo({ turnState, phase, turnNumber, currentPlayer }
           {currentPlayer}
         </div>
         <span className={`text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-medium ${phaseColor(phase)}`}>
-          {phase}
+          {phaseNameJa[phase] ?? phase}
         </span>
       </div>
 
@@ -58,4 +65,6 @@ export default function TurnInfo({ turnState, phase, turnNumber, currentPlayer }
 
     </div>
   );
-}
+});
+
+export default TurnInfo;

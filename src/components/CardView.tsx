@@ -1,7 +1,7 @@
+import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 import type { CardInstance, CardDef, CardType } from '../types';
-import { cn } from '../lib/utils';
+import { cn, getEffectText } from '../lib/utils';
 
 interface CardViewProps {
   card: CardInstance | CardDef;
@@ -44,17 +44,6 @@ function getTextColor(types: CardType[]): string {
   return 'text-gray-400';
 }
 
-function effectText(def: CardDef): string {
-  const parts: string[] = [];
-  const e = def.effects;
-  if (e.cards) parts.push(`+${e.cards} ドロー`);
-  if (e.actions) parts.push(`+${e.actions} アクション`);
-  if (e.buys) parts.push(`+${e.buys} 購入`);
-  if (e.coins) parts.push(`+${e.coins} コイン`);
-  if (def.vpValue !== undefined) parts.push(`${def.vpValue} VP`);
-  return parts.join('、');
-}
-
 function typeNameJa(type: CardType): string {
   const map: Record<string, string> = {
     Action: 'アクション',
@@ -67,12 +56,12 @@ function typeNameJa(type: CardType): string {
   return map[type] ?? type;
 }
 
-export default function CardView({ card, onClick, selected, small, remaining }: CardViewProps) {
+const CardView = memo(function CardView({ card, onClick, selected, small, remaining }: CardViewProps) {
   const def = getDef(card);
   const gradient = getTypeGradient(def.types);
   const borderColor = getBorderColor(def.types);
   const textColor = getTextColor(def.types);
-  const effects = effectText(def);
+  const effects = getEffectText(def);
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
@@ -81,44 +70,47 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
-      {/* Tooltip */}
-      {showTooltip && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 border-2 border-slate-600 rounded-lg shadow-2xl text-white text-sm pointer-events-none"
-        >
-          <div className="font-bold text-base mb-2">{def.nameJa}</div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400">コスト:</span>
-              <span className="font-semibold">{def.cost}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400">種類:</span>
-              <span className={cn('font-semibold', textColor)}>
-                {def.types.map(typeNameJa).join(' / ')}
-              </span>
-            </div>
-            {effects && (
-              <div className="flex items-start gap-2">
-                <span className="text-slate-400">効果:</span>
-                <span>{effects}</span>
-              </div>
-            )}
-            {def.vpValue !== undefined && (
-              <div className="flex items-center gap-2">
-                <span className="text-slate-400">勝利点:</span>
-                <span className="font-semibold">{def.vpValue}</span>
-              </div>
-            )}
+      {/* Tooltip - CSS transition（framer-motion 不使用） */}
+      <div
+        className={cn(
+          'absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3',
+          'bg-slate-900 border-2 border-slate-600 rounded-lg shadow-2xl text-white text-sm pointer-events-none',
+          'transition-all duration-200 ease-out',
+          showTooltip
+            ? 'opacity-100 translate-y-0'
+            : 'opacity-0 translate-y-2 invisible',
+        )}
+      >
+        <div className="font-bold text-base mb-2">{def.nameJa}</div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400">コスト:</span>
+            <span className="font-semibold">{def.cost}</span>
           </div>
-          {/* 矢印 */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-            <div className="border-8 border-transparent border-t-slate-600" />
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400">種類:</span>
+            <span className={cn('font-semibold', textColor)}>
+              {def.types.map(typeNameJa).join(' / ')}
+            </span>
           </div>
-        </motion.div>
-      )}
+          {effects && (
+            <div className="flex items-start gap-2">
+              <span className="text-slate-400">効果:</span>
+              <span>{effects}</span>
+            </div>
+          )}
+          {def.vpValue !== undefined && (
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">勝利点:</span>
+              <span className="font-semibold">{def.vpValue}</span>
+            </div>
+          )}
+        </div>
+        {/* 矢印 */}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+          <div className="border-8 border-transparent border-t-slate-600" />
+        </div>
+      </div>
 
       <motion.div
       onClick={onClick}
@@ -144,7 +136,7 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
       {/* Card Header */}
       <div className={cn(
         'px-2 py-1 font-bold text-white truncate bg-black/20',
-        small ? 'text-[8px]' : 'text-[10px]',
+        small ? 'text-[11px]' : 'text-[11px]',
       )}>
         {def.nameJa}
       </div>
@@ -169,7 +161,7 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
       <div className={cn(
         'absolute bg-slate-800/90 rounded-full flex items-center justify-center font-bold text-white border-2',
         borderColor,
-        small ? 'bottom-1 left-1 w-4 h-4 text-[8px]' : 'bottom-2 left-2 w-8 h-8 text-xs',
+        small ? 'bottom-1 left-1 w-4 h-4 text-[11px]' : 'bottom-2 left-2 w-8 h-8 text-xs',
       )}>
         {def.cost}
       </div>
@@ -183,4 +175,6 @@ export default function CardView({ card, onClick, selected, small, remaining }: 
     </motion.div>
     </div>
   );
-}
+});
+
+export default CardView;
