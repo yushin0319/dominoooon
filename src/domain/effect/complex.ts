@@ -6,7 +6,6 @@ import type {
 import { CardType } from '../../types';
 import { getCardDef } from '../card';
 import {
-  drawCards,
   discardCard,
   trashCardFromHand,
   gainCard,
@@ -15,6 +14,7 @@ import {
 } from '../player';
 import { takeFromSupply } from '../supply';
 import { getCurrentPlayer, updateCurrentPlayer } from '../game';
+import { applyBasicEffects } from '../turn';
 import type { PendingEffectChoice } from './types';
 import { resolveCustomEffect } from './index';
 
@@ -333,8 +333,12 @@ export function resolveThroneRoom(
   const cardId = choice.selectedCards[0];
   const player = getCurrentPlayer(state);
   const card = player.hand.find((c) => c.instanceId === cardId);
-  if (!card || !card.def.types.includes(CardType.Action)) {
-    throw new Error('Throne Room: must select an Action card');
+  if (!card) {
+    throw new Error('Throne Room: selected card not found in hand');
+  }
+  if (!card.def.types.includes(CardType.Action)) {
+    console.warn('Throne Room: must select an Action card');
+    return state;
   }
 
   // Move card to playArea (only once)
@@ -352,42 +356,9 @@ export function resolveThroneRoom(
 
   // Apply effects twice
   for (let i = 0; i < 2; i++) {
-    const { effects } = card.def;
-    if (effects.cards && effects.cards > 0) {
-      const cur = getCurrentPlayer(result);
-      const drawn = drawCards(cur, effects.cards, shuffleFn);
-      result = updateCurrentPlayer(result, drawn);
-    }
-    if (effects.actions) {
-      result = {
-        ...result,
-        turnState: {
-          ...result.turnState,
-          actions: result.turnState.actions + effects.actions,
-        },
-      };
-    }
-    if (effects.buys) {
-      result = {
-        ...result,
-        turnState: {
-          ...result.turnState,
-          buys: result.turnState.buys + effects.buys,
-        },
-      };
-    }
-    if (effects.coins) {
-      result = {
-        ...result,
-        turnState: {
-          ...result.turnState,
-          coins: result.turnState.coins + effects.coins,
-        },
-      };
-    }
-
+    result = applyBasicEffects(result, card, shuffleFn);
     // Apply custom effect
-    if (effects.custom) {
+    if (card.def.effects.custom) {
       result = resolveCustomEffect(result, card, shuffleFn);
       // If a pendingEffect was created, stop and let the caller handle it
       if (result.pendingEffect) break;
@@ -426,43 +397,9 @@ export function resolveVassalChoice(
   let result = updateCurrentPlayer(state, updated);
   result = { ...result, pendingEffect: null };
 
-  // Apply basic effects
-  const { effects } = card.def;
-  if (effects.cards && effects.cards > 0) {
-    const cur = getCurrentPlayer(result);
-    const drawn = drawCards(cur, effects.cards, shuffleFn);
-    result = updateCurrentPlayer(result, drawn);
-  }
-  if (effects.actions) {
-    result = {
-      ...result,
-      turnState: {
-        ...result.turnState,
-        actions: result.turnState.actions + effects.actions,
-      },
-    };
-  }
-  if (effects.buys) {
-    result = {
-      ...result,
-      turnState: {
-        ...result.turnState,
-        buys: result.turnState.buys + effects.buys,
-      },
-    };
-  }
-  if (effects.coins) {
-    result = {
-      ...result,
-      turnState: {
-        ...result.turnState,
-        coins: result.turnState.coins + effects.coins,
-      },
-    };
-  }
-
-  // Apply custom effect
-  if (effects.custom) {
+  // Apply basic effects then custom effect
+  result = applyBasicEffects(result, card, shuffleFn);
+  if (card.def.effects.custom) {
     result = resolveCustomEffect(result, card, shuffleFn);
   }
 

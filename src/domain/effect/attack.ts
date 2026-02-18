@@ -173,7 +173,7 @@ export function resolveMilitiaChoice(
     console.warn(
       `Militia: player must discard down to 3 cards (current: ${player.hand.length}, selected: ${selected.length})`,
     );
-    return { ...state, pendingEffect: null };
+    return state;
   }
 
   // Validate: all selected cards must exist in hand

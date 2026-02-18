@@ -12,7 +12,11 @@ const KINGDOM_CARDS: CardDef[] = Object.values(CARD_DEFS).filter(
 );
 
 function randomKingdom(): CardDef[] {
-  const shuffled = [...KINGDOM_CARDS].sort(() => Math.random() - 0.5);
+  const shuffled = [...KINGDOM_CARDS];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
   return shuffled.slice(0, 10);
 }
 
@@ -119,11 +123,17 @@ export default function SetupPage() {
             {KINGDOM_CARDS.map((card) => {
               const isSelected = selected.has(card.name);
               return (
-                <div
+                <button
                   key={card.name}
                   onClick={() => toggleCard(card.name)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleCard(card.name);
+                    }
+                  }}
                   className={`
-                    p-2 rounded cursor-pointer transition-all
+                    p-2 rounded cursor-pointer transition-all text-left w-full
                     ${isSelected
                       ? 'bg-slate-800/90 shadow-lg border-2 border-purple-500 opacity-100'
                       : 'bg-slate-800/30 border-2 border-transparent opacity-40 hover:opacity-60'
@@ -131,7 +141,7 @@ export default function SetupPage() {
                   `}
                 >
                   <CardView card={card} small selected={isSelected} />
-                </div>
+                </button>
               );
             })}
           </div>

@@ -48,7 +48,7 @@ export function checkGameOver(state: GameState): GameState {
   if (isGameOver(state.supply)) {
     return { ...state, gameOver: true };
   }
-  return { ...state, gameOver: false };
+  return state;
 }
 
 export function getGameResults(

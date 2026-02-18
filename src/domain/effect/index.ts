@@ -7,6 +7,7 @@ import type {
   PlayerState,
   CardInstance,
   ShuffleFn,
+  PendingEffectType,
 } from '../../types';
 import { getCurrentPlayer } from '../game';
 import { createShuffleFn } from '../shuffle';
@@ -54,7 +55,7 @@ const defaultShuffle = createShuffleFn();
 
 function createPending(
   state: GameState,
-  type: string,
+  type: PendingEffectType,
   card: CardInstance,
 ): GameState {
   const player = getCurrentPlayer(state);
@@ -71,7 +72,7 @@ function createPending(
 
 function createPendingWithData(
   state: GameState,
-  type: string,
+  type: PendingEffectType,
   card: CardInstance,
   data: Record<string, unknown>,
 ): GameState {

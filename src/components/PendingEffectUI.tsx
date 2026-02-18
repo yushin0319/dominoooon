@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PendingEffect, CardInstance, SupplyPile } from '../types';
+import { CardType } from '../types';
 import type { PendingEffectChoice } from '../domain/effect';
 import { getEffectLabel } from '../constants/effectLabels';
 import CardView from './CardView';
@@ -55,8 +56,7 @@ const PENDING_EFFECT_CONFIGS: Record<string, Omit<PendingEffectConfig, 'title'>>
     selectionType: 'hand',
     multiSelect: false,
     maxSelect: 1,
-    // Type assertion needed: CardType is enum but types array is string[]
-    filterHand: (c) => c.def.types.includes('Action' as never),
+    filterHand: (c) => c.def.types.includes(CardType.Action),
   },
   harbinger: {
     selectionType: 'hand',
@@ -96,8 +96,7 @@ const PENDING_EFFECT_CONFIGS: Record<string, Omit<PendingEffectConfig, 'title'>>
       if (phase === 'trash') {
         return (
           <CardSelectUI
-            // Type assertion needed: CardType enum vs string[] types
-            hand={hand.filter((c) => c.def.types.includes('Treasure' as never))}
+            hand={hand.filter((c) => c.def.types.includes(CardType.Treasure))}
             multi={false}
             maxSelect={1}
             onResolve={onResolve}
@@ -107,8 +106,7 @@ const PENDING_EFFECT_CONFIGS: Record<string, Omit<PendingEffectConfig, 'title'>>
       const maxCost = ((data.trashedCost as number) ?? 0) + 3;
       return (
         <SupplySelectUI
-          // Type assertion needed: CardType enum vs string[] types
-          supply={supply.filter((p) => p.card.types.includes('Treasure' as never))}
+          supply={supply.filter((p) => p.card.types.includes(CardType.Treasure))}
           maxCost={maxCost}
           onResolve={onResolve}
         />
@@ -162,6 +160,21 @@ function CardSelectUI({
     });
   }
 
+  // 空手札ケース
+  if (hand.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-slate-400 text-sm mb-3">手札がありません</p>
+        <button
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors"
+          onClick={() => onResolve({ selectedCards: [] })}
+        >
+          スキップ
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <p className="text-slate-300 text-sm mb-3">
@@ -184,7 +197,7 @@ function CardSelectUI({
         </span>
         <button
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors"
-          onClick={() => onResolve({ type: '', selectedCards: [...selected] })}
+          onClick={() => onResolve({ selectedCards: [...selected] })}
         >
           確定
         </button>
@@ -218,7 +231,7 @@ function SupplySelectUI({
             key={p.card.name}
             card={p.card}
             small
-            onClick={() => onResolve({ type: '', selectedCardName: p.card.name })}
+            onClick={() => onResolve({ selectedCardName: p.card.name })}
           />
         ))}
       </div>
@@ -231,13 +244,13 @@ function ConfirmUI({ onResolve }: { onResolve: (choice: PendingEffectChoice) => 
     <div className="flex gap-4">
       <button
         className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-medium transition-colors"
-        onClick={() => onResolve({ type: '', confirmed: true })}
+        onClick={() => onResolve({ confirmed: true })}
       >
         はい
       </button>
       <button
         className="border border-slate-500 hover:bg-slate-700 text-slate-300 px-6 py-2 rounded font-medium transition-colors"
-        onClick={() => onResolve({ type: '', confirmed: false })}
+        onClick={() => onResolve({ confirmed: false })}
       >
         いいえ
       </button>

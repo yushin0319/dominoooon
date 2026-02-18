@@ -7,6 +7,7 @@ import type { PendingEffectChoice } from '../domain/effect';
 import { bigMoneyTurn } from '../ai/bigMoney';
 import { bigMoneySmithyTurn } from '../ai/bigMoneySmithy';
 import { createShuffleFn } from '../domain/shuffle';
+import { getEffectText } from '../lib/utils';
 
 /**
  * Design Decision: Store Security
@@ -40,9 +41,6 @@ interface GameStore {
   skipBuy: () => void;
   resolvePending: (choice: PendingEffectChoice) => void;
   executeAITurn: () => void;
-
-  isHumanTurn: () => boolean;
-  isAITurn: () => boolean;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -74,17 +72,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
     const cardName = card.def.nameJa ?? card.def.name;
-    const effects = card.def.effects;
-    let effectText = '';
-    const parts: string[] = [];
-    if (effects.cards && effects.cards > 0) parts.push(`+${effects.cards}枚ドロー`);
-    if (effects.actions && effects.actions > 0) parts.push(`+${effects.actions}アクション`);
-    if (effects.buys && effects.buys > 0) parts.push(`+${effects.buys}購入`);
-    if (effects.coins && effects.coins > 0) parts.push(`+${effects.coins}コイン`);
-    if (effects.custom) parts.push('特殊効果');
-    if (parts.length > 0) effectText = `（${parts.join('、')}）`;
+    const effectStr = getEffectText(card.def);
+    const effectSuffix = effectStr ? `（${effectStr}）` : '';
 
-    const withLog = addLog(gameState, `あなたは${cardName}をプレイしました${effectText}`);
+    const withLog = addLog(gameState, `あなたは${cardName}をプレイしました${effectSuffix}`);
     const next = playActionCard(withLog, instanceId, shuffleFn);
     set({ gameState: next });
   },
@@ -149,13 +140,4 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ gameState: next });
   },
 
-  isHumanTurn: () => {
-    const { gameState } = get();
-    return gameState !== null && gameState.currentPlayerIndex === 0;
-  },
-
-  isAITurn: () => {
-    const { gameState } = get();
-    return gameState !== null && gameState.currentPlayerIndex === 1;
-  },
 }));

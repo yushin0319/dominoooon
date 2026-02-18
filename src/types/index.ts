@@ -19,12 +19,18 @@ export type Phase = (typeof Phase)[keyof typeof Phase];
 
 // ===== Card Interfaces =====
 
+export type CardEffectCustomType =
+  | 'councilRoom' | 'witch' | 'moneylender' | 'library'
+  | 'bandit' | 'bureaucrat' | 'merchant' | 'vassal' | 'sentry'
+  | 'poacher' | 'harbinger' | 'cellar' | 'chapel' | 'workshop'
+  | 'remodel' | 'mine' | 'artisan' | 'militia' | 'throneRoom';
+
 export interface CardEffect {
   cards?: number;
   actions?: number;
   buys?: number;
   coins?: number;
-  custom?: string;
+  custom?: CardEffectCustomType;
 }
 
 export interface CardDef {
@@ -59,8 +65,13 @@ export interface PlayerState {
   playArea: CardInstance[];
 }
 
+export type PendingEffectType =
+  | 'cellar' | 'chapel' | 'workshop' | 'remodel' | 'mine'
+  | 'artisan' | 'militia' | 'throneRoom' | 'poacher' | 'harbinger'
+  | 'vassal' | 'sentry';
+
 export interface PendingEffect {
-  type: string;
+  type: PendingEffectType;
   sourceCard: CardDef;
   playerId: string;
   data?: Record<string, unknown>;

@@ -42,6 +42,7 @@ export function applyBasicEffects(
   return { ...state, players, turnState };
 }
 
+
 export function canPlayAction(state: GameState): boolean {
   if (state.phase !== Phase.Action || state.turnState.actions <= 0) {
     return false;

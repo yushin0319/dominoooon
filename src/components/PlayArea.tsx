@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CardInstance } from '../types';
 import CardView from './CardView';
@@ -6,7 +7,7 @@ interface PlayAreaProps {
   cards: CardInstance[];
 }
 
-export default function PlayArea({ cards }: PlayAreaProps) {
+const PlayArea = memo(function PlayArea({ cards }: PlayAreaProps) {
   return (
     <div className="flex items-center justify-center flex-wrap gap-2 p-6 min-h-[140px] rounded-lg border-2 border-dashed border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
       <AnimatePresence mode="popLayout">
@@ -31,4 +32,6 @@ export default function PlayArea({ cards }: PlayAreaProps) {
       </AnimatePresence>
     </div>
   );
-}
+});
+
+export default PlayArea;
