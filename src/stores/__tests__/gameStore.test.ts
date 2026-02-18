@@ -214,7 +214,6 @@ describe('resolvePending', () => {
     });
 
     useGameStore.getState().resolvePending({
-      type: 'chapel',
       selectedCards: [copper.instanceId],
     });
     const after = useGameStore.getState().gameState!;

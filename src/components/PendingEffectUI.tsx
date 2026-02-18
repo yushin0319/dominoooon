@@ -27,7 +27,7 @@ interface PendingEffectConfig {
     hand: CardInstance[],
     supply: SupplyPile[],
     onResolve: (choice: PendingEffectChoice) => void,
-  ) => JSX.Element;
+  ) => React.JSX.Element;
 }
 
 const PENDING_EFFECT_CONFIGS: Partial<Record<PendingEffectType, Omit<PendingEffectConfig, 'title'>>> = {

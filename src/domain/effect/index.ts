@@ -4,7 +4,6 @@
 
 import type {
   GameState,
-  PlayerState,
   CardInstance,
   ShuffleFn,
   PendingEffectType,
@@ -25,7 +24,6 @@ import {
   resolveHarbinger,
 } from './basic';
 import {
-  hasMoatReaction,
   resolveWitch,
   resolveBandit,
   resolveBureaucrat,

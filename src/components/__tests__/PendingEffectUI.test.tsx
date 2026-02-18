@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EFFECT_LABELS, getEffectLabel } from '../../constants/effectLabels';
+import { EFFECT_LABELS } from '../../constants/effectLabels';
 
 // Basic smoke tests for PendingEffectUI component
 // Full integration tests with rendering can be added once jsdom + Tailwind CSS compatibility is resolved

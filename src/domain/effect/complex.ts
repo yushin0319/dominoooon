@@ -6,11 +6,9 @@ import type {
 import { CardType } from '../../types';
 import { getCardDef } from '../card';
 import {
-  discardCard,
   trashCardFromHand,
   gainCard,
   gainCardToHand,
-  gainCardToDeck,
 } from '../player';
 import { takeFromSupply } from '../supply';
 import { getCurrentPlayer, updateCurrentPlayer } from '../game';

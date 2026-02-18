@@ -6,7 +6,6 @@ import type {
 } from '../../types';
 import { CardType } from '../../types';
 import {
-  drawCards,
   discardCard,
   gainCard,
   gainCardToDeck,
