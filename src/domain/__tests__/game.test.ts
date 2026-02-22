@@ -231,6 +231,81 @@ describe("checkGameOver", () => {
     checkGameOver(game);
     expect(game.gameOver).toBe(false);
   });
+
+  it("returns gameOver=false when only 2 piles are empty (boundary: < 3)", () => {
+    const game = makeGame();
+    let emptyCount = 0;
+    const modified = {
+      ...game,
+      supply: game.supply.map((p) => {
+        if (emptyCount < 2 && p.card.name !== "Province") {
+          emptyCount++;
+          return { ...p, count: 0 };
+        }
+        return p;
+      }),
+    };
+    const checked = checkGameOver(modified);
+    expect(checked.gameOver).toBe(false);
+  });
+
+  it("returns gameOver=true when 4 piles are empty (boundary: > 3)", () => {
+    const game = makeGame();
+    let emptyCount = 0;
+    const modified = {
+      ...game,
+      supply: game.supply.map((p) => {
+        if (emptyCount < 4 && p.card.name !== "Province") {
+          emptyCount++;
+          return { ...p, count: 0 };
+        }
+        return p;
+      }),
+    };
+    const checked = checkGameOver(modified);
+    expect(checked.gameOver).toBe(true);
+  });
+
+  it("returns gameOver=true when Province=0 and other piles also empty (compound)", () => {
+    const game = makeGame();
+    let emptyCount = 0;
+    const modified = {
+      ...game,
+      supply: game.supply.map((p) => {
+        if (p.card.name === "Province") {
+          return { ...p, count: 0 };
+        }
+        if (emptyCount < 2) {
+          emptyCount++;
+          return { ...p, count: 0 };
+        }
+        return p;
+      }),
+    };
+    const checked = checkGameOver(modified);
+    expect(checked.gameOver).toBe(true);
+  });
+
+  it("returns gameOver=true when Province has cards but 3 other piles empty", () => {
+    const game = makeGame();
+    // Province残=1 だが他3パイルが空 → 終了
+    let emptyCount = 0;
+    const modified = {
+      ...game,
+      supply: game.supply.map((p) => {
+        if (p.card.name === "Province") {
+          return { ...p, count: 1 };
+        }
+        if (emptyCount < 3) {
+          emptyCount++;
+          return { ...p, count: 0 };
+        }
+        return p;
+      }),
+    };
+    const checked = checkGameOver(modified);
+    expect(checked.gameOver).toBe(true);
+  });
 });
 
 describe("getGameResults", () => {

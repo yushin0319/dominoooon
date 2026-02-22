@@ -326,6 +326,55 @@ describe('buyCard', () => {
     expect(state.turnState.coins).toBe(5);
     expect(state.turnState.buys).toBe(1);
   });
+
+  it('throws when supply pile is empty', () => {
+    const state = createTestGameState({
+      phase: Phase.Buy,
+      turnState: { actions: 0, buys: 1, coins: 5 },
+    });
+    const emptySupply = state.supply.map((p) =>
+      p.card.name === 'Market' ? { ...p, count: 0 } : p,
+    );
+    const emptyState = { ...state, supply: emptySupply };
+    expect(() => buyCard(emptyState, 'Market')).toThrow('サプライの山札が空です');
+  });
+
+  it('returns state unchanged for invalid card name', () => {
+    const state = createTestGameState({
+      phase: Phase.Buy,
+      turnState: { actions: 0, buys: 1, coins: 10 },
+    });
+    const result = buyCard(state, 'NonExistentCard');
+    expect(result).toBe(state);
+    expect(result.turnState.coins).toBe(10);
+    expect(result.turnState.buys).toBe(1);
+  });
+
+  it('succeeds when coins exactly equal cost (boundary)', () => {
+    const state = createTestGameState({
+      phase: Phase.Buy,
+      turnState: { actions: 0, buys: 1, coins: 5 },
+    });
+    const after = buyCard(state, 'Market');
+    expect(after.turnState.coins).toBe(0);
+    expect(after.turnState.buys).toBe(0);
+    const gained = after.players[0].discard.find((c) => c.def.name === 'Market');
+    expect(gained).toBeDefined();
+  });
+
+  it('buying last card makes supply pile count 0', () => {
+    const state = createTestGameState({
+      phase: Phase.Buy,
+      turnState: { actions: 0, buys: 1, coins: 5 },
+    });
+    const lastOneSupply = state.supply.map((p) =>
+      p.card.name === 'Market' ? { ...p, count: 1 } : p,
+    );
+    const lastOneState = { ...state, supply: lastOneSupply };
+    const after = buyCard(lastOneState, 'Market');
+    const marketPile = after.supply.find((p) => p.card.name === 'Market');
+    expect(marketPile?.count).toBe(0);
+  });
 });
 
 describe('advancePhase', () => {
