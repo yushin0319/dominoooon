@@ -35,78 +35,35 @@ function makeGame(): GameState {
 }
 
 describe("createGame", () => {
-  const game = makeGame();
-
-  it("creates the correct number of players", () => {
+  it("initializes a 2-player game with correct initial state", () => {
+    const game = makeGame();
+    // Players
     expect(game.players).toHaveLength(2);
-  });
-
-  it("each player has 5 cards in hand", () => {
+    expect(game.players[0].name).toBe("Alice");
+    expect(game.players[1].name).toBe("Bob");
     for (const player of game.players) {
       expect(player.hand).toHaveLength(5);
-    }
-  });
-
-  it("each player has 5 cards in deck", () => {
-    for (const player of game.players) {
       expect(player.deck).toHaveLength(5);
-    }
-  });
-
-  it("each player has 10 total cards (7 Copper + 3 Estate)", () => {
-    for (const player of game.players) {
-      const all = [
-        ...player.deck,
-        ...player.hand,
-        ...player.discard,
-        ...player.playArea,
-      ];
+      const all = [...player.deck, ...player.hand, ...player.discard, ...player.playArea];
       expect(all).toHaveLength(10);
     }
+    // Game state
+    expect(game.currentPlayerIndex).toBe(0);
+    expect(game.phase).toBe(Phase.Action);
+    expect(game.turnNumber).toBe(1);
+    expect(game.gameOver).toBe(false);
+    expect(game.turnState).toEqual({ actions: 1, buys: 1, coins: 0 });
+    expect(game.pendingEffect).toBeNull();
+    expect(game.trash).toEqual([]);
+    expect(game.log).toContain("Game started");
   });
 
-  it("initializes supply correctly", () => {
+  it("initializes supply correctly (Copper: 46 in 2-player game)", () => {
+    const game = makeGame();
     expect(game.supply.length).toBeGreaterThan(0);
     const copper = game.supply.find((p) => p.card.name === "Copper");
     // 60 - 7*2 = 46
     expect(copper?.count).toBe(46);
-  });
-
-  it("starts with empty trash", () => {
-    expect(game.trash).toEqual([]);
-  });
-
-  it("starts with currentPlayerIndex 0", () => {
-    expect(game.currentPlayerIndex).toBe(0);
-  });
-
-  it("starts in Action phase", () => {
-    expect(game.phase).toBe(Phase.Action);
-  });
-
-  it("starts at turn 1", () => {
-    expect(game.turnNumber).toBe(1);
-  });
-
-  it("starts with gameOver false", () => {
-    expect(game.gameOver).toBe(false);
-  });
-
-  it("has initial turnState (1 action, 1 buy, 0 coins)", () => {
-    expect(game.turnState).toEqual({ actions: 1, buys: 1, coins: 0 });
-  });
-
-  it("has no pendingEffect", () => {
-    expect(game.pendingEffect).toBeNull();
-  });
-
-  it("has initial log entry", () => {
-    expect(game.log).toContain("Game started");
-  });
-
-  it("assigns player names correctly", () => {
-    expect(game.players[0].name).toBe("Alice");
-    expect(game.players[1].name).toBe("Bob");
   });
 });
 
@@ -191,120 +148,26 @@ describe("endTurn", () => {
 });
 
 describe("checkGameOver", () => {
-  it("returns gameOver=false when game is in progress", () => {
+  // 境界条件の詳細は supply.test.ts の isGameOver テストに委譲。
+  // ここでは「supply.isGameOver の結果を gameOver フラグに反映する」委譲動作のみ検証する。
+  it("sets gameOver flag based on supply state (delegates to supply.isGameOver)", () => {
     const game = makeGame();
-    const checked = checkGameOver(game);
-    expect(checked.gameOver).toBe(false);
-  });
-
-  it("returns gameOver=true when Province is empty", () => {
-    const game = makeGame();
-    const modified = {
+    // ゲーム進行中: 終了しない
+    expect(checkGameOver(game).gameOver).toBe(false);
+    // Province が空になった: 終了する
+    const withEmptyProvince = {
       ...game,
       supply: game.supply.map((p) =>
         p.card.name === "Province" ? { ...p, count: 0 } : p,
       ),
     };
-    const checked = checkGameOver(modified);
-    expect(checked.gameOver).toBe(true);
-  });
-
-  it("returns gameOver=true when 3 piles are empty", () => {
-    const game = makeGame();
-    let emptyCount = 0;
-    const modified = {
-      ...game,
-      supply: game.supply.map((p) => {
-        if (emptyCount < 3 && p.card.name !== "Province") {
-          emptyCount++;
-          return { ...p, count: 0 };
-        }
-        return p;
-      }),
-    };
-    const checked = checkGameOver(modified);
-    expect(checked.gameOver).toBe(true);
+    expect(checkGameOver(withEmptyProvince).gameOver).toBe(true);
   });
 
   it("does not mutate the original state", () => {
     const game = makeGame();
     checkGameOver(game);
     expect(game.gameOver).toBe(false);
-  });
-
-  it("returns gameOver=false when only 2 piles are empty (boundary: < 3)", () => {
-    const game = makeGame();
-    let emptyCount = 0;
-    const modified = {
-      ...game,
-      supply: game.supply.map((p) => {
-        if (emptyCount < 2 && p.card.name !== "Province") {
-          emptyCount++;
-          return { ...p, count: 0 };
-        }
-        return p;
-      }),
-    };
-    const checked = checkGameOver(modified);
-    expect(checked.gameOver).toBe(false);
-  });
-
-  it("returns gameOver=true when 4 piles are empty (boundary: > 3)", () => {
-    const game = makeGame();
-    let emptyCount = 0;
-    const modified = {
-      ...game,
-      supply: game.supply.map((p) => {
-        if (emptyCount < 4 && p.card.name !== "Province") {
-          emptyCount++;
-          return { ...p, count: 0 };
-        }
-        return p;
-      }),
-    };
-    const checked = checkGameOver(modified);
-    expect(checked.gameOver).toBe(true);
-  });
-
-  it("returns gameOver=true when Province=0 and other piles also empty (compound)", () => {
-    const game = makeGame();
-    let emptyCount = 0;
-    const modified = {
-      ...game,
-      supply: game.supply.map((p) => {
-        if (p.card.name === "Province") {
-          return { ...p, count: 0 };
-        }
-        if (emptyCount < 2) {
-          emptyCount++;
-          return { ...p, count: 0 };
-        }
-        return p;
-      }),
-    };
-    const checked = checkGameOver(modified);
-    expect(checked.gameOver).toBe(true);
-  });
-
-  it("returns gameOver=true when Province has cards but 3 other piles empty", () => {
-    const game = makeGame();
-    // Province残=1 だが他3パイルが空 → 終了
-    let emptyCount = 0;
-    const modified = {
-      ...game,
-      supply: game.supply.map((p) => {
-        if (p.card.name === "Province") {
-          return { ...p, count: 1 };
-        }
-        if (emptyCount < 3) {
-          emptyCount++;
-          return { ...p, count: 0 };
-        }
-        return p;
-      }),
-    };
-    const checked = checkGameOver(modified);
-    expect(checked.gameOver).toBe(true);
   });
 });
 

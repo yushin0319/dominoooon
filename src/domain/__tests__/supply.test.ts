@@ -30,112 +30,50 @@ function pile(supply: SupplyPile[], name: string) {
 }
 
 describe("initializeSupply", () => {
-  describe("2-player game", () => {
+  // プレイヤー数によって変わるパイル初期枚数をパラメータ化して検証する
+  it.each([
+    { playerCount: 2, copper: 46, estate: 8, duchy: 8, province: 8, curse: 10, gardens: 8 },
+    { playerCount: 3, copper: 39, estate: 12, duchy: 12, province: 12, curse: 20, gardens: 12 },
+    { playerCount: 4, copper: 32, estate: 12, duchy: 12, province: 12, curse: 30, gardens: 12 },
+  ])(
+    "$playerCount-player game initializes variable pile counts correctly",
+    ({ playerCount, copper, estate, duchy, province, curse, gardens }) => {
+      const supply = initializeSupply(kingdom, playerCount);
+      expect(pile(supply, "Copper")?.count).toBe(copper);
+      expect(pile(supply, "Estate")?.count).toBe(estate);
+      expect(pile(supply, "Duchy")?.count).toBe(duchy);
+      expect(pile(supply, "Province")?.count).toBe(province);
+      expect(pile(supply, "Curse")?.count).toBe(curse);
+      expect(pile(supply, "Gardens")?.count).toBe(gardens);
+    },
+  );
+
+  it("Silver and Gold counts are always fixed (40 and 30)", () => {
     const supply = initializeSupply(kingdom, 2);
-
-    it("has Copper: 60 - 14 = 46", () => {
-      expect(pile(supply, "Copper")?.count).toBe(46);
-    });
-
-    it("has Silver: 40", () => {
-      expect(pile(supply, "Silver")?.count).toBe(40);
-    });
-
-    it("has Gold: 30", () => {
-      expect(pile(supply, "Gold")?.count).toBe(30);
-    });
-
-    it("has Estate: 8 (2 players)", () => {
-      expect(pile(supply, "Estate")?.count).toBe(8);
-    });
-
-    it("has Duchy: 8 (2 players)", () => {
-      expect(pile(supply, "Duchy")?.count).toBe(8);
-    });
-
-    it("has Province: 8 (2 players)", () => {
-      expect(pile(supply, "Province")?.count).toBe(8);
-    });
-
-    it("has Curse: 10 (2 players)", () => {
-      expect(pile(supply, "Curse")?.count).toBe(10);
-    });
-
-    it("has non-Victory kingdom cards at 10 each", () => {
-      for (const name of [
-        "Village",
-        "Smithy",
-        "Market",
-        "Laboratory",
-        "Festival",
-        "Cellar",
-        "Workshop",
-        "Militia",
-        "Mine",
-      ]) {
-        expect(pile(supply, name)?.count).toBe(10);
-      }
-    });
-
-    it("has Gardens (Victory kingdom) at 8 (2 players)", () => {
-      expect(pile(supply, "Gardens")?.count).toBe(8);
-    });
-
-    it("contains all 17 piles (7 basic + 10 kingdom)", () => {
-      expect(supply).toHaveLength(17);
-    });
+    expect(pile(supply, "Silver")?.count).toBe(40);
+    expect(pile(supply, "Gold")?.count).toBe(30);
   });
 
-  describe("3-player game", () => {
-    const supply = initializeSupply(kingdom, 3);
-
-    it("has Copper: 60 - 21 = 39", () => {
-      expect(pile(supply, "Copper")?.count).toBe(39);
-    });
-
-    it("has Estate: 12 (3 players)", () => {
-      expect(pile(supply, "Estate")?.count).toBe(12);
-    });
-
-    it("has Duchy: 12 (3 players)", () => {
-      expect(pile(supply, "Duchy")?.count).toBe(12);
-    });
-
-    it("has Province: 12 (3 players)", () => {
-      expect(pile(supply, "Province")?.count).toBe(12);
-    });
-
-    it("has Curse: 20 (3 players)", () => {
-      expect(pile(supply, "Curse")?.count).toBe(20);
-    });
-
-    it("has Gardens at 12 (3 players)", () => {
-      expect(pile(supply, "Gardens")?.count).toBe(12);
-    });
+  it("non-Victory kingdom cards start at 10 each", () => {
+    const supply = initializeSupply(kingdom, 2);
+    for (const name of [
+      "Village",
+      "Smithy",
+      "Market",
+      "Laboratory",
+      "Festival",
+      "Cellar",
+      "Workshop",
+      "Militia",
+      "Mine",
+    ]) {
+      expect(pile(supply, name)?.count).toBe(10);
+    }
   });
 
-  describe("4-player game", () => {
-    const supply = initializeSupply(kingdom, 4);
-
-    it("has Copper: 60 - 28 = 32", () => {
-      expect(pile(supply, "Copper")?.count).toBe(32);
-    });
-
-    it("has Estate: 12 (4 players)", () => {
-      expect(pile(supply, "Estate")?.count).toBe(12);
-    });
-
-    it("has Province: 12 (4 players)", () => {
-      expect(pile(supply, "Province")?.count).toBe(12);
-    });
-
-    it("has Curse: 30 (4 players)", () => {
-      expect(pile(supply, "Curse")?.count).toBe(30);
-    });
-
-    it("has Gardens at 12 (4 players)", () => {
-      expect(pile(supply, "Gardens")?.count).toBe(12);
-    });
+  it("contains all 17 piles (7 basic + 10 kingdom)", () => {
+    const supply = initializeSupply(kingdom, 2);
+    expect(supply).toHaveLength(17);
   });
 });
 
