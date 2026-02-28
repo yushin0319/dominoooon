@@ -9,10 +9,10 @@
 ## 実装状況
 
 - **Phase 1-6 完了**
-- **実装カード数**: 29種類（王国カード）+ 7種類（基本カード）
+- **実装カード数**: 26種類（王国カード）+ 7種類（基本カード）
 - **AI戦略**: 2種類（Big Money、Big Money + Smithy）
 - **テスト数**: 247テスト（ドメインロジック + ストア + AI）
-- **UI**: Material-UI ベースのモダンなデザイン
+- **UI**: shadcn/ui + Tailwind CSS ベースのモダンなデザイン
 - **日本語対応**: カード名・効果説明が日本語
 
 ## 技術スタック
@@ -21,9 +21,9 @@
 - **フレームワーク**: React 19.2
 - **ビルドツール**: Vite 7.3
 - **状態管理**: Zustand 5.0
-- **UIライブラリ**: Material-UI (MUI)
-- **スタイリング**: Tailwind CSS 3.4 + class-variance-authority
-- **アニメーション**: Framer Motion 11.18
+- **UIライブラリ**: shadcn/ui
+- **スタイリング**: Tailwind CSS 4 + class-variance-authority
+- **アニメーション**: Framer Motion 12
 - **テスト**: Vitest 4.0 + @testing-library/react
 - **その他**: Lucide React (アイコン)
 
