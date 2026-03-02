@@ -339,15 +339,12 @@ describe('buyCard', () => {
     expect(() => buyCard(emptyState, 'Market')).toThrow('サプライの山札が空です');
   });
 
-  it('returns state unchanged for invalid card name', () => {
+  it('throws when card name is not a valid card definition', () => {
     const state = createTestGameState({
       phase: Phase.Buy,
       turnState: { actions: 0, buys: 1, coins: 10 },
     });
-    const result = buyCard(state, 'NonExistentCard');
-    expect(result).toBe(state);
-    expect(result.turnState.coins).toBe(10);
-    expect(result.turnState.buys).toBe(1);
+    expect(() => buyCard(state, 'NonExistentCard')).toThrow();
   });
 
   it('succeeds when coins exactly equal cost (boundary)', () => {

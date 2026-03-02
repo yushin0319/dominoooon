@@ -4,7 +4,6 @@ import { drawCards, playCard, discardHand, discardPlayArea, gainCard } from './p
 import { takeFromSupply } from './supply';
 import { resolveCustomEffect } from './effect';
 import { createShuffleFn } from './shuffle';
-import { getCardDef } from './card';
 
 const defaultShuffle = createShuffleFn();
 
@@ -137,14 +136,6 @@ export function autoPlayTreasures(state: GameState): GameState {
 }
 
 export function buyCard(state: GameState, cardName: string): GameState {
-  // Validate card name exists in card definitions
-  try {
-    getCardDef(cardName);
-  } catch (error) {
-    console.warn(`Invalid card name for buyCard: ${cardName}`);
-    return state; // Early return if card doesn't exist
-  }
-
   const [newSupply, cardDef] = takeFromSupply(state.supply, cardName);
 
   if (cardDef.cost > state.turnState.coins) {

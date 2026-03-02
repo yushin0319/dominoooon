@@ -62,8 +62,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   playAction: (instanceId) => {
     const { gameState, shuffleFn } = get();
     if (!gameState) {
-      console.warn('playAction called with no gameState');
-      return;
+      throw new Error('playAction called with no gameState');
     }
     const player = gameState.players[gameState.currentPlayerIndex];
     const card = player.hand.find((c) => c.instanceId === instanceId);
@@ -83,8 +82,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   skipAction: () => {
     const { gameState, shuffleFn } = get();
     if (!gameState) {
-      console.warn('skipAction called with no gameState');
-      return;
+      throw new Error('skipAction called with no gameState');
     }
     const next = advancePhase(gameState, shuffleFn);
     set({ gameState: next });
@@ -93,8 +91,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   buyCard: (cardName) => {
     const { gameState } = get();
     if (!gameState) {
-      console.warn('buyCard called with no gameState');
-      return;
+      throw new Error('buyCard called with no gameState');
     }
     const supplyEntry = gameState.supply.find((s) => s.card.name === cardName);
     const displayName = supplyEntry?.card.nameJa ?? cardName;
@@ -106,8 +103,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   skipBuy: () => {
     const { gameState, shuffleFn } = get();
     if (!gameState) {
-      console.warn('skipBuy called with no gameState');
-      return;
+      throw new Error('skipBuy called with no gameState');
     }
     const next = endTurn(gameState, shuffleFn);
     // GamePage.tsx の useEffect が gameOver 検知してページ遷移を行う
@@ -117,12 +113,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   resolvePending: (choice) => {
     const { gameState, shuffleFn } = get();
     if (!gameState) {
-      console.warn('resolvePending called with no gameState');
-      return;
+      throw new Error('resolvePending called with no gameState');
     }
     if (!gameState.pendingEffect) {
-      console.warn('resolvePending called with no pendingEffect');
-      return;
+      throw new Error('resolvePending called with no pendingEffect');
     }
     const next = resolvePendingEffect(gameState, choice, shuffleFn);
     set({ gameState: next });
@@ -131,8 +125,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   executeAITurn: () => {
     const { gameState, aiStrategy, shuffleFn } = get();
     if (!gameState) {
-      console.warn('executeAITurn called with no gameState');
-      return;
+      throw new Error('executeAITurn called with no gameState');
     }
     const turnFn = aiStrategy === 'bigMoneySmithy' ? bigMoneySmithyTurn : bigMoneyTurn;
     const next = turnFn(gameState, shuffleFn);
