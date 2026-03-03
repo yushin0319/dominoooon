@@ -169,10 +169,9 @@ export function resolveMilitiaChoice(
   // Validate: after discarding, hand should have at most 3 cards
   const finalHandSize = player.hand.length - selected.length;
   if (finalHandSize > 3) {
-    console.warn(
+    throw new Error(
       `Militia: player must discard down to 3 cards (current: ${player.hand.length}, selected: ${selected.length})`,
     );
-    return state;
   }
 
   // Validate: all selected cards must exist in hand

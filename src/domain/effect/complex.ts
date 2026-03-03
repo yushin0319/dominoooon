@@ -335,8 +335,7 @@ export function resolveThroneRoom(
     throw new Error('Throne Room: selected card not found in hand');
   }
   if (!card.def.types.includes(CardType.Action)) {
-    console.warn('Throne Room: must select an Action card');
-    return state;
+    throw new Error('Throne Room: must select an Action card');
   }
 
   // Move card to playArea (only once)

@@ -378,6 +378,21 @@ describe('resolveCustomEffect + resolvePendingEffect', () => {
       // No pending because Moat blocks
       expect(after.pendingEffect).toBeNull();
     });
+
+    it('throws when insufficient cards are selected to discard', () => {
+      const card = createCardInstance(getCardDef('Militia'));
+      const p1 = makePlayer();
+      const hand = Array(5).fill(null).map(() => createCardInstance(getCardDef('Copper')));
+      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand, discard: [] });
+      const state = makeGameState({ players: [p1, p2] });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      expect(withPending.pendingEffect?.type).toBe('militia');
+
+      // Only discard 1 card when 2 are required (hand=5, need to reduce to 3)
+      const choice: PendingEffectChoice = { selectedCards: [hand[0].instanceId] };
+      expect(() => resolvePendingEffect(withPending, choice, shuffle)).toThrow();
+    });
   });
 
   describe('throneRoom', () => {
@@ -410,6 +425,20 @@ describe('resolveCustomEffect + resolvePendingEffect', () => {
 
       const after = resolveCustomEffect(state, card, shuffle);
       expect(after.pendingEffect).toBeNull();
+    });
+
+    it('throws when non-Action card is selected', () => {
+      const card = createCardInstance(getCardDef('Throne Room'));
+      const village = createCardInstance(getCardDef('Village'));
+      const copper = createCardInstance(getCardDef('Copper'));
+      // copper is in hand so the "not found" check passes, but it's not an Action
+      const p1 = makePlayer({ hand: [village, copper], deck: [], discard: [], playArea: [] });
+      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      expect(withPending.pendingEffect?.type).toBe('throneRoom');
+
+      const choice: PendingEffectChoice = { selectedCards: [copper.instanceId] };
+      expect(() => resolvePendingEffect(withPending, choice, shuffle)).toThrow();
     });
   });
 

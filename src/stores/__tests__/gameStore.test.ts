@@ -221,3 +221,30 @@ describe('resolvePending', () => {
     expect(after.trash).toHaveLength(1);
   });
 });
+
+describe('null gameState guards — throw instead of silent return', () => {
+  // gameState is null by default (before startGame)
+  it('playAction throws when gameState is null', () => {
+    expect(() => useGameStore.getState().playAction('some-id')).toThrow();
+  });
+
+  it('skipAction throws when gameState is null', () => {
+    expect(() => useGameStore.getState().skipAction()).toThrow();
+  });
+
+  it('buyCard throws when gameState is null', () => {
+    expect(() => useGameStore.getState().buyCard('Copper')).toThrow();
+  });
+
+  it('skipBuy throws when gameState is null', () => {
+    expect(() => useGameStore.getState().skipBuy()).toThrow();
+  });
+
+  it('resolvePending throws when gameState is null', () => {
+    expect(() => useGameStore.getState().resolvePending({})).toThrow();
+  });
+
+  it('executeAITurn throws when gameState is null', () => {
+    expect(() => useGameStore.getState().executeAITurn()).toThrow();
+  });
+});

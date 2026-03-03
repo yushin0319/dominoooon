@@ -546,7 +546,7 @@ describe('complex card edge cases', () => {
   });
 
   describe('throneRoom', () => {
-    it('returns state unchanged when non-Action selected', () => {
+    it('throws when non-Action card is selected', () => {
       const card = createCardInstance(getCardDef('Throne Room'));
       const village = createCardInstance(getCardDef('Village'));
       const copper = createCardInstance(getCardDef('Copper'));
@@ -554,11 +554,11 @@ describe('complex card edge cases', () => {
       const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
-      // Select Copper (non-Action)
+      // Select Copper (non-Action) — should throw
       const choice: PendingEffectChoice = { selectedCards: [copper.instanceId] };
-      const after = resolvePendingEffect(withPending, choice, shuffle);
-      // Should return state unchanged (with warning)
-      expect(after.players[0].hand).toHaveLength(2);
+      expect(() => resolvePendingEffect(withPending, choice, shuffle)).toThrow(
+        'Throne Room: must select an Action card',
+      );
     });
   });
 });
