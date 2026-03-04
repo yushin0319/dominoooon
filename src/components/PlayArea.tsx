@@ -1,5 +1,5 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { CardInstance } from '../types';
 import CardView from './CardView';
 

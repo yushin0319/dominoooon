@@ -1,5 +1,5 @@
-import { useGameStore } from '../stores/gameStore';
 import { getGameResults } from '../domain/game';
+import { useGameStore } from '../stores/gameStore';
 
 export default function ResultPage() {
   const gameState = useGameStore((s) => s.gameState);
@@ -22,17 +22,16 @@ export default function ResultPage() {
               key={r.playerId}
               className={`
                 flex items-center justify-between p-4 rounded-lg
-                ${i === 0
-                  ? 'bg-white shadow-xl border-l-4 border-yellow-400'
-                  : 'bg-white/90 shadow'
+                ${
+                  i === 0
+                    ? 'bg-white shadow-xl border-l-4 border-yellow-400'
+                    : 'bg-white/90 shadow'
                 }
               `}
             >
               <span className="font-bold text-slate-900">{i + 1}位</span>
               <span className="flex-1 ml-4 text-slate-900">{r.name}</span>
-              <span className="font-bold text-green-600">
-                {r.vp} VP
-              </span>
+              <span className="font-bold text-green-600">{r.vp} VP</span>
             </div>
           ))}
         </div>
@@ -43,6 +42,7 @@ export default function ResultPage() {
 
         <div className="flex justify-center">
           <button
+            type="button"
             onClick={goToTitle}
             className="px-8 py-3 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 active:scale-95 transition-all shadow-lg hover:shadow-xl"
           >

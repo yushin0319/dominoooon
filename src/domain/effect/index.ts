@@ -3,49 +3,49 @@
 // This verbosity improves code readability and reduces ambiguity in game logic.
 
 import type {
-  GameState,
   CardInstance,
-  ShuffleFn,
+  GameState,
   PendingEffectType,
+  ShuffleFn,
 } from '../../types';
 import { getCurrentPlayer } from '../game';
 import { createShuffleFn } from '../shuffle';
-import type { PendingEffectChoice } from './types';
 import {
-  resolveCouncilRoom,
-  resolveLibrary,
-  resolveMoneylender,
-  resolveCellar,
-  resolveChapel,
-  resolveWorkshop,
-  resolvePoacherOrPending,
-  resolveHarbingerOrPending,
-  resolvePoacher,
-  resolveHarbinger,
-} from './basic';
-import {
-  resolveWitch,
   resolveBandit,
   resolveBureaucrat,
   resolveMilitia,
   resolveMilitiaChoice,
+  resolveWitch,
 } from './attack';
 import {
-  resolveVassal,
-  resolveSentry,
+  resolveCellar,
+  resolveChapel,
+  resolveCouncilRoom,
+  resolveHarbinger,
+  resolveHarbingerOrPending,
+  resolveLibrary,
+  resolveMoneylender,
+  resolvePoacher,
+  resolvePoacherOrPending,
+  resolveWorkshop,
+} from './basic';
+import {
   createMinePending,
   createThroneRoomPending,
-  resolveRemodel,
-  resolveMine,
   resolveArtisan,
-  resolveThroneRoom,
-  resolveVassalChoice,
+  resolveMine,
+  resolveRemodel,
+  resolveSentry,
   resolveSentryChoice,
+  resolveThroneRoom,
+  resolveVassal,
+  resolveVassalChoice,
 } from './complex';
+import type { PendingEffectChoice } from './types';
 
+export { hasMoatReaction } from './attack';
 // Re-export types and utilities
 export type { PendingEffectChoice } from './types';
-export { hasMoatReaction } from './attack';
 
 const defaultShuffle = createShuffleFn();
 
@@ -141,11 +141,12 @@ export function resolveCustomEffect(
       return resolveMilitia(state, card);
     case 'throneRoom':
       return createThroneRoomPending(state, card);
-    default:
+    default: {
       // Exhaustive check
       const _exhaustive: never = custom;
       console.error(`Unknown effect: ${_exhaustive}`);
       return state;
+    }
   }
 }
 

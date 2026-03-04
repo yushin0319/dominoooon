@@ -1,20 +1,12 @@
-import type {
-  GameState,
-  CardInstance,
-  ShuffleFn,
-} from '../../types';
+import type { CardInstance, GameState, ShuffleFn } from '../../types';
 import { CardType } from '../../types';
 import { getCardDef } from '../card';
-import {
-  trashCardFromHand,
-  gainCard,
-  gainCardToHand,
-} from '../player';
-import { takeFromSupply } from '../supply';
 import { getCurrentPlayer, updateCurrentPlayer } from '../game';
+import { gainCard, gainCardToHand, trashCardFromHand } from '../player';
+import { takeFromSupply } from '../supply';
 import { applyBasicEffects } from '../turn';
-import type { PendingEffectChoice } from './types';
 import { resolveCustomEffect } from './index';
+import type { PendingEffectChoice } from './types';
 
 // ===== Complex Card Effects =====
 
@@ -90,7 +82,10 @@ export function resolveSentry(
   };
 }
 
-export function createMinePending(state: GameState, card: CardInstance): GameState {
+export function createMinePending(
+  state: GameState,
+  card: CardInstance,
+): GameState {
   const player = getCurrentPlayer(state);
   const hasTreasure = player.hand.some((c) =>
     c.def.types.includes(CardType.Treasure),
@@ -132,7 +127,7 @@ export function resolveRemodel(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
-  const data = state.pendingEffect!.data || {};
+  const data = state.pendingEffect?.data || {};
 
   if (data.phase === 'trash') {
     if (!choice.selectedCards || choice.selectedCards.length === 0) {
@@ -172,7 +167,9 @@ export function resolveRemodel(
 
     // Validate: cost constraint
     if (cardDef.cost > maxCost) {
-      console.warn(`Remodel: card cost must be <= ${maxCost}, got ${cardDef.cost}`);
+      console.warn(
+        `Remodel: card cost must be <= ${maxCost}, got ${cardDef.cost}`,
+      );
       return { ...state, pendingEffect: null };
     }
 
@@ -192,7 +189,7 @@ export function resolveMine(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
-  const data = state.pendingEffect!.data || {};
+  const data = state.pendingEffect?.data || {};
 
   if (data.phase === 'trash') {
     if (!choice.selectedCards || choice.selectedCards.length === 0) {
@@ -239,7 +236,9 @@ export function resolveMine(
 
     // Validate: cost constraint
     if (cardDef.cost > maxCost) {
-      console.warn(`Mine: card cost must be <= ${maxCost}, got ${cardDef.cost}`);
+      console.warn(
+        `Mine: card cost must be <= ${maxCost}, got ${cardDef.cost}`,
+      );
       return { ...state, pendingEffect: null };
     }
 
@@ -265,7 +264,7 @@ export function resolveArtisan(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
-  const data = state.pendingEffect!.data || {};
+  const data = state.pendingEffect?.data || {};
 
   if (data.phase === 'gain') {
     if (!choice.selectedCardName) return { ...state, pendingEffect: null };
@@ -370,7 +369,7 @@ export function resolveVassalChoice(
   choice: PendingEffectChoice,
   shuffleFn: ShuffleFn,
 ): GameState {
-  const data = state.pendingEffect!.data || {};
+  const data = state.pendingEffect?.data || {};
   const cardId = data.revealedCardId as string;
 
   if (!choice.confirmed) {
@@ -378,7 +377,7 @@ export function resolveVassalChoice(
   }
 
   // Play the Action card from discard
-  let player = getCurrentPlayer(state);
+  const player = getCurrentPlayer(state);
   const idx = player.discard.findIndex((c) => c.instanceId === cardId);
   if (idx === -1) return { ...state, pendingEffect: null };
 
@@ -407,15 +406,15 @@ export function resolveSentryChoice(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
-  const data = state.pendingEffect!.data || {};
+  const data = state.pendingEffect?.data || {};
   const revealedCards = (data.revealedCards || []) as Array<{
     instanceId: string;
     defName: string;
   }>;
   const trashIds = new Set(choice.selectedCards || []);
 
-  let player = getCurrentPlayer(state);
-  let trash = [...state.trash];
+  const player = getCurrentPlayer(state);
+  const trash = [...state.trash];
   const putBack: CardInstance[] = [];
 
   for (const rc of revealedCards) {

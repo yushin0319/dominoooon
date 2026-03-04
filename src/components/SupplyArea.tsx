@@ -16,10 +16,23 @@ interface SupplyPileItemProps {
   maxCost?: number;
 }
 
-const SupplyPileItem = memo(function SupplyPileItem({ pile, onBuy, canBuy, maxCost }: SupplyPileItemProps) {
-  const affordable = canBuy && maxCost !== undefined && pile.card.cost <= maxCost && pile.count > 0;
+const SupplyPileItem = memo(function SupplyPileItem({
+  pile,
+  onBuy,
+  canBuy,
+  maxCost,
+}: SupplyPileItemProps) {
+  const affordable =
+    canBuy &&
+    maxCost !== undefined &&
+    pile.card.cost <= maxCost &&
+    pile.count > 0;
   const empty = pile.count === 0;
-  const coinShortage = canBuy && maxCost !== undefined && pile.card.cost > maxCost && pile.count > 0;
+  const coinShortage =
+    canBuy &&
+    maxCost !== undefined &&
+    pile.card.cost > maxCost &&
+    pile.count > 0;
 
   // バッジテキストと色を決定
   let badgeText = '';
@@ -33,14 +46,15 @@ const SupplyPileItem = memo(function SupplyPileItem({ pile, onBuy, canBuy, maxCo
     badgeColor = 'bg-orange-500';
   }
 
-  const handleKeyDown = affordable && onBuy
-    ? (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onBuy(pile.card.name);
+  const handleKeyDown =
+    affordable && onBuy
+      ? (e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onBuy(pile.card.name);
+          }
         }
-      }
-    : undefined;
+      : undefined;
 
   return (
     <div
@@ -78,14 +92,49 @@ const SupplyPileItem = memo(function SupplyPileItem({ pile, onBuy, canBuy, maxCo
 });
 
 // 基本サプライカード名（王国カードと区別するため）
-const BASIC_CARDS = new Set(['Copper', 'Silver', 'Gold', 'Estate', 'Duchy', 'Province', 'Curse']);
+const BASIC_CARDS = new Set([
+  'Copper',
+  'Silver',
+  'Gold',
+  'Estate',
+  'Duchy',
+  'Province',
+  'Curse',
+]);
 
-const SupplyArea = memo(function SupplyArea({ supply, onBuy, canBuy, maxCost }: SupplyAreaProps) {
+const SupplyArea = memo(function SupplyArea({
+  supply,
+  onBuy,
+  canBuy,
+  maxCost,
+}: SupplyAreaProps) {
   // 基本カード vs 王国カードで分類（Gardens等のVictory王国カードを正しく分類）
-  const treasure = useMemo(() => supply.filter((p) => p.card.types.includes(CardType.Treasure) && BASIC_CARDS.has(p.card.name)), [supply]);
-  const victory = useMemo(() => supply.filter((p) => p.card.types.includes(CardType.Victory) && BASIC_CARDS.has(p.card.name)), [supply]);
-  const curse = useMemo(() => supply.filter((p) => p.card.types.includes(CardType.Curse)), [supply]);
-  const kingdom = useMemo(() => supply.filter((p) => !BASIC_CARDS.has(p.card.name)), [supply]);
+  const treasure = useMemo(
+    () =>
+      supply.filter(
+        (p) =>
+          p.card.types.includes(CardType.Treasure) &&
+          BASIC_CARDS.has(p.card.name),
+      ),
+    [supply],
+  );
+  const victory = useMemo(
+    () =>
+      supply.filter(
+        (p) =>
+          p.card.types.includes(CardType.Victory) &&
+          BASIC_CARDS.has(p.card.name),
+      ),
+    [supply],
+  );
+  const curse = useMemo(
+    () => supply.filter((p) => p.card.types.includes(CardType.Curse)),
+    [supply],
+  );
+  const kingdom = useMemo(
+    () => supply.filter((p) => !BASIC_CARDS.has(p.card.name)),
+    [supply],
+  );
 
   // キングダムカードを2行に分割
   const kingdomRow1 = kingdom.slice(0, 5);
@@ -100,7 +149,13 @@ const SupplyArea = memo(function SupplyArea({ supply, onBuy, canBuy, maxCost }: 
         {/* Row 1 */}
         <div className="flex items-center gap-3">
           {kingdomRow1.map((pile) => (
-            <SupplyPileItem key={pile.card.name} pile={pile} onBuy={onBuy} canBuy={canBuy} maxCost={maxCost} />
+            <SupplyPileItem
+              key={pile.card.name}
+              pile={pile}
+              onBuy={onBuy}
+              canBuy={canBuy}
+              maxCost={maxCost}
+            />
           ))}
         </div>
 
@@ -108,7 +163,13 @@ const SupplyArea = memo(function SupplyArea({ supply, onBuy, canBuy, maxCost }: 
         {kingdomRow2.length > 0 && (
           <div className="flex items-center gap-3">
             {kingdomRow2.map((pile) => (
-              <SupplyPileItem key={pile.card.name} pile={pile} onBuy={onBuy} canBuy={canBuy} maxCost={maxCost} />
+              <SupplyPileItem
+                key={pile.card.name}
+                pile={pile}
+                onBuy={onBuy}
+                canBuy={canBuy}
+                maxCost={maxCost}
+              />
             ))}
           </div>
         )}
@@ -122,7 +183,13 @@ const SupplyArea = memo(function SupplyArea({ supply, onBuy, canBuy, maxCost }: 
           {/* 財宝カード */}
           <div className="flex items-center gap-3">
             {treasure.map((pile) => (
-              <SupplyPileItem key={pile.card.name} pile={pile} onBuy={onBuy} canBuy={canBuy} maxCost={maxCost} />
+              <SupplyPileItem
+                key={pile.card.name}
+                pile={pile}
+                onBuy={onBuy}
+                canBuy={canBuy}
+                maxCost={maxCost}
+              />
             ))}
           </div>
 
@@ -132,7 +199,13 @@ const SupplyArea = memo(function SupplyArea({ supply, onBuy, canBuy, maxCost }: 
           {/* 勝利点カード */}
           <div className="flex items-center gap-3">
             {victory.map((pile) => (
-              <SupplyPileItem key={pile.card.name} pile={pile} onBuy={onBuy} canBuy={canBuy} maxCost={maxCost} />
+              <SupplyPileItem
+                key={pile.card.name}
+                pile={pile}
+                onBuy={onBuy}
+                canBuy={canBuy}
+                maxCost={maxCost}
+              />
             ))}
           </div>
 
@@ -142,7 +215,13 @@ const SupplyArea = memo(function SupplyArea({ supply, onBuy, canBuy, maxCost }: 
               <div className="w-px h-16 bg-gray-300 dark:bg-gray-600" />
               <div className="flex items-center gap-3">
                 {curse.map((pile) => (
-                  <SupplyPileItem key={pile.card.name} pile={pile} onBuy={onBuy} canBuy={canBuy} maxCost={maxCost} />
+                  <SupplyPileItem
+                    key={pile.card.name}
+                    pile={pile}
+                    onBuy={onBuy}
+                    canBuy={canBuy}
+                    maxCost={maxCost}
+                  />
                 ))}
               </div>
             </>

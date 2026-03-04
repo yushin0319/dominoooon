@@ -1,5 +1,5 @@
-import type { PlayerState, CardInstance, CardDef, ShuffleFn } from '../types';
-import { getCardDef, createCardInstance } from './card';
+import type { CardDef, CardInstance, PlayerState, ShuffleFn } from '../types';
+import { createCardInstance, getCardDef } from './card';
 
 export function createPlayer(
   id: string,

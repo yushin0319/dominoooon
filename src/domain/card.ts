@@ -258,9 +258,7 @@ export function getCardDef(name: string): CardDef {
   const def = CARD_DEFS[name];
   if (!def) {
     const available = Object.keys(CARD_DEFS).join(', ');
-    throw new Error(
-      `Unknown card: "${name}". Available cards: ${available}`,
-    );
+    throw new Error(`Unknown card: "${name}". Available cards: ${available}`);
   }
   return def;
 }

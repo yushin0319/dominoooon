@@ -1,9 +1,15 @@
-import type { GameState, TurnState, CardInstance, ShuffleFn } from '../types';
-import { Phase, CardType } from '../types';
-import { drawCards, playCard, discardHand, discardPlayArea, gainCard } from './player';
-import { takeFromSupply } from './supply';
+import type { CardInstance, GameState, ShuffleFn, TurnState } from '../types';
+import { CardType, Phase } from '../types';
 import { resolveCustomEffect } from './effect';
+import {
+  discardHand,
+  discardPlayArea,
+  drawCards,
+  gainCard,
+  playCard,
+} from './player';
 import { createShuffleFn } from './shuffle';
+import { takeFromSupply } from './supply';
 
 const defaultShuffle = createShuffleFn();
 
@@ -41,15 +47,12 @@ export function applyBasicEffects(
   return { ...state, players, turnState };
 }
 
-
 export function canPlayAction(state: GameState): boolean {
   if (state.phase !== Phase.Action || state.turnState.actions <= 0) {
     return false;
   }
   const currentPlayer = state.players[state.currentPlayerIndex];
-  return currentPlayer.hand.some((c) =>
-    c.def.types.includes(CardType.Action),
-  );
+  return currentPlayer.hand.some((c) => c.def.types.includes(CardType.Action));
 }
 
 export function playActionCard(

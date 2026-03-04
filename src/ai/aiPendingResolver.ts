@@ -1,5 +1,5 @@
-import type { PendingEffect, PlayerState } from '../types';
 import type { PendingEffectChoice } from '../domain/effect';
+import type { PendingEffect, PlayerState } from '../types';
 
 export function resolveAIPendingEffect(
   pendingEffect: PendingEffect,

@@ -11,13 +11,13 @@
  * decision-making logic, while domain functions are low-level game mechanics.
  */
 
+import { getCardDef } from '../domain/card';
+import { addLog, endTurn } from '../domain/game';
+import { createShuffleFn } from '../domain/shuffle';
+import { getSupplyPile } from '../domain/supply';
+import { advancePhase, buyCard } from '../domain/turn';
 import type { GameState, ShuffleFn } from '../types';
 import { Phase } from '../types';
-import { advancePhase, buyCard } from '../domain/turn';
-import { addLog, endTurn } from '../domain/game';
-import { getSupplyPile } from '../domain/supply';
-import { getCardDef } from '../domain/card';
-import { createShuffleFn } from '../domain/shuffle';
 
 const defaultShuffle = createShuffleFn();
 
@@ -89,9 +89,10 @@ export function bigMoneyTurn(
 /**
  * Return the next decision for UI display purposes.
  */
-export function bigMoneyDecision(
-  state: GameState,
-): { action: 'skip' | 'buy'; cardName?: string } {
+export function bigMoneyDecision(state: GameState): {
+  action: 'skip' | 'buy';
+  cardName?: string;
+} {
   if (state.phase === Phase.Action) {
     return { action: 'skip' };
   }

@@ -1,20 +1,20 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { getCardDef } from '../card';
 import {
+  calculateVP,
   createPlayer,
-  drawCards,
-  playCard,
   discardCard,
   discardHand,
   discardPlayArea,
-  trashCardFromHand,
+  drawCards,
   gainCard,
-  gainCardToHand,
   gainCardToDeck,
-  calculateVP,
+  gainCardToHand,
   getAllCards,
+  playCard,
+  trashCardFromHand,
 } from '../player';
-import { getCardDef } from '../card';
 import { createShuffleFn } from '../shuffle';
 
 const deterministicShuffle = createShuffleFn(() => 0.5);
@@ -67,7 +67,7 @@ describe('drawCards', () => {
   });
 
   it('draws only available cards when total is insufficient', () => {
-    let player = createPlayer('p1', 'Alice', deterministicShuffle);
+    const player = createPlayer('p1', 'Alice', deterministicShuffle);
     // deck=5, hand=5, discard=0
     // Try to draw 20 - should only get 5 more (from deck), no discard to reshuffle
     const after = drawCards(player, 20, deterministicShuffle);

@@ -1,22 +1,22 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { GameState, PlayerState } from '../../types';
+import { Phase } from '../../types';
+import { createCardInstance, getCardDef } from '../card';
+import { createPlayer } from '../player';
+import { createShuffleFn } from '../shuffle';
+import { initializeSupply } from '../supply';
 import {
-  createInitialTurnState,
+  advancePhase,
   applyBasicEffects,
-  canPlayAction,
-  playActionCard,
-  canBuy,
   autoPlayTreasures,
   buyCard,
-  advancePhase,
+  canBuy,
+  canPlayAction,
   cleanupAndDraw,
+  createInitialTurnState,
+  playActionCard,
 } from '../turn';
-import { getCardDef, createCardInstance } from '../card';
-import { createPlayer } from '../player';
-import { initializeSupply } from '../supply';
-import { createShuffleFn } from '../shuffle';
-import { Phase } from '../../types';
-import type { GameState, PlayerState } from '../../types';
 
 const shuffle = createShuffleFn(() => 0.5);
 
@@ -26,10 +26,7 @@ function createTestPlayer(overrides?: Partial<PlayerState>): PlayerState {
 }
 
 function createTestGameState(overrides?: Partial<GameState>): GameState {
-  const players = [
-    createTestPlayer(),
-    createPlayer('p2', 'Bob', shuffle),
-  ];
+  const players = [createTestPlayer(), createPlayer('p2', 'Bob', shuffle)];
   const kingdom = [
     getCardDef('Village'),
     getCardDef('Smithy'),
@@ -170,7 +167,10 @@ describe('playActionCard', () => {
     const copperInst = createCardInstance(getCardDef('Copper'));
     const player = createTestPlayer({
       hand: [villageInst, copperInst],
-      deck: [createCardInstance(getCardDef('Copper')), createCardInstance(getCardDef('Estate'))],
+      deck: [
+        createCardInstance(getCardDef('Copper')),
+        createCardInstance(getCardDef('Estate')),
+      ],
     });
     const state = createTestGameState({
       players: [player, createPlayer('p2', 'Bob', shuffle)],
@@ -180,7 +180,9 @@ describe('playActionCard', () => {
     const after = playActionCard(state, villageInst.instanceId, shuffle);
     // Village played: hand loses Village, gains 1 card from deck
     expect(after.players[0].playArea).toHaveLength(1);
-    expect(after.players[0].playArea[0].instanceId).toBe(villageInst.instanceId);
+    expect(after.players[0].playArea[0].instanceId).toBe(
+      villageInst.instanceId,
+    );
     // actions: 1 - 1 (play) + 2 (effect) = 2
     expect(after.turnState.actions).toBe(2);
     // hand: started with 2, played 1 Village, drew 1 = 2
@@ -193,7 +195,9 @@ describe('playActionCard', () => {
     const state = createTestGameState({
       players: [player, createPlayer('p2', 'Bob', shuffle)],
     });
-    expect(() => playActionCard(state, copperInst.instanceId, shuffle)).toThrow();
+    expect(() =>
+      playActionCard(state, copperInst.instanceId, shuffle),
+    ).toThrow();
   });
 
   it('does not mutate original state', () => {
@@ -294,7 +298,9 @@ describe('buyCard', () => {
     expect(after.turnState.coins).toBe(0); // 5 - 5(Market cost)
     expect(after.turnState.buys).toBe(0);
     // Discard should have gained a Market
-    const gained = after.players[0].discard.find((c) => c.def.name === 'Market');
+    const gained = after.players[0].discard.find(
+      (c) => c.def.name === 'Market',
+    );
     expect(gained).toBeDefined();
   });
 
@@ -311,9 +317,13 @@ describe('buyCard', () => {
       phase: Phase.Buy,
       turnState: { actions: 0, buys: 1, coins: 5 },
     });
-    const marketBefore = state.supply.find((p) => p.card.name === 'Market')!.count;
+    const marketBefore = state.supply.find(
+      (p) => p.card.name === 'Market',
+    )!.count;
     const after = buyCard(state, 'Market');
-    const marketAfter = after.supply.find((p) => p.card.name === 'Market')!.count;
+    const marketAfter = after.supply.find(
+      (p) => p.card.name === 'Market',
+    )!.count;
     expect(marketAfter).toBe(marketBefore - 1);
   });
 
@@ -336,7 +346,9 @@ describe('buyCard', () => {
       p.card.name === 'Market' ? { ...p, count: 0 } : p,
     );
     const emptyState = { ...state, supply: emptySupply };
-    expect(() => buyCard(emptyState, 'Market')).toThrow('サプライの山札が空です');
+    expect(() => buyCard(emptyState, 'Market')).toThrow(
+      'サプライの山札が空です',
+    );
   });
 
   it('throws when card name is not a valid card definition', () => {
@@ -355,7 +367,9 @@ describe('buyCard', () => {
     const after = buyCard(state, 'Market');
     expect(after.turnState.coins).toBe(0);
     expect(after.turnState.buys).toBe(0);
-    const gained = after.players[0].discard.find((c) => c.def.name === 'Market');
+    const gained = after.players[0].discard.find(
+      (c) => c.def.name === 'Market',
+    );
     expect(gained).toBeDefined();
   });
 
@@ -432,7 +446,9 @@ describe('cleanupAndDraw', () => {
   it('discards hand and playArea, draws 5, resets turnState', () => {
     const hand = [createCardInstance(getCardDef('Copper'))];
     const playArea = [createCardInstance(getCardDef('Village'))];
-    const deck = Array.from({ length: 5 }, () => createCardInstance(getCardDef('Copper')));
+    const deck = Array.from({ length: 5 }, () =>
+      createCardInstance(getCardDef('Copper')),
+    );
     const player = createTestPlayer({
       hand,
       playArea,

@@ -26,7 +26,8 @@ export default function ConfirmDialog({
 
   useEffect(() => {
     // ダイアログ表示時に確認ボタンへフォーカス
-    const buttons = dialogRef.current?.querySelectorAll<HTMLButtonElement>('button');
+    const buttons =
+      dialogRef.current?.querySelectorAll<HTMLButtonElement>('button');
     buttons?.[buttons.length - 1]?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,18 +77,24 @@ export default function ConfirmDialog({
         </div>
         {details && (
           <div className="space-y-1 mb-6">
-            <p className="text-sm text-slate-300">コスト: {details.cost} コイン</p>
-            <p className="text-sm text-slate-300">種別: {details.types.join(' / ')}</p>
+            <p className="text-sm text-slate-300">
+              コスト: {details.cost} コイン
+            </p>
+            <p className="text-sm text-slate-300">
+              種別: {details.types.join(' / ')}
+            </p>
           </div>
         )}
         <div className="flex gap-3 justify-end">
           <button
+            type="button"
             onClick={onCancel}
             className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
           >
             やめる
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
           >

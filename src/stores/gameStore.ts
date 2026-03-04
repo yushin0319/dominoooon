@@ -1,13 +1,17 @@
 import { create } from 'zustand';
-import type { GameState, CardDef, ShuffleFn } from '../types';
-import { createGame, endTurn, addLog } from '../domain/game';
-import { playActionCard, buyCard as turnBuyCard, advancePhase } from '../domain/turn';
-import { resolvePendingEffect } from '../domain/effect';
-import type { PendingEffectChoice } from '../domain/effect';
 import { bigMoneyTurn } from '../ai/bigMoney';
 import { bigMoneySmithyTurn } from '../ai/bigMoneySmithy';
+import type { PendingEffectChoice } from '../domain/effect';
+import { resolvePendingEffect } from '../domain/effect';
+import { addLog, createGame, endTurn } from '../domain/game';
 import { createShuffleFn } from '../domain/shuffle';
+import {
+  advancePhase,
+  playActionCard,
+  buyCard as turnBuyCard,
+} from '../domain/turn';
 import { getEffectText } from '../lib/utils';
+import type { CardDef, GameState, ShuffleFn } from '../types';
 
 /**
  * Design Decision: Store Security
@@ -74,7 +78,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const effectStr = getEffectText(card.def);
     const effectSuffix = effectStr ? `（${effectStr}）` : '';
 
-    const withLog = addLog(gameState, `あなたは${cardName}をプレイしました${effectSuffix}`);
+    const withLog = addLog(
+      gameState,
+      `あなたは${cardName}をプレイしました${effectSuffix}`,
+    );
     const next = playActionCard(withLog, instanceId, shuffleFn);
     set({ gameState: next });
   },
@@ -127,10 +134,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!gameState) {
       throw new Error('executeAITurn called with no gameState');
     }
-    const turnFn = aiStrategy === 'bigMoneySmithy' ? bigMoneySmithyTurn : bigMoneyTurn;
+    const turnFn =
+      aiStrategy === 'bigMoneySmithy' ? bigMoneySmithyTurn : bigMoneyTurn;
     const next = turnFn(gameState, shuffleFn);
     // GamePage.tsx の useEffect が gameOver 検知してページ遷移を行う
     set({ gameState: next });
   },
-
 }));

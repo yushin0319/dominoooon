@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import type { PendingEffect, PendingEffectType, CardInstance, SupplyPile } from '../types';
-import { CardType } from '../types';
-import type { PendingEffectChoice } from '../domain/effect';
 import { getEffectLabel } from '../constants/effectLabels';
+import type { PendingEffectChoice } from '../domain/effect';
+import type {
+  CardInstance,
+  PendingEffect,
+  PendingEffectType,
+  SupplyPile,
+} from '../types';
+import { CardType } from '../types';
 import CardView from './CardView';
 
 interface PendingEffectUIProps {
@@ -30,7 +35,9 @@ interface PendingEffectConfig {
   ) => React.JSX.Element;
 }
 
-const PENDING_EFFECT_CONFIGS: Partial<Record<PendingEffectType, Omit<PendingEffectConfig, 'title'>>> = {
+const PENDING_EFFECT_CONFIGS: Partial<
+  Record<PendingEffectType, Omit<PendingEffectConfig, 'title'>>
+> = {
   cellar: {
     selectionType: 'hand',
     multiSelect: true,
@@ -86,7 +93,13 @@ const PENDING_EFFECT_CONFIGS: Partial<Record<PendingEffectType, Omit<PendingEffe
         );
       }
       const maxCost = ((data.trashedCost as number) ?? 0) + 2;
-      return <SupplySelectUI supply={supply} maxCost={maxCost} onResolve={onResolve} />;
+      return (
+        <SupplySelectUI
+          supply={supply}
+          maxCost={maxCost}
+          onResolve={onResolve}
+        />
+      );
     },
   },
   mine: {
@@ -106,7 +119,9 @@ const PENDING_EFFECT_CONFIGS: Partial<Record<PendingEffectType, Omit<PendingEffe
       const maxCost = ((data.trashedCost as number) ?? 0) + 3;
       return (
         <SupplySelectUI
-          supply={supply.filter((p) => p.card.types.includes(CardType.Treasure))}
+          supply={supply.filter((p) =>
+            p.card.types.includes(CardType.Treasure),
+          )}
           maxCost={maxCost}
           onResolve={onResolve}
         />
@@ -118,9 +133,18 @@ const PENDING_EFFECT_CONFIGS: Partial<Record<PendingEffectType, Omit<PendingEffe
     customRenderer: (data, hand, supply, onResolve) => {
       const phase = data.phase as string | undefined;
       if (phase === 'gain') {
-        return <SupplySelectUI supply={supply} maxCost={5} onResolve={onResolve} />;
+        return (
+          <SupplySelectUI supply={supply} maxCost={5} onResolve={onResolve} />
+        );
       }
-      return <CardSelectUI hand={hand} multi={false} maxSelect={1} onResolve={onResolve} />;
+      return (
+        <CardSelectUI
+          hand={hand}
+          multi={false}
+          maxSelect={1}
+          onResolve={onResolve}
+        />
+      );
     },
   },
 };
@@ -166,6 +190,7 @@ function CardSelectUI({
       <div className="text-center py-4">
         <p className="text-slate-400 text-sm mb-3">手札がありません</p>
         <button
+          type="button"
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors"
           onClick={() => onResolve({ selectedCards: [] })}
         >
@@ -196,6 +221,7 @@ function CardSelectUI({
           選択中: {selected.size}枚
         </span>
         <button
+          type="button"
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-medium transition-colors"
           onClick={() => onResolve({ selectedCards: [...selected] })}
         >
@@ -239,16 +265,22 @@ function SupplySelectUI({
   );
 }
 
-function ConfirmUI({ onResolve }: { onResolve: (choice: PendingEffectChoice) => void }) {
+function ConfirmUI({
+  onResolve,
+}: {
+  onResolve: (choice: PendingEffectChoice) => void;
+}) {
   return (
     <div className="flex gap-4">
       <button
+        type="button"
         className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-medium transition-colors"
         onClick={() => onResolve({ confirmed: true })}
       >
         はい
       </button>
       <button
+        type="button"
         className="border border-slate-500 hover:bg-slate-700 text-slate-300 px-6 py-2 rounded font-medium transition-colors"
         onClick={() => onResolve({ confirmed: false })}
       >
@@ -276,7 +308,9 @@ export default function PendingEffectUI({
     // Config-driven rendering
     switch (config.selectionType) {
       case 'hand': {
-        const filteredHand = config.filterHand ? hand.filter(config.filterHand) : hand;
+        const filteredHand = config.filterHand
+          ? hand.filter(config.filterHand)
+          : hand;
         return (
           <CardSelectUI
             hand={filteredHand}
@@ -290,9 +324,7 @@ export default function PendingEffectUI({
         return (
           <SupplySelectUI
             supply={
-              config.filterSupply
-                ? supply.filter(config.filterSupply)
-                : supply
+              config.filterSupply ? supply.filter(config.filterSupply) : supply
             }
             maxCost={config.maxCost}
             onResolve={onResolve}

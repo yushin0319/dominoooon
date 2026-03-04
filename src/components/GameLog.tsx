@@ -9,7 +9,7 @@ const GameLog = memo(function GameLog({ log }: GameLogProps) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [log.length]);
+  }, []);
 
   return (
     <div className="absolute bottom-3 left-3 z-30 w-64 h-48 p-3 bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-600 shadow-xl overflow-y-auto">
@@ -22,9 +22,10 @@ const GameLog = memo(function GameLog({ log }: GameLogProps) {
             key={`${i}-${entry.substring(0, 20)}`}
             className={`
               py-1 px-2 rounded text-xs
-              ${i >= log.length - 2
-                ? 'bg-yellow-500/20 text-yellow-100'
-                : 'text-slate-300'
+              ${
+                i >= log.length - 2
+                  ? 'bg-yellow-500/20 text-yellow-100'
+                  : 'text-slate-300'
               }
             `}
           >

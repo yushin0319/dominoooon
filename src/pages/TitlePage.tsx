@@ -8,10 +8,9 @@ export default function TitlePage() {
       <h1 className="text-6xl font-bold text-white drop-shadow-lg">
         Dominoooon
       </h1>
-      <p className="text-xl text-slate-300">
-        ドミニオン風カードゲーム
-      </p>
+      <p className="text-xl text-slate-300">ドミニオン風カードゲーム</p>
       <button
+        type="button"
         onClick={goToSetup}
         className="px-8 py-4 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 active:scale-95 transition-all shadow-lg hover:shadow-xl"
       >

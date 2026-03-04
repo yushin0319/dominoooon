@@ -1,29 +1,44 @@
 // ===== Card Type & Phase =====
 
 export const CardType = {
-  Action: "Action",
-  Treasure: "Treasure",
-  Victory: "Victory",
-  Curse: "Curse",
-  Attack: "Attack",
-  Reaction: "Reaction",
+  Action: 'Action',
+  Treasure: 'Treasure',
+  Victory: 'Victory',
+  Curse: 'Curse',
+  Attack: 'Attack',
+  Reaction: 'Reaction',
 } as const;
 export type CardType = (typeof CardType)[keyof typeof CardType];
 
 export const Phase = {
-  Action: "Action",
-  Buy: "Buy",
-  Cleanup: "Cleanup",
+  Action: 'Action',
+  Buy: 'Buy',
+  Cleanup: 'Cleanup',
 } as const;
 export type Phase = (typeof Phase)[keyof typeof Phase];
 
 // ===== Card Interfaces =====
 
 export type CardEffectCustomType =
-  | 'councilRoom' | 'witch' | 'moneylender' | 'library'
-  | 'bandit' | 'bureaucrat' | 'merchant' | 'vassal' | 'sentry'
-  | 'poacher' | 'harbinger' | 'cellar' | 'chapel' | 'workshop'
-  | 'remodel' | 'mine' | 'artisan' | 'militia' | 'throneRoom';
+  | 'councilRoom'
+  | 'witch'
+  | 'moneylender'
+  | 'library'
+  | 'bandit'
+  | 'bureaucrat'
+  | 'merchant'
+  | 'vassal'
+  | 'sentry'
+  | 'poacher'
+  | 'harbinger'
+  | 'cellar'
+  | 'chapel'
+  | 'workshop'
+  | 'remodel'
+  | 'mine'
+  | 'artisan'
+  | 'militia'
+  | 'throneRoom';
 
 export interface CardEffect {
   cards?: number;
@@ -66,9 +81,18 @@ export interface PlayerState {
 }
 
 export type PendingEffectType =
-  | 'cellar' | 'chapel' | 'workshop' | 'remodel' | 'mine'
-  | 'artisan' | 'militia' | 'throneRoom' | 'poacher' | 'harbinger'
-  | 'vassal' | 'sentry';
+  | 'cellar'
+  | 'chapel'
+  | 'workshop'
+  | 'remodel'
+  | 'mine'
+  | 'artisan'
+  | 'militia'
+  | 'throneRoom'
+  | 'poacher'
+  | 'harbinger'
+  | 'vassal'
+  | 'sentry';
 
 export interface PendingEffect {
   type: PendingEffectType;

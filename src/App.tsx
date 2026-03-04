@@ -1,8 +1,8 @@
-import { useGameStore } from './stores/gameStore';
-import TitlePage from './pages/TitlePage';
-import SetupPage from './pages/SetupPage';
 import GamePage from './pages/GamePage';
 import ResultPage from './pages/ResultPage';
+import SetupPage from './pages/SetupPage';
+import TitlePage from './pages/TitlePage';
+import { useGameStore } from './stores/gameStore';
 
 function App() {
   const page = useGameStore((s) => s.page);

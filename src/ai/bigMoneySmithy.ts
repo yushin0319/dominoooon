@@ -1,11 +1,11 @@
+import { getCardDef } from '../domain/card';
+import { addLog, endTurn, getCurrentPlayer } from '../domain/game';
+import { getAllCards } from '../domain/player';
+import { createShuffleFn } from '../domain/shuffle';
+import { getSupplyPile } from '../domain/supply';
+import { advancePhase, buyCard, canBuy, playActionCard } from '../domain/turn';
 import type { GameState, PlayerState, ShuffleFn } from '../types';
 import { Phase } from '../types';
-import { addLog, getCurrentPlayer, endTurn } from '../domain/game';
-import { playActionCard, buyCard, advancePhase, canBuy } from '../domain/turn';
-import { getSupplyPile } from '../domain/supply';
-import { getCardDef } from '../domain/card';
-import { createShuffleFn } from '../domain/shuffle';
-import { getAllCards } from '../domain/player';
 
 const defaultShuffle = createShuffleFn();
 
@@ -101,14 +101,20 @@ export function bigMoneySmithyTurn(
 /**
  * Return the next decision for UI display purposes.
  */
-export function bigMoneySmithyDecision(
-  state: GameState,
-): { action: 'play' | 'skip' | 'buy'; cardName?: string; instanceId?: string } {
+export function bigMoneySmithyDecision(state: GameState): {
+  action: 'play' | 'skip' | 'buy';
+  cardName?: string;
+  instanceId?: string;
+} {
   if (state.phase === Phase.Action) {
     const player = getCurrentPlayer(state);
     const smithy = player.hand.find((c) => c.def.name === 'Smithy');
     if (smithy && state.turnState.actions > 0) {
-      return { action: 'play', cardName: 'Smithy', instanceId: smithy.instanceId };
+      return {
+        action: 'play',
+        cardName: 'Smithy',
+        instanceId: smithy.instanceId,
+      };
     }
     return { action: 'skip' };
   }

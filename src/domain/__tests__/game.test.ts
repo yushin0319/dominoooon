@@ -1,19 +1,19 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from 'vitest';
+import type { GameState, PlayerState } from '../../types';
+import { Phase } from '../../types';
+import { CARD_DEFS } from '../card';
 import {
-  createGame,
-  getCurrentPlayer,
-  endTurn,
-  checkGameOver,
-  getGameResults,
   addLog,
-  updatePlayer,
+  checkGameOver,
+  createGame,
+  endTurn,
+  getCurrentPlayer,
+  getGameResults,
   updateCurrentPlayer,
-} from "../game";
-import { CARD_DEFS } from "../card";
-import { createShuffleFn } from "../shuffle";
-import type { GameState, PlayerState } from "../../types";
-import { Phase } from "../../types";
+  updatePlayer,
+} from '../game';
+import { createShuffleFn } from '../shuffle';
 
 const kingdom = [
   CARD_DEFS.Village,
@@ -31,20 +31,25 @@ const kingdom = [
 const shuffleFn = createShuffleFn(() => 0.5);
 
 function makeGame(): GameState {
-  return createGame(["Alice", "Bob"], kingdom, shuffleFn);
+  return createGame(['Alice', 'Bob'], kingdom, shuffleFn);
 }
 
-describe("createGame", () => {
-  it("initializes a 2-player game with correct initial state", () => {
+describe('createGame', () => {
+  it('initializes a 2-player game with correct initial state', () => {
     const game = makeGame();
     // Players
     expect(game.players).toHaveLength(2);
-    expect(game.players[0].name).toBe("Alice");
-    expect(game.players[1].name).toBe("Bob");
+    expect(game.players[0].name).toBe('Alice');
+    expect(game.players[1].name).toBe('Bob');
     for (const player of game.players) {
       expect(player.hand).toHaveLength(5);
       expect(player.deck).toHaveLength(5);
-      const all = [...player.deck, ...player.hand, ...player.discard, ...player.playArea];
+      const all = [
+        ...player.deck,
+        ...player.hand,
+        ...player.discard,
+        ...player.playArea,
+      ];
       expect(all).toHaveLength(10);
     }
     // Game state
@@ -55,59 +60,59 @@ describe("createGame", () => {
     expect(game.turnState).toEqual({ actions: 1, buys: 1, coins: 0 });
     expect(game.pendingEffect).toBeNull();
     expect(game.trash).toEqual([]);
-    expect(game.log).toContain("Game started");
+    expect(game.log).toContain('Game started');
   });
 
-  it("initializes supply correctly (Copper: 46 in 2-player game)", () => {
+  it('initializes supply correctly (Copper: 46 in 2-player game)', () => {
     const game = makeGame();
     expect(game.supply.length).toBeGreaterThan(0);
-    const copper = game.supply.find((p) => p.card.name === "Copper");
+    const copper = game.supply.find((p) => p.card.name === 'Copper');
     // 60 - 7*2 = 46
     expect(copper?.count).toBe(46);
   });
 });
 
-describe("getCurrentPlayer", () => {
-  it("returns the current player by index", () => {
+describe('getCurrentPlayer', () => {
+  it('returns the current player by index', () => {
     const game = makeGame();
     const player = getCurrentPlayer(game);
-    expect(player.name).toBe("Alice");
+    expect(player.name).toBe('Alice');
     expect(player).toBe(game.players[0]);
   });
 
-  it("returns second player when index is 1", () => {
+  it('returns second player when index is 1', () => {
     const game = { ...makeGame(), currentPlayerIndex: 1 };
     const player = getCurrentPlayer(game);
-    expect(player.name).toBe("Bob");
+    expect(player.name).toBe('Bob');
   });
 });
 
-describe("endTurn", () => {
-  it("advances to the next player", () => {
+describe('endTurn', () => {
+  it('advances to the next player', () => {
     const game = makeGame();
     const next = endTurn(game, shuffleFn);
     expect(next.currentPlayerIndex).toBe(1);
   });
 
-  it("wraps around to player 0 after last player", () => {
+  it('wraps around to player 0 after last player', () => {
     const game = { ...makeGame(), currentPlayerIndex: 1 };
     const next = endTurn(game, shuffleFn);
     expect(next.currentPlayerIndex).toBe(0);
   });
 
-  it("increments turnNumber", () => {
+  it('increments turnNumber', () => {
     const game = makeGame();
     const next = endTurn(game, shuffleFn);
     expect(next.turnNumber).toBe(2);
   });
 
-  it("resets phase to Action", () => {
+  it('resets phase to Action', () => {
     const game = { ...makeGame(), phase: Phase.Buy };
     const next = endTurn(game, shuffleFn);
     expect(next.phase).toBe(Phase.Action);
   });
 
-  it("resets turnState", () => {
+  it('resets turnState', () => {
     const game = {
       ...makeGame(),
       turnState: { actions: 0, buys: 0, coins: 5 },
@@ -116,7 +121,7 @@ describe("endTurn", () => {
     expect(next.turnState).toEqual({ actions: 1, buys: 1, coins: 0 });
   });
 
-  it("performs cleanup and draw (player gets 5 new hand cards)", () => {
+  it('performs cleanup and draw (player gets 5 new hand cards)', () => {
     const game = makeGame();
     const next = endTurn(game, shuffleFn);
     // After endTurn, the previous current player should have 5 hand cards
@@ -125,7 +130,7 @@ describe("endTurn", () => {
     expect(next.players[0].playArea).toHaveLength(0);
   });
 
-  it("does not mutate the original state", () => {
+  it('does not mutate the original state', () => {
     const game = makeGame();
     const originalIndex = game.currentPlayerIndex;
     const originalTurn = game.turnNumber;
@@ -134,12 +139,12 @@ describe("endTurn", () => {
     expect(game.turnNumber).toBe(originalTurn);
   });
 
-  it("sets gameOver when Province is empty", () => {
+  it('sets gameOver when Province is empty', () => {
     const game = makeGame();
     const modified = {
       ...game,
       supply: game.supply.map((p) =>
-        p.card.name === "Province" ? { ...p, count: 0 } : p,
+        p.card.name === 'Province' ? { ...p, count: 0 } : p,
       ),
     };
     const next = endTurn(modified, shuffleFn);
@@ -147,10 +152,10 @@ describe("endTurn", () => {
   });
 });
 
-describe("checkGameOver", () => {
+describe('checkGameOver', () => {
   // 境界条件の詳細は supply.test.ts の isGameOver テストに委譲。
   // ここでは「supply.isGameOver の結果を gameOver フラグに反映する」委譲動作のみ検証する。
-  it("sets gameOver flag based on supply state (delegates to supply.isGameOver)", () => {
+  it('sets gameOver flag based on supply state (delegates to supply.isGameOver)', () => {
     const game = makeGame();
     // ゲーム進行中: 終了しない
     expect(checkGameOver(game).gameOver).toBe(false);
@@ -158,37 +163,37 @@ describe("checkGameOver", () => {
     const withEmptyProvince = {
       ...game,
       supply: game.supply.map((p) =>
-        p.card.name === "Province" ? { ...p, count: 0 } : p,
+        p.card.name === 'Province' ? { ...p, count: 0 } : p,
       ),
     };
     expect(checkGameOver(withEmptyProvince).gameOver).toBe(true);
   });
 
-  it("does not mutate the original state", () => {
+  it('does not mutate the original state', () => {
     const game = makeGame();
     checkGameOver(game);
     expect(game.gameOver).toBe(false);
   });
 });
 
-describe("getGameResults", () => {
-  it("returns results for all players", () => {
+describe('getGameResults', () => {
+  it('returns results for all players', () => {
     const game = makeGame();
     const results = getGameResults(game);
     expect(results).toHaveLength(2);
   });
 
-  it("includes playerId, name, and vp", () => {
+  it('includes playerId, name, and vp', () => {
     const game = makeGame();
     const results = getGameResults(game);
     for (const r of results) {
-      expect(r).toHaveProperty("playerId");
-      expect(r).toHaveProperty("name");
-      expect(r).toHaveProperty("vp");
+      expect(r).toHaveProperty('playerId');
+      expect(r).toHaveProperty('name');
+      expect(r).toHaveProperty('vp');
     }
   });
 
-  it("sorts results by VP descending", () => {
+  it('sorts results by VP descending', () => {
     const game = makeGame();
     const results = getGameResults(game);
     for (let i = 0; i < results.length - 1; i++) {
@@ -196,7 +201,7 @@ describe("getGameResults", () => {
     }
   });
 
-  it("calculates VP from Estate cards (3 Estate = 3 VP per player)", () => {
+  it('calculates VP from Estate cards (3 Estate = 3 VP per player)', () => {
     const game = makeGame();
     const results = getGameResults(game);
     // Each player starts with 3 Estates (vpValue: 1 each) = 3 VP
@@ -206,54 +211,54 @@ describe("getGameResults", () => {
   });
 });
 
-describe("addLog", () => {
-  it("appends a message to the log", () => {
+describe('addLog', () => {
+  it('appends a message to the log', () => {
     const game = makeGame();
-    const updated = addLog(game, "Test message");
-    expect(updated.log).toContain("Test message");
+    const updated = addLog(game, 'Test message');
+    expect(updated.log).toContain('Test message');
     expect(updated.log.length).toBe(game.log.length + 1);
   });
 
-  it("does not mutate the original state", () => {
+  it('does not mutate the original state', () => {
     const game = makeGame();
     const originalLength = game.log.length;
-    addLog(game, "Test");
+    addLog(game, 'Test');
     expect(game.log).toHaveLength(originalLength);
   });
 });
 
-describe("updatePlayer", () => {
-  it("updates the player at the specified index", () => {
+describe('updatePlayer', () => {
+  it('updates the player at the specified index', () => {
     const game = makeGame();
-    const modified: PlayerState = { ...game.players[1], name: "Updated Bob" };
+    const modified: PlayerState = { ...game.players[1], name: 'Updated Bob' };
     const updated = updatePlayer(game, 1, modified);
-    expect(updated.players[1].name).toBe("Updated Bob");
-    expect(updated.players[0].name).toBe("Alice");
+    expect(updated.players[1].name).toBe('Updated Bob');
+    expect(updated.players[0].name).toBe('Alice');
   });
 
-  it("does not mutate the original state", () => {
+  it('does not mutate the original state', () => {
     const game = makeGame();
-    const modified: PlayerState = { ...game.players[0], name: "Changed" };
+    const modified: PlayerState = { ...game.players[0], name: 'Changed' };
     updatePlayer(game, 0, modified);
-    expect(game.players[0].name).toBe("Alice");
+    expect(game.players[0].name).toBe('Alice');
   });
 });
 
-describe("updateCurrentPlayer", () => {
-  it("updates the current player", () => {
+describe('updateCurrentPlayer', () => {
+  it('updates the current player', () => {
     const game = makeGame();
     const modified: PlayerState = {
       ...game.players[0],
-      name: "Updated Alice",
+      name: 'Updated Alice',
     };
     const updated = updateCurrentPlayer(game, modified);
-    expect(updated.players[0].name).toBe("Updated Alice");
+    expect(updated.players[0].name).toBe('Updated Alice');
   });
 
-  it("does not mutate the original state", () => {
+  it('does not mutate the original state', () => {
     const game = makeGame();
-    const modified: PlayerState = { ...game.players[0], name: "Changed" };
+    const modified: PlayerState = { ...game.players[0], name: 'Changed' };
     updateCurrentPlayer(game, modified);
-    expect(game.players[0].name).toBe("Alice");
+    expect(game.players[0].name).toBe('Alice');
   });
 });

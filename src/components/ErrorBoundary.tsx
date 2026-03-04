@@ -48,14 +48,16 @@ export default class ErrorBoundary extends Component<
             </p>
             <div className="flex gap-4 justify-center">
               <button
+                type="button"
                 className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded font-medium transition-colors"
                 onClick={() => window.location.reload()}
               >
                 再試行
               </button>
               <button
+                type="button"
                 className="border border-slate-500 hover:bg-slate-700 text-slate-300 px-6 py-2 rounded font-medium transition-colors"
-                onClick={() => window.location.href = '/'}
+                onClick={() => (window.location.href = '/')}
               >
                 タイトルに戻る
               </button>

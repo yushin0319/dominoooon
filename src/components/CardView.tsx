@@ -1,7 +1,7 @@
-import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
-import type { CardInstance, CardDef, CardType } from '../types';
+import { memo, useState } from 'react';
 import { cn, getEffectText } from '../lib/utils';
+import type { CardDef, CardInstance, CardType } from '../types';
 
 interface CardViewProps {
   card: CardInstance | CardDef;
@@ -17,10 +17,14 @@ function getDef(card: CardInstance | CardDef): CardDef {
 
 function getTypeGradient(types: CardType[]): string {
   if (types.includes('Attack' as CardType)) return 'from-red-600 to-red-800';
-  if (types.includes('Reaction' as CardType)) return 'from-blue-600 to-blue-800';
-  if (types.includes('Treasure' as CardType)) return 'from-amber-600 to-amber-800';
-  if (types.includes('Victory' as CardType)) return 'from-green-600 to-green-800';
-  if (types.includes('Curse' as CardType)) return 'from-purple-600 to-purple-800';
+  if (types.includes('Reaction' as CardType))
+    return 'from-blue-600 to-blue-800';
+  if (types.includes('Treasure' as CardType))
+    return 'from-amber-600 to-amber-800';
+  if (types.includes('Victory' as CardType))
+    return 'from-green-600 to-green-800';
+  if (types.includes('Curse' as CardType))
+    return 'from-purple-600 to-purple-800';
   return 'from-gray-600 to-gray-800';
 }
 
@@ -56,7 +60,13 @@ function typeNameJa(type: CardType): string {
   return map[type] ?? type;
 }
 
-const CardView = memo(function CardView({ card, onClick, selected, small, remaining }: CardViewProps) {
+const CardView = memo(function CardView({
+  card,
+  onClick,
+  selected,
+  small,
+  remaining,
+}: CardViewProps) {
   const def = getDef(card);
   const gradient = getTypeGradient(def.types);
   const borderColor = getBorderColor(def.types);
@@ -113,37 +123,40 @@ const CardView = memo(function CardView({ card, onClick, selected, small, remain
       </div>
 
       <motion.div
-      onClick={onClick}
-      whileHover={
-        onClick
-          ? {
-              scale: 1.05,
-              y: -2,
-            }
-          : undefined
-      }
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className={cn(
-        'relative rounded-lg border-2 overflow-hidden flex flex-col transition-shadow duration-200',
-        'bg-gradient-to-br',
-        gradient,
-        borderColor,
-        small ? 'w-20 h-28 p-1' : 'w-[120px] h-[170px]',
-        onClick ? 'cursor-pointer hover:shadow-2xl' : 'cursor-default',
-        selected ? 'ring-4 ring-yellow-400 shadow-2xl shadow-yellow-400/50' : 'shadow-xl',
-      )}
-    >
-      {/* Card Header */}
-      <div className={cn(
-        'px-2 py-1 font-bold text-white truncate bg-black/20',
-        small ? 'text-[11px]' : 'text-[11px]',
-      )}>
-        {def.nameJa}
-      </div>
+        onClick={onClick}
+        whileHover={
+          onClick
+            ? {
+                scale: 1.05,
+                y: -2,
+              }
+            : undefined
+        }
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+        className={cn(
+          'relative rounded-lg border-2 overflow-hidden flex flex-col transition-shadow duration-200',
+          'bg-gradient-to-br',
+          gradient,
+          borderColor,
+          small ? 'w-20 h-28 p-1' : 'w-[120px] h-[170px]',
+          onClick ? 'cursor-pointer hover:shadow-2xl' : 'cursor-default',
+          selected
+            ? 'ring-4 ring-yellow-400 shadow-2xl shadow-yellow-400/50'
+            : 'shadow-xl',
+        )}
+      >
+        {/* Card Header */}
+        <div
+          className={cn(
+            'px-2 py-1 font-bold text-white truncate bg-black/20',
+            small ? 'text-[11px]' : 'text-[11px]',
+          )}
+        >
+          {def.nameJa}
+        </div>
 
-      {/* Card Content */}
-      {!small && (
-        <>
+        {/* Card Content */}
+        {!small && (
           <div className="flex-1 px-2 py-2 flex flex-col justify-center gap-1">
             <div className={cn('text-xs font-semibold', textColor)}>
               {def.types.map(typeNameJa).join(' / ')}
@@ -154,25 +167,28 @@ const CardView = memo(function CardView({ card, onClick, selected, small, remain
               </div>
             )}
           </div>
-        </>
-      )}
+        )}
 
-      {/* Cost Badge - Absolute positioned at bottom-left */}
-      <div className={cn(
-        'absolute bg-slate-800/90 rounded-full flex items-center justify-center font-bold text-white border-2',
-        borderColor,
-        small ? 'bottom-1 left-1 w-4 h-4 text-[11px]' : 'bottom-2 left-2 w-8 h-8 text-xs',
-      )}>
-        {def.cost}
-      </div>
-
-      {/* 残数バッジ（右上に絶対配置） */}
-      {remaining !== undefined && (
-        <div className="absolute top-1 right-1 bg-slate-700 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border border-white/20 shadow-md">
-          {remaining}
+        {/* Cost Badge - Absolute positioned at bottom-left */}
+        <div
+          className={cn(
+            'absolute bg-slate-800/90 rounded-full flex items-center justify-center font-bold text-white border-2',
+            borderColor,
+            small
+              ? 'bottom-1 left-1 w-4 h-4 text-[11px]'
+              : 'bottom-2 left-2 w-8 h-8 text-xs',
+          )}
+        >
+          {def.cost}
         </div>
-      )}
-    </motion.div>
+
+        {/* 残数バッジ（右上に絶対配置） */}
+        {remaining !== undefined && (
+          <div className="absolute top-1 right-1 bg-slate-700 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border border-white/20 shadow-md">
+            {remaining}
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 });

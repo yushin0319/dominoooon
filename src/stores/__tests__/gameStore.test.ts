@@ -1,13 +1,19 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach } from 'vitest';
-import { useGameStore } from '../gameStore';
-import { getCardDef, createCardInstance } from '../../domain/card';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createCardInstance, getCardDef } from '../../domain/card';
 import { Phase } from '../../types';
+import { useGameStore } from '../gameStore';
 
 const kingdom = [
-  getCardDef('Village'), getCardDef('Smithy'), getCardDef('Market'),
-  getCardDef('Festival'), getCardDef('Laboratory'), getCardDef('Cellar'),
-  getCardDef('Moat'), getCardDef('Militia'), getCardDef('Mine'),
+  getCardDef('Village'),
+  getCardDef('Smithy'),
+  getCardDef('Market'),
+  getCardDef('Festival'),
+  getCardDef('Laboratory'),
+  getCardDef('Cellar'),
+  getCardDef('Moat'),
+  getCardDef('Militia'),
+  getCardDef('Mine'),
   getCardDef('Witch'),
 ];
 
@@ -89,7 +95,9 @@ describe('playAction', () => {
 
     // Give player a Village in hand for testing
     const village = createCardInstance(getCardDef('Village'));
-    const deck = Array(3).fill(null).map(() => createCardInstance(getCardDef('Copper')));
+    const deck = Array(3)
+      .fill(null)
+      .map(() => createCardInstance(getCardDef('Copper')));
     const modifiedPlayer = {
       ...player,
       hand: [village, ...player.hand],
@@ -103,7 +111,11 @@ describe('playAction', () => {
 
     useGameStore.getState().playAction(village.instanceId);
     const after = useGameStore.getState().gameState!;
-    expect(after.players[0].playArea.some((c) => c.instanceId === village.instanceId)).toBe(true);
+    expect(
+      after.players[0].playArea.some(
+        (c) => c.instanceId === village.instanceId,
+      ),
+    ).toBe(true);
     expect(after.turnState.actions).toBe(2); // 1 - 1 + 2 (Village)
   });
 });
@@ -123,7 +135,9 @@ describe('buyCard', () => {
 
     useGameStore.getState().buyCard('Market');
     const after = useGameStore.getState().gameState!;
-    expect(after.players[0].discard.some((c) => c.def.name === 'Market')).toBe(true);
+    expect(after.players[0].discard.some((c) => c.def.name === 'Market')).toBe(
+      true,
+    );
     expect(after.turnState.coins).toBe(0);
     expect(after.turnState.buys).toBe(0);
   });
