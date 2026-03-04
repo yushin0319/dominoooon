@@ -1,16 +1,27 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { EFFECT_LABELS } from '../../constants/effectLabels';
-import PendingEffectUI from '../PendingEffectUI';
-import type { PendingEffect, CardInstance, SupplyPile, CardDef } from '../../types';
+import type {
+  CardDef,
+  CardInstance,
+  PendingEffect,
+  SupplyPile,
+} from '../../types';
 import { CardType } from '../../types';
+import PendingEffectUI from '../PendingEffectUI';
 
 // framer-motion をモック（jsdomで動かないため）
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, onClick, ...rest }: Record<string, unknown>) => {
+    div: ({
+      children,
+      className,
+      onClick,
+      ...rest
+    }: Record<string, unknown>) => {
       const props: Record<string, unknown> = {};
       if (className) props.className = className;
       if (onClick) props.onClick = onClick;
@@ -18,11 +29,17 @@ vi.mock('framer-motion', () => ({
       return <div {...props}>{children as React.ReactNode}</div>;
     },
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // テスト用ヘルパー
-function makeCardDef(name: string, cost: number, types: CardType[] = [CardType.Action]): CardDef {
+function makeCardDef(
+  name: string,
+  cost: number,
+  types: CardType[] = [CardType.Action],
+): CardDef {
   return {
     name,
     nameJa: name,
@@ -32,21 +49,33 @@ function makeCardDef(name: string, cost: number, types: CardType[] = [CardType.A
   };
 }
 
-function makeCardInstance(name: string, cost = 0, types: CardType[] = [CardType.Action]): CardInstance {
+function makeCardInstance(
+  name: string,
+  cost = 0,
+  types: CardType[] = [CardType.Action],
+): CardInstance {
   return {
     instanceId: `inst-${name}-${Math.random().toString(36).slice(2, 6)}`,
     def: makeCardDef(name, cost, types),
   };
 }
 
-function makeSupplyPile(name: string, cost: number, count: number, types: CardType[] = [CardType.Action]): SupplyPile {
+function makeSupplyPile(
+  name: string,
+  cost: number,
+  count: number,
+  types: CardType[] = [CardType.Action],
+): SupplyPile {
   return {
     card: makeCardDef(name, cost, types),
     count,
   };
 }
 
-function makePendingEffect(type: PendingEffect['type'], data?: Record<string, unknown>): PendingEffect {
+function makePendingEffect(
+  type: PendingEffect['type'],
+  data?: Record<string, unknown>,
+): PendingEffect {
   return {
     type,
     sourceCard: makeCardDef(type, 0),
@@ -59,15 +88,19 @@ function makePendingEffect(type: PendingEffect['type'], data?: Record<string, un
 
 describe('PendingEffectUI - labels', () => {
   it('effect label helper returns correct label for cellar', () => {
-    expect(EFFECT_LABELS['cellar']).toBe('地下貯蔵庫: 好きな枚数を捨て、同数ドローする。');
+    expect(EFFECT_LABELS.cellar).toBe(
+      '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
+    );
   });
 
   it('effect label helper returns correct label for chapel', () => {
-    expect(EFFECT_LABELS['chapel']).toBe('礼拝堂: 手札から最大4枚を廃棄する。');
+    expect(EFFECT_LABELS.chapel).toBe('礼拝堂: 手札から最大4枚を廃棄する。');
   });
 
   it('effect label helper returns correct label for workshop', () => {
-    expect(EFFECT_LABELS['workshop']).toBe('工房: コスト4以下のカードを1枚獲得する。');
+    expect(EFFECT_LABELS.workshop).toBe(
+      '工房: コスト4以下のカードを1枚獲得する。',
+    );
   });
 });
 
@@ -104,7 +137,10 @@ describe('PendingEffectUI - CardSelectUI', () => {
   });
 
   it('renders confirm button and selection counter when hand has cards', () => {
-    const hand = [makeCardInstance('Copper', 0, [CardType.Treasure]), makeCardInstance('Estate', 2, [CardType.Victory])];
+    const hand = [
+      makeCardInstance('Copper', 0, [CardType.Treasure]),
+      makeCardInstance('Estate', 2, [CardType.Victory]),
+    ];
     render(
       <PendingEffectUI
         pendingEffect={makePendingEffect('cellar')}
@@ -128,7 +164,8 @@ describe('PendingEffectUI - CardSelectUI', () => {
       />,
     );
     // h2タイトルにも「最大4枚」が含まれるので、instruction用のpタグを検証
-    const instruction = screen.getByText(/カードをクリックして選択してください/);
+    const instruction =
+      screen.getByText(/カードをクリックして選択してください/);
     expect(instruction.textContent).toContain('最大4枚');
   });
 
@@ -174,7 +211,8 @@ describe('PendingEffectUI - SupplySelectUI', () => {
       />,
     );
     // h2タイトルにも「コスト4以下」が含まれるので、instruction用のpタグを検証
-    const instruction = screen.getByText(/獲得するカードをクリックしてください/);
+    const instruction =
+      screen.getByText(/獲得するカードをクリックしてください/);
     expect(instruction.textContent).toContain('コスト4以下');
   });
 

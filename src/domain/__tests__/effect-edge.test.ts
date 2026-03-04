@@ -1,16 +1,16 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { GameState, PlayerState, SupplyPile } from '../../types';
+import { Phase } from '../../types';
+import { createCardInstance, getCardDef } from '../card';
 import {
+  type PendingEffectChoice,
   resolveCustomEffect,
   resolvePendingEffect,
-  type PendingEffectChoice,
 } from '../effect';
-import { getCardDef, createCardInstance } from '../card';
 import { createPlayer } from '../player';
-import { initializeSupply } from '../supply';
 import { createShuffleFn } from '../shuffle';
-import { Phase } from '../../types';
-import type { GameState, PlayerState, SupplyPile } from '../../types';
+import { initializeSupply } from '../supply';
 
 const shuffle = createShuffleFn(() => 0.5);
 
@@ -20,9 +20,15 @@ function makePlayer(overrides?: Partial<PlayerState>): PlayerState {
 }
 
 const defaultKingdom = [
-  getCardDef('Village'), getCardDef('Smithy'), getCardDef('Market'),
-  getCardDef('Festival'), getCardDef('Laboratory'), getCardDef('Cellar'),
-  getCardDef('Moat'), getCardDef('Militia'), getCardDef('Mine'),
+  getCardDef('Village'),
+  getCardDef('Smithy'),
+  getCardDef('Market'),
+  getCardDef('Festival'),
+  getCardDef('Laboratory'),
+  getCardDef('Cellar'),
+  getCardDef('Moat'),
+  getCardDef('Militia'),
+  getCardDef('Mine'),
   getCardDef('Witch'),
 ];
 
@@ -45,7 +51,7 @@ function makeGameState(overrides?: Partial<GameState>): GameState {
 
 /** Curseの山を空にしたsupplyを返す */
 function emptyPile(supply: SupplyPile[], cardName: string): SupplyPile[] {
-  return supply.map((p) => p.card.name === cardName ? { ...p, count: 0 } : p);
+  return supply.map((p) => (p.card.name === cardName ? { ...p, count: 0 } : p));
 }
 
 // ===== Attack Edge Cases =====
@@ -71,8 +77,12 @@ describe('attack edge cases', () => {
       const state = makeGameState({ players: [p1, p2, p3], supply });
 
       const after = resolveCustomEffect(state, card, shuffle);
-      expect(after.players[1].discard.some((c) => c.def.name === 'Curse')).toBe(true);
-      expect(after.players[2].discard.some((c) => c.def.name === 'Curse')).toBe(true);
+      expect(after.players[1].discard.some((c) => c.def.name === 'Curse')).toBe(
+        true,
+      );
+      expect(after.players[2].discard.some((c) => c.def.name === 'Curse')).toBe(
+        true,
+      );
     });
   });
 
@@ -82,7 +92,13 @@ describe('attack edge cases', () => {
       const p1 = makePlayer({ discard: [] });
       const copper1 = createCardInstance(getCardDef('Copper'));
       const copper2 = createCardInstance(getCardDef('Copper'));
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: [], deck: [copper1, copper2], discard: [] });
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: [],
+        deck: [copper1, copper2],
+        discard: [],
+      });
       const state = makeGameState({ players: [p1, p2] });
 
       const after = resolveCustomEffect(state, card, shuffle);
@@ -94,12 +110,20 @@ describe('attack edge cases', () => {
     it('skips attack when opponent has empty deck and discard', () => {
       const card = createCardInstance(getCardDef('Bandit'));
       const p1 = makePlayer({ discard: [] });
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: [], deck: [], discard: [] });
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: [],
+        deck: [],
+        discard: [],
+      });
       const state = makeGameState({ players: [p1, p2] });
 
       const after = resolveCustomEffect(state, card, shuffle);
       // p1 still gains Gold
-      expect(after.players[0].discard.some((c) => c.def.name === 'Gold')).toBe(true);
+      expect(after.players[0].discard.some((c) => c.def.name === 'Gold')).toBe(
+        true,
+      );
       expect(after.trash).toHaveLength(0);
     });
 
@@ -108,12 +132,20 @@ describe('attack edge cases', () => {
       const p1 = makePlayer({ discard: [] });
       const silver = createCardInstance(getCardDef('Silver'));
       const estate = createCardInstance(getCardDef('Estate'));
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: [], deck: [silver, estate], discard: [] });
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: [],
+        deck: [silver, estate],
+        discard: [],
+      });
       const supply = emptyPile(initializeSupply(defaultKingdom, 2), 'Gold');
       const state = makeGameState({ players: [p1, p2], supply });
 
       const after = resolveCustomEffect(state, card, shuffle);
-      expect(after.players[0].discard.every((c) => c.def.name !== 'Gold')).toBe(true);
+      expect(after.players[0].discard.every((c) => c.def.name !== 'Gold')).toBe(
+        true,
+      );
       // Attack still works
       expect(after.trash.some((c) => c.def.name === 'Silver')).toBe(true);
     });
@@ -125,7 +157,9 @@ describe('attack edge cases', () => {
       const estate = createCardInstance(getCardDef('Estate'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p2 = makePlayer({
-        id: 'p2', name: 'Bob', hand: [],
+        id: 'p2',
+        name: 'Bob',
+        hand: [],
         deck: [copper], // only 1 card in deck
         discard: [silver, estate], // 2 cards in discard → reshuffle
       });
@@ -142,13 +176,21 @@ describe('attack edge cases', () => {
       const p1 = makePlayer({ discard: [] });
       const silver = createCardInstance(getCardDef('Silver'));
       const gold = createCardInstance(getCardDef('Gold'));
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: [], deck: [gold, silver], discard: [] });
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: [],
+        deck: [gold, silver],
+        discard: [],
+      });
       const state = makeGameState({ players: [p1, p2] });
 
       const after = resolveCustomEffect(state, card, shuffle);
       // Gold (cost 6) should be trashed, Silver (cost 3) goes to discard
       expect(after.trash.some((c) => c.def.name === 'Gold')).toBe(true);
-      expect(after.players[1].discard.some((c) => c.def.name === 'Silver')).toBe(true);
+      expect(
+        after.players[1].discard.some((c) => c.def.name === 'Silver'),
+      ).toBe(true);
     });
   });
 
@@ -157,7 +199,12 @@ describe('attack edge cases', () => {
       const card = createCardInstance(getCardDef('Bureaucrat'));
       const p1 = makePlayer({ deck: [] });
       const estate = createCardInstance(getCardDef('Estate'));
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: [estate], deck: [] });
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: [estate],
+        deck: [],
+      });
       const supply = emptyPile(initializeSupply(defaultKingdom, 2), 'Silver');
       const state = makeGameState({ players: [p1, p2], supply });
 
@@ -171,7 +218,12 @@ describe('attack edge cases', () => {
       const card = createCardInstance(getCardDef('Bureaucrat'));
       const p1 = makePlayer({ deck: [] });
       const copper = createCardInstance(getCardDef('Copper'));
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: [copper], deck: [] });
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: [copper],
+        deck: [],
+      });
       const state = makeGameState({ players: [p1, p2] });
 
       const after = resolveCustomEffect(state, card, shuffle);
@@ -184,7 +236,9 @@ describe('attack edge cases', () => {
     it('does not create pending when opponent has exactly 3 cards', () => {
       const card = createCardInstance(getCardDef('Militia'));
       const p1 = makePlayer();
-      const hand = Array(3).fill(null).map(() => createCardInstance(getCardDef('Copper')));
+      const hand = Array(3)
+        .fill(null)
+        .map(() => createCardInstance(getCardDef('Copper')));
       const p2 = makePlayer({ id: 'p2', name: 'Bob', hand });
       const state = makeGameState({ players: [p1, p2] });
 
@@ -195,7 +249,11 @@ describe('attack edge cases', () => {
     it('does not create pending when opponent has fewer than 3 cards', () => {
       const card = createCardInstance(getCardDef('Militia'));
       const p1 = makePlayer();
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: [createCardInstance(getCardDef('Copper'))] });
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: [createCardInstance(getCardDef('Copper'))],
+      });
       const state = makeGameState({ players: [p1, p2] });
 
       const after = resolveCustomEffect(state, card, shuffle);
@@ -205,10 +263,24 @@ describe('attack edge cases', () => {
     it('chains pending across multiple opponents', () => {
       const card = createCardInstance(getCardDef('Militia'));
       const p1 = makePlayer();
-      const hand5a = Array(5).fill(null).map(() => createCardInstance(getCardDef('Copper')));
-      const hand5b = Array(5).fill(null).map(() => createCardInstance(getCardDef('Copper')));
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: hand5a, discard: [] });
-      const p3 = makePlayer({ id: 'p3', name: 'Carol', hand: hand5b, discard: [] });
+      const hand5a = Array(5)
+        .fill(null)
+        .map(() => createCardInstance(getCardDef('Copper')));
+      const hand5b = Array(5)
+        .fill(null)
+        .map(() => createCardInstance(getCardDef('Copper')));
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: hand5a,
+        discard: [],
+      });
+      const p3 = makePlayer({
+        id: 'p3',
+        name: 'Carol',
+        hand: hand5b,
+        discard: [],
+      });
       const state = makeGameState({ players: [p1, p2, p3] });
 
       // First opponent
@@ -244,7 +316,9 @@ describe('basic card edge cases', () => {
       const card = createCardInstance(getCardDef('Cellar'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p1 = makePlayer({ hand: [copper], deck: [], discard: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = { selectedCards: [] };
@@ -260,7 +334,9 @@ describe('basic card edge cases', () => {
       const card = createCardInstance(getCardDef('Chapel'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p1 = makePlayer({ hand: [copper] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = { selectedCards: [] };
@@ -272,9 +348,13 @@ describe('basic card edge cases', () => {
 
     it('caps at 4 cards when more are selected', () => {
       const card = createCardInstance(getCardDef('Chapel'));
-      const cards = Array(6).fill(null).map(() => createCardInstance(getCardDef('Copper')));
+      const cards = Array(6)
+        .fill(null)
+        .map(() => createCardInstance(getCardDef('Copper')));
       const p1 = makePlayer({ hand: cards });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = {
@@ -293,7 +373,9 @@ describe('basic card edge cases', () => {
       const copper2 = createCardInstance(getCardDef('Copper'));
       const hand = [createCardInstance(getCardDef('Estate'))];
       const p1 = makePlayer({ hand, deck: [copper1], discard: [copper2] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const after = resolveCustomEffect(state, card, shuffle);
       // Needed 6, but only 2 available → hand = 1 + 2 = 3
@@ -305,7 +387,13 @@ describe('basic card edge cases', () => {
     it('opponent with empty deck draws 0 cards', () => {
       const card = createCardInstance(getCardDef('Council Room'));
       const p1 = makePlayer();
-      const p2 = makePlayer({ id: 'p2', name: 'Bob', hand: [], deck: [], discard: [] });
+      const p2 = makePlayer({
+        id: 'p2',
+        name: 'Bob',
+        hand: [],
+        deck: [],
+        discard: [],
+      });
       const state = makeGameState({ players: [p1, p2] });
 
       const after = resolveCustomEffect(state, card, shuffle);
@@ -317,7 +405,9 @@ describe('basic card edge cases', () => {
     it('returns state unchanged when hand is empty', () => {
       const card = createCardInstance(getCardDef('Moneylender'));
       const p1 = makePlayer({ hand: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const after = resolveCustomEffect(state, card, shuffle);
       expect(after.turnState.coins).toBe(0);
@@ -335,12 +425,17 @@ describe('basic card edge cases', () => {
       // 2 empty piles
       let supply = emptyPile(initializeSupply(defaultKingdom, 2), 'Village');
       supply = emptyPile(supply, 'Smithy');
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)], supply });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+        supply,
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       expect(withPending.pendingEffect!.data!.discardCount).toBe(2);
 
-      const choice: PendingEffectChoice = { selectedCards: [c1.instanceId, c2.instanceId] };
+      const choice: PendingEffectChoice = {
+        selectedCards: [c1.instanceId, c2.instanceId],
+      };
       const after = resolvePendingEffect(withPending, choice, shuffle);
       expect(after.pendingEffect).toBeNull();
       expect(after.players[0].hand).toHaveLength(1);
@@ -350,8 +445,11 @@ describe('basic card edge cases', () => {
     it('returns state when player hand is empty', () => {
       const card = createCardInstance(getCardDef('Poacher'));
       const p1 = makePlayer({ hand: [] });
-      let supply = emptyPile(initializeSupply(defaultKingdom, 2), 'Village');
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)], supply });
+      const supply = emptyPile(initializeSupply(defaultKingdom, 2), 'Village');
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+        supply,
+      });
 
       const after = resolveCustomEffect(state, card, shuffle);
       expect(after.pendingEffect).toBeNull();
@@ -363,7 +461,9 @@ describe('basic card edge cases', () => {
       const card = createCardInstance(getCardDef('Harbinger'));
       const estate = createCardInstance(getCardDef('Estate'));
       const p1 = makePlayer({ hand: [], deck: [], discard: [estate] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = { selectedCards: [] };
@@ -381,7 +481,9 @@ describe('complex card edge cases', () => {
     it('does nothing with empty deck and empty discard', () => {
       const card = createCardInstance(getCardDef('Vassal'));
       const p1 = makePlayer({ hand: [], deck: [], discard: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const after = resolveCustomEffect(state, card, shuffle);
       expect(after.pendingEffect).toBeNull();
@@ -392,7 +494,9 @@ describe('complex card edge cases', () => {
       const card = createCardInstance(getCardDef('Vassal'));
       const village = createCardInstance(getCardDef('Village'));
       const p1 = makePlayer({ hand: [], deck: [], discard: [village] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const after = resolveCustomEffect(state, card, shuffle);
       // Village is Action → pending created
@@ -403,8 +507,15 @@ describe('complex card edge cases', () => {
     it('declining to play Action just clears pending', () => {
       const card = createCardInstance(getCardDef('Vassal'));
       const village = createCardInstance(getCardDef('Village'));
-      const p1 = makePlayer({ hand: [], deck: [village], discard: [], playArea: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const p1 = makePlayer({
+        hand: [],
+        deck: [village],
+        discard: [],
+        playArea: [],
+      });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = { confirmed: false };
@@ -419,18 +530,23 @@ describe('complex card edge cases', () => {
       const card = createCardInstance(getCardDef('Sentry'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p1 = makePlayer({ hand: [], deck: [copper], discard: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       expect(withPending.pendingEffect).not.toBeNull();
-      const revealedCards = withPending.pendingEffect!.data!.revealedCards as Array<{ instanceId: string }>;
+      const revealedCards = withPending.pendingEffect!.data!
+        .revealedCards as Array<{ instanceId: string }>;
       expect(revealedCards).toHaveLength(1);
     });
 
     it('returns state with empty deck and discard', () => {
       const card = createCardInstance(getCardDef('Sentry'));
       const p1 = makePlayer({ hand: [], deck: [], discard: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const after = resolveCustomEffect(state, card, shuffle);
       expect(after.pendingEffect).toBeNull();
@@ -441,7 +557,9 @@ describe('complex card edge cases', () => {
       const c1 = createCardInstance(getCardDef('Copper'));
       const c2 = createCardInstance(getCardDef('Estate'));
       const p1 = makePlayer({ hand: [], deck: [c1, c2], discard: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = {
@@ -458,7 +576,9 @@ describe('complex card edge cases', () => {
       const card = createCardInstance(getCardDef('Mine'));
       const estate = createCardInstance(getCardDef('Estate'));
       const p1 = makePlayer({ hand: [estate] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const after = resolveCustomEffect(state, card, shuffle);
       expect(after.pendingEffect).toBeNull();
@@ -470,7 +590,9 @@ describe('complex card edge cases', () => {
       const card = createCardInstance(getCardDef('Remodel'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p1 = makePlayer({ hand: [copper] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = { selectedCards: [] };
@@ -483,17 +605,27 @@ describe('complex card edge cases', () => {
       const card = createCardInstance(getCardDef('Remodel'));
       const copper = createCardInstance(getCardDef('Copper')); // cost 0
       const p1 = makePlayer({ hand: [copper], discard: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
-      const trashChoice: PendingEffectChoice = { selectedCards: [copper.instanceId] };
-      const afterTrash = resolvePendingEffect(withPending, trashChoice, shuffle);
+      const trashChoice: PendingEffectChoice = {
+        selectedCards: [copper.instanceId],
+      };
+      const afterTrash = resolvePendingEffect(
+        withPending,
+        trashChoice,
+        shuffle,
+      );
       // maxCost = 0 + 2 = 2. Silver costs 3 → rejected
       const gainChoice: PendingEffectChoice = { selectedCardName: 'Silver' };
       const after = resolvePendingEffect(afterTrash, gainChoice, shuffle);
       expect(after.pendingEffect).toBeNull();
       // Silver NOT gained because cost 3 > max 2
-      expect(after.players[0].discard.every((c) => c.def.name !== 'Silver')).toBe(true);
+      expect(
+        after.players[0].discard.every((c) => c.def.name !== 'Silver'),
+      ).toBe(true);
     });
   });
 
@@ -502,7 +634,9 @@ describe('complex card edge cases', () => {
       const card = createCardInstance(getCardDef('Workshop'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p1 = makePlayer({ hand: [copper] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       const choice: PendingEffectChoice = {};
@@ -516,21 +650,27 @@ describe('complex card edge cases', () => {
       const card = createCardInstance(getCardDef('Artisan'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p1 = makePlayer({ hand: [copper] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       // Gold costs 6 → rejected
       const choice: PendingEffectChoice = { selectedCardName: 'Gold' };
       const after = resolvePendingEffect(withPending, choice, shuffle);
       expect(after.pendingEffect).toBeNull();
-      expect(after.players[0].hand.every((c) => c.def.name !== 'Gold')).toBe(true);
+      expect(after.players[0].hand.every((c) => c.def.name !== 'Gold')).toBe(
+        true,
+      );
     });
 
     it('clears pending when putBack has no card selected', () => {
       const card = createCardInstance(getCardDef('Artisan'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p1 = makePlayer({ hand: [copper], deck: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       // Gain Silver (cost 3 ≤ 5)
@@ -551,11 +691,15 @@ describe('complex card edge cases', () => {
       const village = createCardInstance(getCardDef('Village'));
       const copper = createCardInstance(getCardDef('Copper'));
       const p1 = makePlayer({ hand: [village, copper], playArea: [] });
-      const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
 
       const withPending = resolveCustomEffect(state, card, shuffle);
       // Select Copper (non-Action) — should throw
-      const choice: PendingEffectChoice = { selectedCards: [copper.instanceId] };
+      const choice: PendingEffectChoice = {
+        selectedCards: [copper.instanceId],
+      };
       expect(() => resolvePendingEffect(withPending, choice, shuffle)).toThrow(
         'Throne Room: must select an Action card',
       );
@@ -576,7 +720,9 @@ describe('misc edge cases', () => {
     // Cellar, Chapel, Workshop all check hand.length === 0 via createPending
     const cellar = createCardInstance(getCardDef('Cellar'));
     const p1 = makePlayer({ hand: [] });
-    const state = makeGameState({ players: [p1, createPlayer('p2', 'Bob', shuffle)] });
+    const state = makeGameState({
+      players: [p1, createPlayer('p2', 'Bob', shuffle)],
+    });
 
     const after = resolveCustomEffect(state, cellar, shuffle);
     expect(after.pendingEffect).toBeNull();

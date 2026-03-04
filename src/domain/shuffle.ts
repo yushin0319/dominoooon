@@ -1,4 +1,4 @@
-import type { CardInstance, ShuffleFn } from "../types";
+import type { CardInstance, ShuffleFn } from '../types';
 
 /**
  * Design Decision: Shuffle Dependency Injection
@@ -18,7 +18,7 @@ import type { CardInstance, ShuffleFn } from "../types";
 function cryptoRandom(): number {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
-  return array[0] / (0xFFFFFFFF + 1);
+  return array[0] / (0xffffffff + 1);
 }
 
 /**

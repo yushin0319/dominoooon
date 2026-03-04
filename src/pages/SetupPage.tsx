@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
-import { useGameStore } from '../stores/gameStore';
-import { CARD_DEFS } from '../domain/card';
-import { CardType } from '../types';
-import type { CardDef } from '../types';
+import { useMemo, useState } from 'react';
 import CardView from '../components/CardView';
+import { CARD_DEFS } from '../domain/card';
+import { useGameStore } from '../stores/gameStore';
+import type { CardDef } from '../types';
+import { CardType } from '../types';
 
 const KINGDOM_CARDS: CardDef[] = Object.values(CARD_DEFS).filter(
   (c) =>
@@ -27,7 +27,9 @@ export default function SetupPage() {
     const initial = randomKingdom();
     return new Set(initial.map((c) => c.name));
   });
-  const [aiStrategy, setAIStrategy] = useState<'bigMoney' | 'bigMoneySmithy'>('bigMoney');
+  const [aiStrategy, setAIStrategy] = useState<'bigMoney' | 'bigMoneySmithy'>(
+    'bigMoney',
+  );
 
   const selectedCards = useMemo(
     () => KINGDOM_CARDS.filter((c) => selected.has(c.name)),
@@ -59,9 +61,7 @@ export default function SetupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 py-6 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-6">
-          ゲーム設定
-        </h1>
+        <h1 className="text-3xl font-bold text-white mb-6">ゲーム設定</h1>
 
         {/* AI戦略選択 */}
         <div className="mb-6 p-4 bg-slate-800/70 backdrop-blur-sm rounded-lg shadow border border-slate-600">
@@ -74,7 +74,9 @@ export default function SetupPage() {
                 type="radio"
                 value="bigMoney"
                 checked={aiStrategy === 'bigMoney'}
-                onChange={(e) => setAIStrategy(e.target.value as 'bigMoney' | 'bigMoneySmithy')}
+                onChange={(e) =>
+                  setAIStrategy(e.target.value as 'bigMoney' | 'bigMoneySmithy')
+                }
                 className="mr-2 w-4 h-4 text-purple-600 focus:ring-purple-500"
               />
               <span className="text-slate-300">Big Money</span>
@@ -84,7 +86,9 @@ export default function SetupPage() {
                 type="radio"
                 value="bigMoneySmithy"
                 checked={aiStrategy === 'bigMoneySmithy'}
-                onChange={(e) => setAIStrategy(e.target.value as 'bigMoney' | 'bigMoneySmithy')}
+                onChange={(e) =>
+                  setAIStrategy(e.target.value as 'bigMoney' | 'bigMoneySmithy')
+                }
                 className="mr-2 w-4 h-4 text-purple-600 focus:ring-purple-500"
               />
               <span className="text-slate-300">Big Money + Smithy</span>
@@ -105,14 +109,23 @@ export default function SetupPage() {
                 </span>
               ) : (
                 <span className="text-sm text-green-400 font-medium flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   準備完了
                 </span>
               )}
             </div>
             <button
+              type="button"
               onClick={handleRandom}
               className="px-4 py-2 text-sm font-medium text-purple-300 bg-slate-800/80 border border-purple-500/50 rounded hover:bg-purple-500/20 transition-colors"
             >
@@ -124,6 +137,7 @@ export default function SetupPage() {
               const isSelected = selected.has(card.name);
               return (
                 <button
+                  type="button"
                   key={card.name}
                   onClick={() => toggleCard(card.name)}
                   onKeyDown={(e) => {
@@ -134,9 +148,10 @@ export default function SetupPage() {
                   }}
                   className={`
                     p-2 rounded cursor-pointer transition-all text-left w-full
-                    ${isSelected
-                      ? 'bg-slate-800/90 shadow-lg border-2 border-purple-500 opacity-100'
-                      : 'bg-slate-800/30 border-2 border-transparent opacity-40 hover:opacity-60'
+                    ${
+                      isSelected
+                        ? 'bg-slate-800/90 shadow-lg border-2 border-purple-500 opacity-100'
+                        : 'bg-slate-800/30 border-2 border-transparent opacity-40 hover:opacity-60'
                     }
                   `}
                 >
@@ -150,19 +165,22 @@ export default function SetupPage() {
         {/* ボタン */}
         <div className="flex gap-4 justify-center">
           <button
+            type="button"
             onClick={goToTitle}
             className="px-6 py-3 font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded-lg hover:bg-slate-700/80 transition-colors"
           >
             戻る
           </button>
           <button
+            type="button"
             onClick={handleStart}
             disabled={selected.size !== 10}
             className={`
               px-6 py-3 font-medium text-white rounded-lg transition-all
-              ${selected.size === 10
-                ? 'bg-purple-600 hover:bg-purple-700 cursor-pointer'
-                : 'bg-slate-600 cursor-not-allowed'
+              ${
+                selected.size === 10
+                  ? 'bg-purple-600 hover:bg-purple-700 cursor-pointer'
+                  : 'bg-slate-600 cursor-not-allowed'
               }
             `}
           >

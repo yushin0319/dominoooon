@@ -1,25 +1,31 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { getCardDef } from '../../domain/card';
+import { createGame } from '../../domain/game';
+import { createPlayer } from '../../domain/player';
+import { createShuffleFn } from '../../domain/shuffle';
+import { initializeSupply } from '../../domain/supply';
+import type { GameState } from '../../types';
+import { Phase } from '../../types';
 import {
   bigMoneyAction,
   bigMoneyBuy,
-  bigMoneyTurn,
   bigMoneyDecision,
+  bigMoneyTurn,
 } from '../bigMoney';
-import { getCardDef } from '../../domain/card';
-import { createPlayer } from '../../domain/player';
-import { createGame } from '../../domain/game';
-import { initializeSupply } from '../../domain/supply';
-import { createShuffleFn } from '../../domain/shuffle';
-import { Phase } from '../../types';
-import type { GameState } from '../../types';
 
 const shuffle = createShuffleFn(() => 0.5);
 
 const kingdom = [
-  getCardDef('Village'), getCardDef('Smithy'), getCardDef('Market'),
-  getCardDef('Festival'), getCardDef('Laboratory'), getCardDef('Cellar'),
-  getCardDef('Moat'), getCardDef('Militia'), getCardDef('Mine'),
+  getCardDef('Village'),
+  getCardDef('Smithy'),
+  getCardDef('Market'),
+  getCardDef('Festival'),
+  getCardDef('Laboratory'),
+  getCardDef('Cellar'),
+  getCardDef('Moat'),
+  getCardDef('Militia'),
+  getCardDef('Mine'),
   getCardDef('Witch'),
 ];
 
@@ -54,7 +60,9 @@ describe('bigMoneyBuy', () => {
   it('buys Province when coins >= 8', () => {
     const state = makeTestState(8);
     const after = bigMoneyBuy(state);
-    const gained = after.players[0].discard.find((c) => c.def.name === 'Province');
+    const gained = after.players[0].discard.find(
+      (c) => c.def.name === 'Province',
+    );
     expect(gained).toBeDefined();
     expect(after.turnState.buys).toBe(0);
   });
@@ -77,7 +85,9 @@ describe('bigMoneyBuy', () => {
     for (const c of [3, 4, 5]) {
       const state = makeTestState(c);
       const after = bigMoneyBuy(state);
-      const gained = after.players[0].discard.find((card) => card.def.name === 'Silver');
+      const gained = after.players[0].discard.find(
+        (card) => card.def.name === 'Silver',
+      );
       expect(gained).toBeDefined();
     }
   });
@@ -105,8 +115,12 @@ describe('bigMoneyBuy', () => {
     // 2 buys, 11 coins: Province(8) + Silver(3)
     const state = makeTestState(11, 2);
     const after = bigMoneyBuy(state);
-    const province = after.players[0].discard.filter((c) => c.def.name === 'Province');
-    const silver = after.players[0].discard.filter((c) => c.def.name === 'Silver');
+    const province = after.players[0].discard.filter(
+      (c) => c.def.name === 'Province',
+    );
+    const silver = after.players[0].discard.filter(
+      (c) => c.def.name === 'Silver',
+    );
     expect(province).toHaveLength(1);
     expect(silver).toHaveLength(1);
     expect(after.turnState.buys).toBe(0);

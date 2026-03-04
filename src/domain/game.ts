@@ -1,8 +1,8 @@
-import type { GameState, PlayerState, CardDef, ShuffleFn } from '../types';
+import type { CardDef, GameState, PlayerState, ShuffleFn } from '../types';
 import { Phase } from '../types';
-import { createPlayer, calculateVP } from './player';
+import { calculateVP, createPlayer } from './player';
 import { initializeSupply, isGameOver } from './supply';
-import { createInitialTurnState, cleanupAndDraw } from './turn';
+import { cleanupAndDraw, createInitialTurnState } from './turn';
 
 export function createGame(
   playerNames: string[],

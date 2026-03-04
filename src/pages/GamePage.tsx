@@ -1,23 +1,28 @@
 import { useEffect, useState } from 'react';
-import { useGameStore } from '../stores/gameStore';
-import { Phase, CardType } from '../types';
-import type { PendingEffect, PlayerState } from '../types';
-import { getCardDef } from '../domain/card';
-import SupplyArea from '../components/SupplyArea';
-import Hand from '../components/Hand';
-import PlayArea from '../components/PlayArea';
-import TurnInfo from '../components/TurnInfo';
-import GameLog from '../components/GameLog';
-import PendingEffectUI from '../components/PendingEffectUI';
-import ConfirmDialog from '../components/ConfirmDialog';
 import { resolveAIPendingEffect } from '../ai/aiPendingResolver';
+import ConfirmDialog from '../components/ConfirmDialog';
+import GameLog from '../components/GameLog';
+import Hand from '../components/Hand';
+import PendingEffectUI from '../components/PendingEffectUI';
+import PlayArea from '../components/PlayArea';
+import SupplyArea from '../components/SupplyArea';
+import TurnInfo from '../components/TurnInfo';
+import { getCardDef } from '../domain/card';
+import { useGameStore } from '../stores/gameStore';
+import type { PendingEffect, PlayerState } from '../types';
+import { CardType, Phase } from '../types';
 
 // Timing constants
 const AI_TURN_DELAY_MS = 400;
 const EFFECT_RESOLVE_DELAY_MS = 400;
 
 // Game flow state machine
-type GameFlowState = 'player-turn' | 'ai-turn' | 'pending-effect' | 'game-over' | 'idle';
+type GameFlowState =
+  | 'player-turn'
+  | 'ai-turn'
+  | 'pending-effect'
+  | 'game-over'
+  | 'idle';
 
 function getGameFlowState(
   players: PlayerState[] | undefined,
@@ -42,9 +47,13 @@ export default function GamePage() {
   const turnNumber = useGameStore((s) => s.gameState?.turnNumber);
   const gameOver = useGameStore((s) => s.gameState?.gameOver ?? false);
   const pendingEffect = useGameStore((s) => s.gameState?.pendingEffect ?? null);
-  const currentPlayerIndex = useGameStore((s) => s.gameState?.currentPlayerIndex ?? 0);
+  const currentPlayerIndex = useGameStore(
+    (s) => s.gameState?.currentPlayerIndex ?? 0,
+  );
   // boolean セレクタ（isHumanTurn / isAITurn をストアから分離）
-  const isHumanTurn = useGameStore((s) => s.gameState?.currentPlayerIndex === 0);
+  const isHumanTurn = useGameStore(
+    (s) => s.gameState?.currentPlayerIndex === 0,
+  );
   const isAITurn = useGameStore((s) => s.gameState?.currentPlayerIndex === 1);
 
   const playAction = useGameStore((s) => s.playAction);
@@ -57,7 +66,9 @@ export default function GamePage() {
 
   const [buyTarget, setBuyTarget] = useState<string | null>(null);
   const [playTarget, setPlayTarget] = useState<string | null>(null);
-  const [phaseNotification, setPhaseNotification] = useState<string | null>(null);
+  const [phaseNotification, setPhaseNotification] = useState<string | null>(
+    null,
+  );
   const [prevPhase, setPrevPhase] = useState<Phase | null>(null);
 
   // Phase transition notification
@@ -88,7 +99,12 @@ export default function GamePage() {
 
   // Unified game flow state machine
   useEffect(() => {
-    const flowState = getGameFlowState(players, gameOver, pendingEffect, isAITurn);
+    const flowState = getGameFlowState(
+      players,
+      gameOver,
+      pendingEffect,
+      isAITurn,
+    );
 
     switch (flowState) {
       case 'ai-turn': {
@@ -106,7 +122,11 @@ export default function GamePage() {
         const capturedPendingEffect = pendingEffect;
         const capturedPlayers = players;
         const timer = setTimeout(() => {
-          resolveAIPendingEffect(capturedPendingEffect, capturedPlayers, resolvePending);
+          resolveAIPendingEffect(
+            capturedPendingEffect,
+            capturedPlayers,
+            resolvePending,
+          );
         }, EFFECT_RESOLVE_DELAY_MS);
         return () => clearTimeout(timer);
       }
@@ -115,16 +135,28 @@ export default function GamePage() {
         goToResult();
         return;
       }
-
-      case 'player-turn':
-      case 'idle':
       default:
         return;
     }
-  }, [players, gameOver, pendingEffect, isAITurn, executeAITurn, resolvePending, goToResult]);
+  }, [
+    players,
+    gameOver,
+    pendingEffect,
+    isAITurn,
+    executeAITurn,
+    resolvePending,
+    goToResult,
+  ]);
 
-  if (!players || !turnState || phase === undefined || supply === undefined ||
-      log === undefined || turnNumber === undefined) return null;
+  if (
+    !players ||
+    !turnState ||
+    phase === undefined ||
+    supply === undefined ||
+    log === undefined ||
+    turnNumber === undefined
+  )
+    return null;
 
   if (gameOver) return null;
 
@@ -138,10 +170,7 @@ export default function GamePage() {
     !pendingEffect;
 
   const canBuyCards =
-    isHumanTurn &&
-    phase === Phase.Buy &&
-    turnState.buys > 0 &&
-    !pendingEffect;
+    isHumanTurn && phase === Phase.Buy && turnState.buys > 0 && !pendingEffect;
 
   function handlePlayCard(instanceId: string) {
     const card = humanPlayer.hand.find((c) => c.instanceId === instanceId);
@@ -163,7 +192,11 @@ export default function GamePage() {
             <div className="w-full max-w-5xl space-y-6">
               <SupplyArea
                 supply={supply}
-                onBuy={canBuyCards ? (cardName: string) => setBuyTarget(cardName) : undefined}
+                onBuy={
+                  canBuyCards
+                    ? (cardName: string) => setBuyTarget(cardName)
+                    : undefined
+                }
                 canBuy={canBuyCards}
                 maxCost={canBuyCards ? turnState.coins : undefined}
               />
@@ -174,6 +207,7 @@ export default function GamePage() {
               <div className="flex gap-2 justify-center items-center">
                 {isHumanTurn && phase === Phase.Action && !pendingEffect && (
                   <button
+                    type="button"
                     onClick={skipAction}
                     className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded hover:bg-slate-700/80 transition-colors"
                   >
@@ -182,6 +216,7 @@ export default function GamePage() {
                 )}
                 {isHumanTurn && phase === Phase.Buy && !pendingEffect && (
                   <button
+                    type="button"
                     onClick={skipBuy}
                     className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded hover:bg-slate-700/80 transition-colors"
                   >
@@ -237,28 +272,41 @@ export default function GamePage() {
       {/* 購入確認ダイアログ */}
       {buyTarget && (
         <ConfirmDialog
-          title={(getCardDef(buyTarget).nameJa ?? getCardDef(buyTarget).name)}
+          title={getCardDef(buyTarget).nameJa ?? getCardDef(buyTarget).name}
           cardDef={getCardDef(buyTarget)}
           confirmLabel="購入する"
-          onConfirm={() => { buyCard(buyTarget); setBuyTarget(null); }}
+          onConfirm={() => {
+            buyCard(buyTarget);
+            setBuyTarget(null);
+          }}
           onCancel={() => setBuyTarget(null)}
-          details={{ cost: getCardDef(buyTarget).cost, types: getCardDef(buyTarget).types }}
+          details={{
+            cost: getCardDef(buyTarget).cost,
+            types: getCardDef(buyTarget).types,
+          }}
         />
       )}
 
       {/* プレイ確認ダイアログ */}
-      {playTarget && (() => {
-        const card = humanPlayer.hand.find((c) => c.instanceId === playTarget);
-        if (!card) return null;
-        return (
-          <ConfirmDialog
-            title={card.def.nameJa ?? card.def.name}
-            cardDef={card.def}
-            confirmLabel="プレイする"
-            onConfirm={() => { playAction(playTarget); setPlayTarget(null); }}
-            onCancel={() => setPlayTarget(null)}
-          />);
-      })()}
+      {playTarget &&
+        (() => {
+          const card = humanPlayer.hand.find(
+            (c) => c.instanceId === playTarget,
+          );
+          if (!card) return null;
+          return (
+            <ConfirmDialog
+              title={card.def.nameJa ?? card.def.name}
+              cardDef={card.def}
+              confirmLabel="プレイする"
+              onConfirm={() => {
+                playAction(playTarget);
+                setPlayTarget(null);
+              }}
+              onCancel={() => setPlayTarget(null)}
+            />
+          );
+        })()}
 
       {/* Phase transition notification */}
       {phaseNotification && (

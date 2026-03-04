@@ -1,5 +1,5 @@
-import { memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { memo, useCallback } from 'react';
 import type { CardInstance } from '../types';
 import CardView from './CardView';
 
@@ -49,9 +49,7 @@ const HandCard = memo(function HandCard({
         scale: isSelected ? 1.05 : 1,
       }}
       whileHover={
-        canPlay && onPlay
-          ? { y: yOffset - 5, zIndex: 50 }
-          : undefined
+        canPlay && onPlay ? { y: yOffset - 5, zIndex: 50 } : undefined
       }
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       style={{
@@ -69,7 +67,12 @@ const HandCard = memo(function HandCard({
   );
 });
 
-const Hand = memo(function Hand({ hand, onPlay, canPlay, selectedCards }: HandProps) {
+const Hand = memo(function Hand({
+  hand,
+  onPlay,
+  canPlay,
+  selectedCards,
+}: HandProps) {
   return (
     <div className="relative flex flex-col items-center justify-start p-2 rounded-xl bg-white/5 min-h-[200px]">
       {canPlay && onPlay && (

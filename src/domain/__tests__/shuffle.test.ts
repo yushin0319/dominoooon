@@ -1,10 +1,7 @@
 // @vitest-environment node
-import { describe, it, expect } from "vitest";
-import {
-  fisherYatesShuffle,
-  createShuffleFn,
-} from "../shuffle";
-import type { CardInstance, CardDef, CardType, ShuffleFn } from "../../types";
+import { describe, expect, it } from 'vitest';
+import type { CardDef, CardInstance, CardType, ShuffleFn } from '../../types';
+import { createShuffleFn, fisherYatesShuffle } from '../shuffle';
 
 // Helper: create a minimal CardInstance for testing
 function makeCard(id: string): CardInstance {
@@ -18,40 +15,40 @@ function makeCard(id: string): CardInstance {
   return { instanceId: id, def };
 }
 
-describe("fisherYatesShuffle", () => {
-  it("returns an array of the same length", () => {
-    const cards = [makeCard("1"), makeCard("2"), makeCard("3")];
+describe('fisherYatesShuffle', () => {
+  it('returns an array of the same length', () => {
+    const cards = [makeCard('1'), makeCard('2'), makeCard('3')];
     const result = fisherYatesShuffle(cards);
     expect(result).toHaveLength(cards.length);
   });
 
-  it("preserves all elements", () => {
-    const cards = [makeCard("a"), makeCard("b"), makeCard("c"), makeCard("d")];
+  it('preserves all elements', () => {
+    const cards = [makeCard('a'), makeCard('b'), makeCard('c'), makeCard('d')];
     const result = fisherYatesShuffle(cards);
     const ids = result.map((c) => c.instanceId).sort();
-    expect(ids).toEqual(["a", "b", "c", "d"]);
+    expect(ids).toEqual(['a', 'b', 'c', 'd']);
   });
 
-  it("handles an empty array without error", () => {
+  it('handles an empty array without error', () => {
     const result = fisherYatesShuffle([]);
     expect(result).toEqual([]);
   });
 
-  it("returns the single element for a 1-element array", () => {
-    const cards = [makeCard("only")];
+  it('returns the single element for a 1-element array', () => {
+    const cards = [makeCard('only')];
     const result = fisherYatesShuffle(cards);
     expect(result).toEqual(cards);
   });
 
-  it("does not mutate the original array (immutability)", () => {
-    const cards = [makeCard("1"), makeCard("2"), makeCard("3")];
+  it('does not mutate the original array (immutability)', () => {
+    const cards = [makeCard('1'), makeCard('2'), makeCard('3')];
     const original = [...cards];
     fisherYatesShuffle(cards);
     expect(cards).toEqual(original);
   });
 
-  it("accepts a custom rng for deterministic shuffle", () => {
-    const cards = [makeCard("1"), makeCard("2"), makeCard("3"), makeCard("4")];
+  it('accepts a custom rng for deterministic shuffle', () => {
+    const cards = [makeCard('1'), makeCard('2'), makeCard('3'), makeCard('4')];
 
     // Deterministic rng: always returns a fixed sequence
     let callCount = 0;
@@ -68,7 +65,7 @@ describe("fisherYatesShuffle", () => {
     );
   });
 
-  it("produces deterministic results with the same rng seed", () => {
+  it('produces deterministic results with the same rng seed', () => {
     const cards = Array.from({ length: 10 }, (_, i) => makeCard(String(i)));
 
     // Simple seeded PRNG (linear congruential)
@@ -89,47 +86,47 @@ describe("fisherYatesShuffle", () => {
   });
 });
 
-describe("createShuffleFn", () => {
-  it("returns a function when called with no arguments (default crypto rng)", () => {
+describe('createShuffleFn', () => {
+  it('returns a function when called with no arguments (default crypto rng)', () => {
     const shuffleFn = createShuffleFn();
-    expect(typeof shuffleFn).toBe("function");
+    expect(typeof shuffleFn).toBe('function');
   });
 
-  it("returns a function when called with a custom rng", () => {
+  it('returns a function when called with a custom rng', () => {
     const customRng = () => 0.5;
     const shuffleFn = createShuffleFn(customRng);
-    expect(typeof shuffleFn).toBe("function");
+    expect(typeof shuffleFn).toBe('function');
   });
 
-  it("returned function shuffles correctly", () => {
+  it('returned function shuffles correctly', () => {
     const shuffleFn = createShuffleFn();
-    const cards = [makeCard("a"), makeCard("b"), makeCard("c")];
+    const cards = [makeCard('a'), makeCard('b'), makeCard('c')];
     const result = shuffleFn(cards);
     expect(result).toHaveLength(3);
     const ids = result.map((c) => c.instanceId).sort();
-    expect(ids).toEqual(["a", "b", "c"]);
+    expect(ids).toEqual(['a', 'b', 'c']);
   });
 
-  it("returned function conforms to ShuffleFn type", () => {
+  it('returned function conforms to ShuffleFn type', () => {
     const fn: ShuffleFn = createShuffleFn();
-    const cards = [makeCard("x")];
+    const cards = [makeCard('x')];
     const result = fn(cards);
     expect(result).toHaveLength(1);
-    expect(result[0].instanceId).toBe("x");
+    expect(result[0].instanceId).toBe('x');
   });
 
-  it("DI shuffle function produces deterministic results", () => {
+  it('DI shuffle function produces deterministic results', () => {
     let callCount = 0;
     const values = [0.3, 0.7, 0.1, 0.9, 0.5];
     const deterministicRng = () => values[callCount++ % values.length];
 
     const shuffleFn = createShuffleFn(deterministicRng);
     const cards = [
-      makeCard("1"),
-      makeCard("2"),
-      makeCard("3"),
-      makeCard("4"),
-      makeCard("5"),
+      makeCard('1'),
+      makeCard('2'),
+      makeCard('3'),
+      makeCard('4'),
+      makeCard('5'),
     ];
 
     const result1 = shuffleFn(cards);

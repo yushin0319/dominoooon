@@ -1,4 +1,4 @@
-import type { SupplyPile, CardDef, CardType } from '../types';
+import type { CardDef, CardType, SupplyPile } from '../types';
 import { CARD_DEFS } from './card';
 
 /**

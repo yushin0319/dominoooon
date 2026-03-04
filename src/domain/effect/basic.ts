@@ -1,21 +1,15 @@
-import type {
-  GameState,
-  CardInstance,
-  ShuffleFn,
-} from '../../types';
-import {
-  drawCards,
-  discardCard,
-  trashCardFromHand,
-  gainCard,
-} from '../player';
-import { takeFromSupply } from '../supply';
+import type { CardInstance, GameState, ShuffleFn } from '../../types';
 import { getCurrentPlayer, updateCurrentPlayer, updatePlayer } from '../game';
+import { discardCard, drawCards, gainCard, trashCardFromHand } from '../player';
+import { takeFromSupply } from '../supply';
 import type { PendingEffectChoice } from './types';
 
 // ===== Basic Card Effects =====
 
-export function resolveCouncilRoom(state: GameState, shuffleFn: ShuffleFn): GameState {
+export function resolveCouncilRoom(
+  state: GameState,
+  shuffleFn: ShuffleFn,
+): GameState {
   let result = state;
   for (let i = 0; i < result.players.length; i++) {
     if (i === state.currentPlayerIndex) continue;
@@ -43,7 +37,10 @@ export function resolveMoneylender(state: GameState): GameState {
   return result;
 }
 
-export function resolveLibrary(state: GameState, shuffleFn: ShuffleFn): GameState {
+export function resolveLibrary(
+  state: GameState,
+  shuffleFn: ShuffleFn,
+): GameState {
   const player = getCurrentPlayer(state);
   const needed = 7 - player.hand.length;
   if (needed <= 0) return state;
@@ -134,7 +131,7 @@ export function resolveChapel(
     console.warn('Chapel: some selected cards not found in hand');
   }
 
-  let trash = [...state.trash];
+  const trash = [...state.trash];
   for (const id of existingCards) {
     const [updated, trashed] = trashCardFromHand(player, id);
     player = updated;
@@ -174,12 +171,14 @@ export function resolvePoacher(
   choice: PendingEffectChoice,
 ): GameState {
   const selected = choice.selectedCards || [];
-  const data = state.pendingEffect!.data || {};
+  const data = state.pendingEffect?.data || {};
   const needed = (data.discardCount as number) || 0;
 
   // Validate: must have at least 'needed' cards
   if (selected.length < needed) {
-    console.warn(`Poacher: must discard ${needed} cards, got ${selected.length}`);
+    console.warn(
+      `Poacher: must discard ${needed} cards, got ${selected.length}`,
+    );
     return { ...state, pendingEffect: null };
   }
 

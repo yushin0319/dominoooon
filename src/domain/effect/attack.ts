@@ -1,17 +1,13 @@
 import type {
+  CardInstance,
   GameState,
   PlayerState,
-  CardInstance,
   ShuffleFn,
 } from '../../types';
 import { CardType } from '../../types';
-import {
-  discardCard,
-  gainCard,
-  gainCardToDeck,
-} from '../player';
-import { takeFromSupply, getSupplyPile } from '../supply';
 import { getCurrentPlayer, updateCurrentPlayer, updatePlayer } from '../game';
+import { discardCard, gainCard, gainCardToDeck } from '../player';
+import { getSupplyPile, takeFromSupply } from '../supply';
 import type { PendingEffectChoice } from './types';
 
 // ===== Attack Card Effects =====
@@ -24,7 +20,8 @@ function getAttackTargets(state: GameState): number[] {
   return state.players
     .map((_, i) => i)
     .filter(
-      (i) => i !== state.currentPlayerIndex && !hasMoatReaction(state.players[i]),
+      (i) =>
+        i !== state.currentPlayerIndex && !hasMoatReaction(state.players[i]),
     );
 }
 
@@ -40,7 +37,10 @@ export function resolveWitch(state: GameState): GameState {
   }
   return result;
 }
-export function resolveBandit(state: GameState, shuffleFn: ShuffleFn): GameState {
+export function resolveBandit(
+  state: GameState,
+  shuffleFn: ShuffleFn,
+): GameState {
   let result = state;
 
   // Gain Gold
@@ -60,7 +60,11 @@ export function resolveBandit(state: GameState, shuffleFn: ShuffleFn): GameState
     // Ensure at least 2 cards to reveal (reshuffle if needed)
     if (target.deck.length < 2 && target.discard.length > 0) {
       const reshuffled = shuffleFn(target.discard);
-      target = { ...target, deck: [...target.deck, ...reshuffled], discard: [] };
+      target = {
+        ...target,
+        deck: [...target.deck, ...reshuffled],
+        discard: [],
+      };
     }
 
     const revealCount = Math.min(2, target.deck.length);
@@ -77,7 +81,8 @@ export function resolveBandit(state: GameState, shuffleFn: ShuffleFn): GameState
       (c) => c.def.types.includes(CardType.Treasure) && c.def.name !== 'Copper',
     );
     const nonTrashable = revealed.filter(
-      (c) => !c.def.types.includes(CardType.Treasure) || c.def.name === 'Copper',
+      (c) =>
+        !c.def.types.includes(CardType.Treasure) || c.def.name === 'Copper',
     );
 
     if (trashable.length > 0) {
@@ -139,7 +144,10 @@ export function resolveBureaucrat(state: GameState): GameState {
   return result;
 }
 
-export function resolveMilitia(state: GameState, card: CardInstance): GameState {
+export function resolveMilitia(
+  state: GameState,
+  card: CardInstance,
+): GameState {
   const targets = getAttackTargets(state);
   const needsDiscard = targets.filter((i) => state.players[i].hand.length > 3);
   if (needsDiscard.length === 0) return state;
@@ -158,7 +166,7 @@ export function resolveMilitiaChoice(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
-  const data = state.pendingEffect!.data || {};
+  const data = state.pendingEffect?.data || {};
   const targetIndices = data.targetIndices as number[];
   const currentTargetIdx = data.currentTargetIdx as number;
   const playerIdx = targetIndices[currentTargetIdx];
@@ -186,7 +194,7 @@ export function resolveMilitiaChoice(
     player = discardCard(player, id);
   }
 
-  let result = updatePlayer(state, playerIdx, player);
+  const result = updatePlayer(state, playerIdx, player);
 
   // Check for more targets
   const nextIdx = currentTargetIdx + 1;
@@ -206,4 +214,3 @@ export function resolveMilitiaChoice(
 
   return { ...result, pendingEffect: null };
 }
-
