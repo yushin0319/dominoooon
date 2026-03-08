@@ -56,27 +56,30 @@ export function drawCards(
   return { ...player, deck, hand, discard };
 }
 
-export function playCard(player: PlayerState, instanceId: string): PlayerState {
+function removeCardFromHand(
+  player: PlayerState,
+  instanceId: string,
+): [PlayerState, CardInstance] {
   const idx = player.hand.findIndex((c) => c.instanceId === instanceId);
   if (idx === -1) {
     throw new Error(`Card ${instanceId} not found in hand`);
   }
   const hand = [...player.hand];
   const [card] = hand.splice(idx, 1);
-  return { ...player, hand, playArea: [...player.playArea, card] };
+  return [{ ...player, hand }, card];
+}
+
+export function playCard(player: PlayerState, instanceId: string): PlayerState {
+  const [p, card] = removeCardFromHand(player, instanceId);
+  return { ...p, playArea: [...p.playArea, card] };
 }
 
 export function discardCard(
   player: PlayerState,
   instanceId: string,
 ): PlayerState {
-  const idx = player.hand.findIndex((c) => c.instanceId === instanceId);
-  if (idx === -1) {
-    throw new Error(`Card ${instanceId} not found in hand`);
-  }
-  const hand = [...player.hand];
-  const [card] = hand.splice(idx, 1);
-  return { ...player, hand, discard: [...player.discard, card] };
+  const [p, card] = removeCardFromHand(player, instanceId);
+  return { ...p, discard: [...p.discard, card] };
 }
 
 export function discardHand(player: PlayerState): PlayerState {
@@ -99,13 +102,7 @@ export function trashCardFromHand(
   player: PlayerState,
   instanceId: string,
 ): [PlayerState, CardInstance] {
-  const idx = player.hand.findIndex((c) => c.instanceId === instanceId);
-  if (idx === -1) {
-    throw new Error(`Card ${instanceId} not found in hand`);
-  }
-  const hand = [...player.hand];
-  const [card] = hand.splice(idx, 1);
-  return [{ ...player, hand }, card];
+  return removeCardFromHand(player, instanceId);
 }
 
 export function gainCard(player: PlayerState, cardDef: CardDef): PlayerState {
