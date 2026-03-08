@@ -123,9 +123,22 @@ export function createThroneRoomPending(
 
 // ===== PendingEffect Resolvers =====
 
-export function resolveRemodel(
+type TrashGainOptions = {
+  cardName: string;
+  costBonus: number;
+  trashTypeCheck?: CardType;
+  gainTypeCheck?: CardType;
+  gainFn: (
+    player: ReturnType<typeof getCurrentPlayer>,
+    cardDef: CardInstance['def'],
+  ) => ReturnType<typeof getCurrentPlayer>;
+};
+
+/** Mine / Remodel 共通: trash → gain の2フェーズ処理 */
+function resolveTrashGain(
   state: GameState,
   choice: PendingEffectChoice,
+  opts: TrashGainOptions,
 ): GameState {
   const data = state.pendingEffect?.data || {};
 
@@ -133,17 +146,22 @@ export function resolveRemodel(
     if (!choice.selectedCards || choice.selectedCards.length === 0) {
       return { ...state, pendingEffect: null };
     }
-
     const player = getCurrentPlayer(state);
     const cardId = choice.selectedCards[0];
-
-    // Validate: card must exist in hand
     if (!player.hand.some((c) => c.instanceId === cardId)) {
-      console.warn('Remodel: selected card not found in hand');
+      console.warn(`${opts.cardName}: selected card not found in hand`);
       return { ...state, pendingEffect: null };
     }
-
     const [updated, trashed] = trashCardFromHand(player, cardId);
+    if (
+      opts.trashTypeCheck &&
+      !trashed.def.types.includes(opts.trashTypeCheck)
+    ) {
+      console.warn(
+        `${opts.cardName}: must trash a ${opts.trashTypeCheck} card`,
+      );
+      return { ...state, pendingEffect: null };
+    }
     const result = {
       ...updateCurrentPlayer(state, updated),
       trash: [...state.trash, trashed],
@@ -159,22 +177,23 @@ export function resolveRemodel(
 
   if (data.phase === 'gain') {
     if (!choice.selectedCardName) return { ...state, pendingEffect: null };
-    const maxCost = (data.trashedCost as number) + 2;
+    const maxCost = (data.trashedCost as number) + opts.costBonus;
     const [newSupply, cardDef] = takeFromSupply(
       state.supply,
       choice.selectedCardName,
     );
-
-    // Validate: cost constraint
     if (cardDef.cost > maxCost) {
       console.warn(
-        `Remodel: card cost must be <= ${maxCost}, got ${cardDef.cost}`,
+        `${opts.cardName}: card cost must be <= ${maxCost}, got ${cardDef.cost}`,
       );
       return { ...state, pendingEffect: null };
     }
-
+    if (opts.gainTypeCheck && !cardDef.types.includes(opts.gainTypeCheck)) {
+      console.warn(`${opts.cardName}: must gain a ${opts.gainTypeCheck} card`);
+      return { ...state, pendingEffect: null };
+    }
     const player = getCurrentPlayer(state);
-    const updated = gainCard(player, cardDef);
+    const updated = opts.gainFn(player, cardDef);
     return {
       ...updateCurrentPlayer(state, updated),
       supply: newSupply,
@@ -185,79 +204,28 @@ export function resolveRemodel(
   return { ...state, pendingEffect: null };
 }
 
+export function resolveRemodel(
+  state: GameState,
+  choice: PendingEffectChoice,
+): GameState {
+  return resolveTrashGain(state, choice, {
+    cardName: 'Remodel',
+    costBonus: 2,
+    gainFn: gainCard,
+  });
+}
+
 export function resolveMine(
   state: GameState,
   choice: PendingEffectChoice,
 ): GameState {
-  const data = state.pendingEffect?.data || {};
-
-  if (data.phase === 'trash') {
-    if (!choice.selectedCards || choice.selectedCards.length === 0) {
-      return { ...state, pendingEffect: null };
-    }
-
-    const player = getCurrentPlayer(state);
-    const cardId = choice.selectedCards[0];
-
-    // Validate: card must exist in hand
-    if (!player.hand.some((c) => c.instanceId === cardId)) {
-      console.warn('Mine: selected card not found in hand');
-      return { ...state, pendingEffect: null };
-    }
-
-    const [updated, trashed] = trashCardFromHand(player, cardId);
-
-    // Validate: must be a Treasure card
-    if (!trashed.def.types.includes(CardType.Treasure)) {
-      console.warn('Mine: must trash a Treasure card');
-      return { ...state, pendingEffect: null };
-    }
-
-    const result = {
-      ...updateCurrentPlayer(state, updated),
-      trash: [...state.trash, trashed],
-    };
-    return {
-      ...result,
-      pendingEffect: {
-        ...state.pendingEffect!,
-        data: { phase: 'gain', trashedCost: trashed.def.cost },
-      },
-    };
-  }
-
-  if (data.phase === 'gain') {
-    if (!choice.selectedCardName) return { ...state, pendingEffect: null };
-    const maxCost = (data.trashedCost as number) + 3;
-    const [newSupply, cardDef] = takeFromSupply(
-      state.supply,
-      choice.selectedCardName,
-    );
-
-    // Validate: cost constraint
-    if (cardDef.cost > maxCost) {
-      console.warn(
-        `Mine: card cost must be <= ${maxCost}, got ${cardDef.cost}`,
-      );
-      return { ...state, pendingEffect: null };
-    }
-
-    // Validate: must be a Treasure card
-    if (!cardDef.types.includes(CardType.Treasure)) {
-      console.warn('Mine: must gain a Treasure card');
-      return { ...state, pendingEffect: null };
-    }
-
-    const player = getCurrentPlayer(state);
-    const updated = gainCardToHand(player, cardDef);
-    return {
-      ...updateCurrentPlayer(state, updated),
-      supply: newSupply,
-      pendingEffect: null,
-    };
-  }
-
-  return { ...state, pendingEffect: null };
+  return resolveTrashGain(state, choice, {
+    cardName: 'Mine',
+    costBonus: 3,
+    trashTypeCheck: CardType.Treasure,
+    gainTypeCheck: CardType.Treasure,
+    gainFn: gainCardToHand,
+  });
 }
 
 export function resolveArtisan(
