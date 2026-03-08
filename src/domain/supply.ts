@@ -1,3 +1,4 @@
+import { CARD } from '../constants/cardNames';
 import type { CardDef, CardType, SupplyPile } from '../types';
 import { CARD_DEFS } from './card';
 
@@ -89,7 +90,7 @@ export function getSupplyPile(
  * Check if the game is over (Province empty or 3+ empty piles).
  */
 export function isGameOver(supply: SupplyPile[]): boolean {
-  const provincePile = getSupplyPile(supply, 'Province');
+  const provincePile = getSupplyPile(supply, CARD.PROVINCE);
   if (provincePile && provincePile.count === 0) return true;
   return getEmptyPileCount(supply) >= 3;
 }

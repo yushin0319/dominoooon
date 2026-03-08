@@ -1,3 +1,4 @@
+import { CARD } from '../constants/cardNames';
 import type { CardDef, CardInstance, PlayerState, ShuffleFn } from '../types';
 import { createCardInstance, getCardDef } from './card';
 
@@ -8,10 +9,10 @@ export function createPlayer(
 ): PlayerState {
   const initialCards: CardInstance[] = [];
   for (let i = 0; i < 7; i++) {
-    initialCards.push(createCardInstance(getCardDef('Copper')));
+    initialCards.push(createCardInstance(getCardDef(CARD.COPPER)));
   }
   for (let i = 0; i < 3; i++) {
-    initialCards.push(createCardInstance(getCardDef('Estate')));
+    initialCards.push(createCardInstance(getCardDef(CARD.ESTATE)));
   }
 
   const deck = shuffleFn(initialCards);

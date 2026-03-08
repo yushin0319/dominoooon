@@ -1,3 +1,4 @@
+import { CARD } from '../../constants/cardNames';
 import type { CardInstance, GameState, ShuffleFn } from '../../types';
 import { getCurrentPlayer, updateCurrentPlayer, updatePlayer } from '../game';
 import { discardCard, drawCards, gainCard, trashCardFromHand } from '../player';
@@ -21,7 +22,7 @@ export function resolveCouncilRoom(
 
 export function resolveMoneylender(state: GameState): GameState {
   const player = getCurrentPlayer(state);
-  const copperIdx = player.hand.findIndex((c) => c.def.name === 'Copper');
+  const copperIdx = player.hand.findIndex((c) => c.def.name === CARD.COPPER);
   if (copperIdx === -1) return state;
 
   const [updatedPlayer, trashed] = trashCardFromHand(
