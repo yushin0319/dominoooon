@@ -203,6 +203,142 @@ describe('resolveCustomEffect + resolvePendingEffect', () => {
     });
   });
 
+  describe('remodel: バリデーション', () => {
+    it('trash phase: selectedCards が空の場合は pendingEffect を解除する', () => {
+      const card = createCardInstance(getCardDef('Remodel'));
+      const estate = createCardInstance(getCardDef('Estate'));
+      const p1 = makePlayer({ hand: [estate] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      const after = resolvePendingEffect(
+        withPending,
+        { selectedCards: [] },
+        shuffle,
+      );
+
+      expect(after.pendingEffect).toBeNull();
+      expect(after.players[0].hand).toHaveLength(1);
+    });
+
+    it('trash phase: 手札にないカードを選択した場合は pendingEffect を解除する', () => {
+      const card = createCardInstance(getCardDef('Remodel'));
+      const estate = createCardInstance(getCardDef('Estate'));
+      const p1 = makePlayer({ hand: [estate] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      const after = resolvePendingEffect(
+        withPending,
+        { selectedCards: ['nonexistent-id'] },
+        shuffle,
+      );
+
+      expect(after.pendingEffect).toBeNull();
+      expect(after.players[0].hand).toHaveLength(1);
+    });
+
+    it('gain phase: selectedCardName がない場合は pendingEffect を解除する', () => {
+      const card = createCardInstance(getCardDef('Remodel'));
+      const estate = createCardInstance(getCardDef('Estate')); // cost 2
+      const p1 = makePlayer({ hand: [estate] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      const afterTrash = resolvePendingEffect(
+        withPending,
+        { selectedCards: [estate.instanceId] },
+        shuffle,
+      );
+      const after = resolvePendingEffect(afterTrash, {}, shuffle);
+
+      expect(after.pendingEffect).toBeNull();
+    });
+
+    it('gain phase: コスト上限を超えるカードは pendingEffect を解除する', () => {
+      const card = createCardInstance(getCardDef('Remodel'));
+      const estate = createCardInstance(getCardDef('Estate')); // cost 2、上限 2+2=4
+      const p1 = makePlayer({ hand: [estate] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      const afterTrash = resolvePendingEffect(
+        withPending,
+        { selectedCards: [estate.instanceId] },
+        shuffle,
+      );
+      // Market: cost 5 > 4
+      const after = resolvePendingEffect(
+        afterTrash,
+        { selectedCardName: 'Market' },
+        shuffle,
+      );
+
+      expect(after.pendingEffect).toBeNull();
+      expect(
+        after.players[0].discard.some((c) => c.def.name === 'Market'),
+      ).toBe(false);
+    });
+  });
+
+  describe('mine: バリデーション', () => {
+    it('trash phase: 非 Treasure カードを選択した場合は pendingEffect を解除する', () => {
+      const card = createCardInstance(getCardDef('Mine'));
+      const estate = createCardInstance(getCardDef('Estate')); // Victory（非 Treasure）
+      const copper = createCardInstance(getCardDef('Copper'));
+      const p1 = makePlayer({ hand: [estate, copper] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      // Mine の pending は Treasure が手札にある場合のみ作成される（copper があるので作成される）
+      // estate を選択 → Treasure でないので解除
+      const after = resolvePendingEffect(
+        withPending,
+        { selectedCards: [estate.instanceId] },
+        shuffle,
+      );
+
+      expect(after.pendingEffect).toBeNull();
+    });
+
+    it('gain phase: 非 Treasure カードを gain しようとした場合は pendingEffect を解除する', () => {
+      const card = createCardInstance(getCardDef('Mine'));
+      const copper = createCardInstance(getCardDef('Copper')); // cost 0
+      const p1 = makePlayer({ hand: [copper] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      const afterTrash = resolvePendingEffect(
+        withPending,
+        { selectedCards: [copper.instanceId] },
+        shuffle,
+      );
+      // Estate: Victory（非 Treasure）、cost 2 <= 3 だがタイプ違反
+      const after = resolvePendingEffect(
+        afterTrash,
+        { selectedCardName: 'Estate' },
+        shuffle,
+      );
+
+      expect(after.pendingEffect).toBeNull();
+      expect(after.players[0].hand.some((c) => c.def.name === 'Estate')).toBe(
+        false,
+      );
+    });
+  });
+
   describe('artisan', () => {
     it('two-phase: gain to hand then put one card on deck', () => {
       const card = createCardInstance(getCardDef('Artisan'));
