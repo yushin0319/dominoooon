@@ -1,3 +1,4 @@
+import { CARD } from '../constants/cardNames';
 import type { CardInstance, GameState, ShuffleFn, TurnState } from '../types';
 import { CardType, Phase } from '../types';
 import { resolveCustomEffect } from './effect';
@@ -114,10 +115,12 @@ export function autoPlayTreasures(state: GameState): GameState {
 
   // Merchant bonus: +1 coin per Silver played, up to the number of Merchants in play area
   const merchantCount = currentPlayer.playArea.filter(
-    (c) => c.def.name === 'Merchant',
+    (c) => c.def.name === CARD.MERCHANT,
   ).length;
   if (merchantCount > 0) {
-    const silverCount = treasures.filter((c) => c.def.name === 'Silver').length;
+    const silverCount = treasures.filter(
+      (c) => c.def.name === CARD.SILVER,
+    ).length;
     coins += Math.min(merchantCount, silverCount);
   }
 

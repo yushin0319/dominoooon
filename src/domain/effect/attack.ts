@@ -1,3 +1,4 @@
+import { CARD } from '../../constants/cardNames';
 import type {
   CardInstance,
   GameState,
@@ -13,7 +14,7 @@ import type { PendingEffectChoice } from './types';
 // ===== Attack Card Effects =====
 
 export function hasMoatReaction(player: PlayerState): boolean {
-  return player.hand.some((c) => c.def.name === 'Moat');
+  return player.hand.some((c) => c.def.name === CARD.MOAT);
 }
 
 function getAttackTargets(state: GameState): number[] {
@@ -28,9 +29,9 @@ function getAttackTargets(state: GameState): number[] {
 export function resolveWitch(state: GameState): GameState {
   let result = state;
   for (const i of getAttackTargets(state)) {
-    const cursePile = getSupplyPile(result.supply, 'Curse');
+    const cursePile = getSupplyPile(result.supply, CARD.CURSE);
     if (!cursePile || cursePile.count <= 0) break;
-    const [newSupply, curseDef] = takeFromSupply(result.supply, 'Curse');
+    const [newSupply, curseDef] = takeFromSupply(result.supply, CARD.CURSE);
     result = { ...result, supply: newSupply };
     const updated = gainCard(result.players[i], curseDef);
     result = updatePlayer(result, i, updated);
@@ -44,9 +45,9 @@ export function resolveBandit(
   let result = state;
 
   // Gain Gold
-  const goldPile = getSupplyPile(result.supply, 'Gold');
+  const goldPile = getSupplyPile(result.supply, CARD.GOLD);
   if (goldPile && goldPile.count > 0) {
-    const [newSupply, goldDef] = takeFromSupply(result.supply, 'Gold');
+    const [newSupply, goldDef] = takeFromSupply(result.supply, CARD.GOLD);
     result = { ...result, supply: newSupply };
     const player = getCurrentPlayer(result);
     const updated = gainCard(player, goldDef);
@@ -78,11 +79,12 @@ export function resolveBandit(
 
     // Find non-Copper Treasures
     const trashable = revealed.filter(
-      (c) => c.def.types.includes(CardType.Treasure) && c.def.name !== 'Copper',
+      (c) =>
+        c.def.types.includes(CardType.Treasure) && c.def.name !== CARD.COPPER,
     );
     const nonTrashable = revealed.filter(
       (c) =>
-        !c.def.types.includes(CardType.Treasure) || c.def.name === 'Copper',
+        !c.def.types.includes(CardType.Treasure) || c.def.name === CARD.COPPER,
     );
 
     if (trashable.length > 0) {
@@ -113,9 +115,9 @@ export function resolveBureaucrat(state: GameState): GameState {
   let result = state;
 
   // Gain Silver to deck top
-  const silverPile = getSupplyPile(result.supply, 'Silver');
+  const silverPile = getSupplyPile(result.supply, CARD.SILVER);
   if (silverPile && silverPile.count > 0) {
-    const [newSupply, silverDef] = takeFromSupply(result.supply, 'Silver');
+    const [newSupply, silverDef] = takeFromSupply(result.supply, CARD.SILVER);
     result = { ...result, supply: newSupply };
     const player = getCurrentPlayer(result);
     const updated = gainCardToDeck(player, silverDef);
