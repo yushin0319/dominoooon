@@ -3,12 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { GameState, PlayerState } from '../../types';
 import { Phase } from '../../types';
 import { createCardInstance, getCardDef } from '../card';
-import {
-  hasMoatReaction,
-  type PendingEffectChoice,
-  resolveCustomEffect,
-  resolvePendingEffect,
-} from '../effect';
+import { hasMoatReaction, resolveCustomEffect } from '../effect';
 import { createPlayer } from '../player';
 import { createShuffleFn } from '../shuffle';
 import { initializeSupply } from '../supply';
