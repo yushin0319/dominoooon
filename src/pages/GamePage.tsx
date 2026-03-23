@@ -179,7 +179,7 @@ export default function GamePage() {
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden flex flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
+    <div className="relative w-full h-screen overflow-hidden flex flex-col bg-linear-to-b from-slate-900 via-slate-900 to-slate-800">
       {/* Dark overlay for depth */}
       <div className="absolute inset-0 bg-slate-950/40 z-0" />
 
