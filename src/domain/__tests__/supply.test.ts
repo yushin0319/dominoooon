@@ -59,23 +59,18 @@ describe('initializeSupply', () => {
       curse: 30,
       gardens: 12,
     },
-  ])('$playerCount-player game initializes variable pile counts correctly', ({
-    playerCount,
-    copper,
-    estate,
-    duchy,
-    province,
-    curse,
-    gardens,
-  }) => {
-    const supply = initializeSupply(kingdom, playerCount);
-    expect(pile(supply, 'Copper')?.count).toBe(copper);
-    expect(pile(supply, 'Estate')?.count).toBe(estate);
-    expect(pile(supply, 'Duchy')?.count).toBe(duchy);
-    expect(pile(supply, 'Province')?.count).toBe(province);
-    expect(pile(supply, 'Curse')?.count).toBe(curse);
-    expect(pile(supply, 'Gardens')?.count).toBe(gardens);
-  });
+  ])(
+    '$playerCount-player game initializes variable pile counts correctly',
+    ({ playerCount, copper, estate, duchy, province, curse, gardens }) => {
+      const supply = initializeSupply(kingdom, playerCount);
+      expect(pile(supply, 'Copper')?.count).toBe(copper);
+      expect(pile(supply, 'Estate')?.count).toBe(estate);
+      expect(pile(supply, 'Duchy')?.count).toBe(duchy);
+      expect(pile(supply, 'Province')?.count).toBe(province);
+      expect(pile(supply, 'Curse')?.count).toBe(curse);
+      expect(pile(supply, 'Gardens')?.count).toBe(gardens);
+    },
+  );
 
   it('Silver and Gold counts are always fixed (40 and 30)', () => {
     const supply = initializeSupply(kingdom, 2);
