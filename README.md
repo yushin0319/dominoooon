@@ -6,11 +6,12 @@
 
 ## スタック
 
-- React 19 + TypeScript + Vite 8
+- React 19 + TypeScript 7 + Vite 8
 - Tailwind CSS v4 + framer-motion + lucide-react
 - 状態管理: Zustand
 - テスト: vitest + @testing-library/react
-- Lint: Biome / Husky + lint-staged
+- スタイルユーティリティ: clsx + tailwind-merge（`cn`）
+- Lint: Biome v2 / Husky + lint-staged
 - パッケージマネージャ: bun
 
 ## 構成
@@ -23,15 +24,21 @@ src/
     turn.ts              ターン管理
     player.ts            プレイヤー状態
     supply.ts            供給エリア
-    effect/              効果実行エンジン
+    shuffle.ts           シャッフル
+    effect/              効果実行エンジン（basic / attack / complex）
     __tests__/           単体テスト
   ai/                    AI 戦略
     bigMoney.ts          Big Money
     bigMoneySmithy.ts    Big Money + Smithy
+    aiPendingResolver.ts 保留効果の AI 解決
   stores/                Zustand ゲームストア
-  components/            React UI（Hand / SupplyArea / PlayArea / TurnInfo / CardView / GameLog）
+  components/            React UI（Hand / SupplyArea / PlayArea / TurnInfo / CardView /
+                         GameLog / PendingEffectUI / ConfirmDialog / ErrorBoundary）
   pages/                 TitlePage / SetupPage / GamePage / ResultPage
+  constants/             カード名定義
+  lib/utils.ts           cn（clsx + tailwind-merge）・カード効果テキスト生成
   types/                 TypeScript 型定義
+docs/cards.md            カード効果一覧（基本第二版・全カード）
 ```
 
 ## 操作
@@ -47,7 +54,7 @@ src/
 bun install
 bun run dev          # Vite :5173
 bun run build        # tsc -b && vite build
-bun test             # vitest
+bun run test         # vitest
 bun run lint         # Biome
 ```
 
