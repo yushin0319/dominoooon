@@ -8,8 +8,13 @@
 src/
 ├── components/         # Reactコンポーネント（UI層）
 │   ├── CardView.tsx   # カード表示コンポーネント
+│   ├── ConfirmDialog.tsx  # 確認ダイアログ
+│   ├── ErrorBoundary.tsx  # エラーバウンダリ
+│   ├── GameLog.tsx    # ゲームログ表示
 │   ├── Hand.tsx       # 手札表示コンポーネント
 │   ├── PendingEffectUI.tsx  # ペンディング効果UI
+│   ├── PlayArea.tsx   # 場（プレイエリア）表示
+│   ├── SupplyArea.tsx # サプライ表示
 │   ├── TurnInfo.tsx   # ターン情報表示
 │   └── __tests__/     # コンポーネントテスト
 ├── pages/             # ページコンポーネント
@@ -34,20 +39,24 @@ src/
 ├── ai/                # AI戦略
 │   ├── bigMoney.ts    # Big Money戦略
 │   ├── bigMoneySmithy.ts  # Big Money + Smithy戦略
+│   ├── aiPendingResolver.ts  # 保留効果のAI解決
 │   └── __tests__/     # AI戦略テスト
 ├── stores/            # 状態管理（Zustand）
-│   └── gameStore.ts   # ゲーム状態ストア
+│   ├── gameStore.ts   # ゲーム状態ストア
+│   └── __tests__/     # ストアテスト
 ├── types/             # 型定義モジュール
 │   └── index.ts       # グローバル型定義
 ├── constants/         # 定数定義
+│   ├── cardNames.ts   # 名前比較に使うカード名定数（CARD）
 │   └── effectLabels.ts  # カード効果の日本語ラベル
 ├── lib/               # ユーティリティ関数
-│   └── utils.ts       # Tailwind CSS class merging (cn関数)
+│   └── utils.ts       # cn関数（clsx + tailwind-merge）/ カード効果テキスト生成（getEffectText）
 ├── assets/            # 静的アセット
 │   └── react.svg      # Reactロゴ（デフォルト）
 ├── App.tsx            # アプリケーションルート
 ├── main.tsx           # エントリーポイント
-└── index.css          # グローバルスタイル
+├── index.css          # グローバルスタイル
+└── test-setup.ts      # vitest のセットアップ（jest-dom マッチャーの型拡張）
 ```
 
 ## 各ディレクトリの役割
@@ -75,7 +84,7 @@ TypeScriptの型定義を配置します。ドメインモデルの型を集約�
 アプリケーション全体で使用する定数を配置します。i18n対応を見越した構成です。
 
 ### `lib/`
-汎用ユーティリティ関数を配置します。現在は `cn()` 関数（Tailwind CSS class merging）のみ。
+汎用ユーティリティ関数を配置します。`cn()`（Tailwind CSS class merging）と、カード効果テキストを生成する `getEffectText()`。
 
 ### `assets/`
 画像やアイコンなどの静的アセットを配置します。現在はデフォルトのReactロゴのみ。
