@@ -26,7 +26,7 @@ src/
     supply.ts            供給エリア
     shuffle.ts           シャッフル
     effect/              効果実行エンジン（basic / attack / complex）
-    __tests__/           単体テスト
+    __tests__/           単体テスト（ai / components / stores にも __tests__/ あり）
   ai/                    AI 戦略
     bigMoney.ts          Big Money
     bigMoneySmithy.ts    Big Money + Smithy
@@ -35,9 +35,10 @@ src/
   components/            React UI（Hand / SupplyArea / PlayArea / TurnInfo / CardView /
                          GameLog / PendingEffectUI / ConfirmDialog / ErrorBoundary）
   pages/                 TitlePage / SetupPage / GamePage / ResultPage
-  constants/             カード名定義
+  constants/             カード名定数（cardNames）・効果ラベル（effectLabels）
   lib/utils.ts           cn（clsx + tailwind-merge）・カード効果テキスト生成
   types/                 TypeScript 型定義
+src/test-setup.ts        vitest のセットアップ（jest-dom マッチャーの型拡張）
 docs/cards.md            カード効果一覧（基本第二版・全カード）
 ```
 
