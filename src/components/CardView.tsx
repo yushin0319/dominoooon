@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { memo, useState } from 'react';
+import { memo, useRef, useState } from 'react';
+import { getTooltipShiftX } from '../lib/tooltip';
 import { cn, getEffectText } from '../lib/utils';
 import type { CardDef, CardInstance, CardType } from '../types';
 
@@ -73,15 +74,37 @@ const CardView = memo(function CardView({
   const textColor = getTextColor(def.types);
   const effects = getEffectText(def);
   const [showTooltip, setShowTooltip] = useState(false);
+  // 画面端のカードでツールチップが切れないよう横にずらす量（スマホ幅向け。収まるときは 0）
+  const [tooltipShift, setTooltipShift] = useState(0);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  function handleMouseEnter() {
+    const tooltip = tooltipRef.current;
+    if (tooltip) {
+      const rect = tooltip.getBoundingClientRect();
+      // 今のずらし量を除いた本来の位置で判定する
+      setTooltipShift((prev) =>
+        getTooltipShiftX(
+          rect.left - prev,
+          rect.right - prev,
+          window.innerWidth,
+        ),
+      );
+    }
+    setShowTooltip(true);
+  }
 
   return (
     <div
       className="relative"
-      onMouseEnter={() => setShowTooltip(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setShowTooltip(false)}
     >
       {/* Tooltip - CSS transition（framer-motion 不使用） */}
       <div
+        ref={tooltipRef}
+        role="tooltip"
+        style={tooltipShift ? { marginLeft: tooltipShift } : undefined}
         className={cn(
           'absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3',
           'bg-slate-900 border-2 border-slate-600 rounded-lg shadow-2xl text-white text-sm pointer-events-none',
@@ -116,8 +139,11 @@ const CardView = memo(function CardView({
             </div>
           )}
         </div>
-        {/* 矢印 */}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+        {/* 矢印（ツールチップをずらしてもカードの中心を指すよう逆向きに戻す） */}
+        <div
+          className="absolute top-full left-1/2 -translate-x-1/2 -mt-px"
+          style={tooltipShift ? { marginLeft: -tooltipShift } : undefined}
+        >
           <div className="border-8 border-transparent border-t-slate-600" />
         </div>
       </div>

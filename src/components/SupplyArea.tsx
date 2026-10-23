@@ -136,19 +136,15 @@ const SupplyArea = memo(function SupplyArea({
     [supply],
   );
 
-  // キングダムカードを2行に分割
-  const kingdomRow1 = kingdom.slice(0, 5);
-  const kingdomRow2 = kingdom.slice(5, 10);
-
   return (
     <div className="flex flex-col gap-6 py-4">
-      {/* キングダムカード（2行配置） */}
+      {/* キングダムカード（PC では 5 枚 × 2 行、狭い画面では折り返す） */}
       <div className="flex flex-col items-center gap-3">
         <h3 className="text-sm font-semibold opacity-70 mb-1">キングダム</h3>
 
-        {/* Row 1 */}
-        <div className="flex items-center gap-3">
-          {kingdomRow1.map((pile) => (
+        {/* 最大幅 448px = カード幅 80px（w-20）× 5 + 間隔 12px（gap-3）× 4 で 1 行 5 枚に揃える */}
+        <div className="flex flex-wrap items-center justify-center gap-3 max-w-[448px]">
+          {kingdom.map((pile) => (
             <SupplyPileItem
               key={pile.card.name}
               pile={pile}
@@ -158,28 +154,13 @@ const SupplyArea = memo(function SupplyArea({
             />
           ))}
         </div>
-
-        {/* Row 2 */}
-        {kingdomRow2.length > 0 && (
-          <div className="flex items-center gap-3">
-            {kingdomRow2.map((pile) => (
-              <SupplyPileItem
-                key={pile.card.name}
-                pile={pile}
-                onBuy={onBuy}
-                canBuy={canBuy}
-                maxCost={maxCost}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* 基本カード（財宝 + 勝利点） */}
+      {/* 基本カード（財宝 + 勝利点）。狭い画面では種類ごとに折り返す */}
       <div className="flex flex-col items-center gap-3">
         <h3 className="text-sm font-semibold opacity-70 mb-1">基本カード</h3>
 
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center justify-center gap-3 lg:gap-6">
           {/* 財宝カード */}
           <div className="flex items-center gap-3">
             {treasure.map((pile) => (
@@ -193,8 +174,8 @@ const SupplyArea = memo(function SupplyArea({
             ))}
           </div>
 
-          {/* 区切り線（ダークテーマ対応） */}
-          <div className="w-px h-16 bg-gray-300 dark:bg-gray-600" />
+          {/* 区切り線（ダークテーマ対応）。折り返す幅では行末に残るので出さない */}
+          <div className="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600" />
 
           {/* 勝利点カード */}
           <div className="flex items-center gap-3">
@@ -212,7 +193,7 @@ const SupplyArea = memo(function SupplyArea({
           {/* 呪いカード（存在する場合） */}
           {curse.length > 0 && (
             <>
-              <div className="w-px h-16 bg-gray-300 dark:bg-gray-600" />
+              <div className="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600" />
               <div className="flex items-center gap-3">
                 {curse.map((pile) => (
                   <SupplyPileItem

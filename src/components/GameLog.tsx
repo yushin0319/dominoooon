@@ -5,14 +5,26 @@ interface GameLogProps {
 }
 
 const GameLog = memo(function GameLog({ log }: GameLogProps) {
+  const boxRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const entryCount = log.length;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  // 新しい行が増えたら、ログ欄だけを一番下までスクロールする（scrollIntoView と違い画面全体は動かさない）
+  useEffect(() => {
+    const box = boxRef.current;
+    if (box && entryCount > 0) box.scrollTop = box.scrollHeight;
+  }, [entryCount]);
+
   return (
-    <div className="absolute bottom-3 left-3 z-30 w-64 h-48 p-3 bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-600 shadow-xl overflow-y-auto">
+    // lg 未満: 手札の上に低めの高さで置く（手札のツールチップが上に出るよう z は手札より下） / lg 以上: 左下に浮かせる
+    <div
+      ref={boxRef}
+      className="shrink-0 mx-2 mb-2 h-24 p-2 z-10 lg:absolute lg:mx-0 lg:mb-0 lg:bottom-3 lg:left-3 lg:z-30 lg:w-64 lg:h-48 lg:p-3 bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-600 shadow-xl overflow-y-auto scroll-smooth"
+    >
       <h3 className="text-xs font-bold text-white mb-2 sticky top-0 bg-slate-800/90 py-1">
         ゲームログ
       </h3>
