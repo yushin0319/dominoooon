@@ -33,9 +33,10 @@ const TurnInfo = memo(function TurnInfo({
   currentPlayer,
 }: TurnInfoProps) {
   return (
-    <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-300 dark:border-slate-600 shadow-xl">
+    // lg 未満: 画面上部の横長バー（プレイエリアに重ならない） / lg 以上: 右端に浮かせる縦長パネル
+    <div className="shrink-0 mx-2 mt-2 flex flex-row justify-around items-center gap-2 sm:gap-3 p-2 sm:p-3 z-40 lg:absolute lg:mx-0 lg:mt-0 lg:right-3 lg:top-1/2 lg:-translate-y-1/2 lg:flex-col lg:justify-normal bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-300 dark:border-slate-600 shadow-xl">
       {/* Player Info */}
-      <div className="flex flex-col items-center gap-0.5 sm:gap-1 pb-1.5 sm:pb-2 border-b border-slate-300 dark:border-slate-600 w-full">
+      <div className="flex flex-col items-center gap-0.5 sm:gap-1 pr-2 border-r lg:pr-0 lg:pb-2 lg:border-r-0 lg:border-b lg:w-full border-slate-300 dark:border-slate-600">
         <div className="text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-medium">
           Turn {turnNumber}
         </div>

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useSyncExternalStore } from 'react';
+import { getHandCardOverlap } from '../lib/handLayout';
 import type { CardInstance } from '../types';
 import CardView from './CardView';
 
@@ -14,6 +15,7 @@ interface HandCardProps {
   card: CardInstance;
   index: number;
   totalCards: number;
+  overlap: number;
   onPlay?: (instanceId: string) => void;
   canPlay?: boolean;
   isSelected: boolean;
@@ -21,10 +23,20 @@ interface HandCardProps {
 
 const FAN_ANGLE = 5;
 
+// 画面幅（resize で更新）。手札の重なり幅の計算に使う
+function subscribeResize(onChange: () => void) {
+  window.addEventListener('resize', onChange);
+  return () => window.removeEventListener('resize', onChange);
+}
+function getViewportWidth() {
+  return window.innerWidth;
+}
+
 const HandCard = memo(function HandCard({
   card,
   index,
   totalCards,
+  overlap,
   onPlay,
   canPlay,
   isSelected,
@@ -53,7 +65,7 @@ const HandCard = memo(function HandCard({
       }
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       style={{
-        marginLeft: index === 0 ? 0 : -16,
+        marginLeft: index === 0 ? 0 : -overlap,
         zIndex: isSelected ? 100 : index,
       }}
       className={canPlay && onPlay ? 'cursor-pointer' : 'cursor-default'}
@@ -73,6 +85,10 @@ const Hand = memo(function Hand({
   canPlay,
   selectedCards,
 }: HandProps) {
+  // スマホ幅でも全カードが画面内に収まるよう、重なり幅を画面幅から決める（PC 幅では従来の 16px）
+  const viewportWidth = useSyncExternalStore(subscribeResize, getViewportWidth);
+  const overlap = getHandCardOverlap(hand.length, viewportWidth);
+
   return (
     <div className="relative flex flex-col items-center justify-start p-2 rounded-xl bg-white/5 min-h-[200px]">
       {canPlay && onPlay && (
@@ -87,6 +103,7 @@ const Hand = memo(function Hand({
             card={card}
             index={index}
             totalCards={hand.length}
+            overlap={overlap}
             onPlay={onPlay}
             canPlay={canPlay}
             isSelected={selectedCards?.includes(card.instanceId) ?? false}

@@ -185,10 +185,19 @@ export default function GamePage() {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
-        {/* Main area */}
-        <div className="flex-1 relative flex">
-          {/* Supply and Play Area (center) */}
-          <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto">
+        {/* Main area: lg 未満は TurnInfo → サプライ/プレイエリア → GameLog の縦積み、lg 以上は TurnInfo と GameLog を浮かせる。
+            lg 未満の min-h-0 は中身の高さで伸びて手札を画面外に押し出さないため（lg 以上は従来どおり） */}
+        <div className="flex-1 min-h-0 lg:min-h-auto relative flex flex-col lg:flex-row">
+          {/* TurnInfo - lg 未満は上部の横長バー、lg 以上はフローティング（コンポーネント内で absolute 配置） */}
+          <TurnInfo
+            turnState={turnState}
+            phase={phase}
+            turnNumber={turnNumber}
+            currentPlayer={currentPlayer.name}
+          />
+
+          {/* Supply and Play Area (center) - lg 未満は上詰め（中央寄せだとはみ出た上端がスクロールで見えなくなる） */}
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-start lg:justify-center p-4 overflow-y-auto">
             <div className="w-full max-w-5xl space-y-6">
               <SupplyArea
                 supply={supply}
@@ -235,15 +244,7 @@ export default function GamePage() {
             </div>
           </div>
 
-          {/* TurnInfo - フローティング（コンポーネント内で absolute 配置） */}
-          <TurnInfo
-            turnState={turnState}
-            phase={phase}
-            turnNumber={turnNumber}
-            currentPlayer={currentPlayer.name}
-          />
-
-          {/* GameLog - フローティング（コンポーネント内で absolute 配置） */}
+          {/* GameLog - lg 未満は手札の上に固定の高さで置く、lg 以上はフローティング（コンポーネント内で absolute 配置） */}
           <GameLog log={log} />
         </div>
 
