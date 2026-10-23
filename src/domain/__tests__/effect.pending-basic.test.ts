@@ -159,6 +159,8 @@ describe('resolveCustomEffect + resolvePendingEffect', () => {
       );
       expect(afterTrash.pendingEffect!.data!.phase).toBe('gain');
       expect(afterTrash.trash).toHaveLength(1);
+      // 獲得段階の説明に「何を廃棄したか」を出すため、廃棄したカード名を持つ
+      expect(afterTrash.pendingEffect!.data!.trashedName).toBe('Estate');
 
       // Phase 3: gain card costing <= 4 (estate cost 2 + 2)
       const gainChoice: PendingEffectChoice = { selectedCardName: 'Smithy' }; // cost 4

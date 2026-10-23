@@ -1,7 +1,7 @@
 import type { CardInstance, GameState, ShuffleFn } from '../../types';
 import { CardType } from '../../types';
 import { getCardDef } from '../card';
-import { getCurrentPlayer, updateCurrentPlayer } from '../game';
+import { addLog, getCurrentPlayer, updateCurrentPlayer } from '../game';
 import { gainCard, gainCardToHand, trashCardFromHand } from '../player';
 import { takeFromSupply } from '../supply';
 import { applyBasicEffects } from '../turn';
@@ -170,7 +170,12 @@ function resolveTrashGain(
       ...result,
       pendingEffect: {
         ...state.pendingEffect!,
-        data: { phase: 'gain', trashedCost: trashed.def.cost },
+        // trashedName は獲得段階の説明（「屋敷を廃棄しました」）に使う
+        data: {
+          phase: 'gain',
+          trashedCost: trashed.def.cost,
+          trashedName: trashed.def.name,
+        },
       },
     };
   }
@@ -316,19 +321,44 @@ export function resolveThroneRoom(
   };
 
   let result = updateCurrentPlayer(state, played);
-  result = { ...result, pendingEffect: null };
+  result = addLog(
+    { ...result, pendingEffect: null },
+    `${player.name}は玉座の間で${card.def.nameJa ?? card.def.name}を2回使います`,
+  );
 
-  // Apply effects twice
-  for (let i = 0; i < 2; i++) {
+  return playCardTimes(result, card, 2, shuffleFn);
+}
+
+/**
+ * card の効果を times 回くり返す（場に出す処理は呼び出し側で済ませておく）。
+ * 途中で選択待ちが出たら止め、残りの回数を選択待ちの continuation に積む。
+ * 選択待ちが片付いたら resolvePendingEffect が残りを実行する。
+ */
+export function playCardTimes(
+  state: GameState,
+  card: CardInstance,
+  times: number,
+  shuffleFn: ShuffleFn,
+): GameState {
+  let result = state;
+  for (let i = 0; i < times; i++) {
     result = applyBasicEffects(result, card, shuffleFn);
-    // Apply custom effect
-    if (card.def.effects.custom) {
-      result = resolveCustomEffect(result, card, shuffleFn);
-      // If a pendingEffect was created, stop and let the caller handle it
-      if (result.pendingEffect) break;
-    }
-  }
+    if (!card.def.effects.custom) continue;
+    result = resolveCustomEffect(result, card, shuffleFn);
+    const pending = result.pendingEffect;
+    if (!pending) continue;
 
+    const remaining = times - i - 1;
+    if (remaining === 0) return result;
+    // 選択待ちの中で起きた続き（あれば）を先に、このカードの残りをその後に実行する
+    return {
+      ...result,
+      pendingEffect: {
+        ...pending,
+        continuation: [...(pending.continuation ?? []), { card, remaining }],
+      },
+    };
+  }
   return result;
 }
 
@@ -380,23 +410,39 @@ export function resolveSentryChoice(
     defName: string;
   }>;
   const trashIds = new Set(choice.selectedCards || []);
+  const discardIds = new Set(choice.discardCards || []);
 
   const player = getCurrentPlayer(state);
   const trash = [...state.trash];
+  const discarded: CardInstance[] = [];
   const putBack: CardInstance[] = [];
 
+  // 1 枚ずつ 廃棄 / 捨てる / 戻す に分ける（両方に入っていたら廃棄を優先）
   for (const rc of revealedCards) {
     const cardDef = getCardDef(rc.defName);
     const card: CardInstance = { instanceId: rc.instanceId, def: cardDef };
     if (trashIds.has(rc.instanceId)) {
       trash.push(card);
+    } else if (discardIds.has(rc.instanceId)) {
+      discarded.push(card);
     } else {
       putBack.push(card);
     }
   }
 
-  // Put back cards go on top of deck
-  const updated = { ...player, deck: [...putBack, ...player.deck] };
+  // 戻すカードは orderedCards の順（先頭が山札の一番上）。指定が無ければめくった順
+  const order = choice.orderedCards ?? [];
+  const rank = (c: CardInstance) => {
+    const i = order.indexOf(c.instanceId);
+    return i === -1 ? order.length : i;
+  };
+  const ordered = [...putBack].sort((a, b) => rank(a) - rank(b));
+
+  const updated = {
+    ...player,
+    deck: [...ordered, ...player.deck],
+    discard: [...player.discard, ...discarded],
+  };
 
   return {
     ...updateCurrentPlayer(state, updated),

@@ -94,11 +94,20 @@ export type PendingEffectType =
   | 'vassal'
   | 'sentry';
 
+/** 選択待ちが片付いたあとに続けて使うカード（玉座の間の 2 回目など） */
+export interface PendingContinuation {
+  card: CardInstance;
+  /** あと何回使うか */
+  remaining: number;
+}
+
 export interface PendingEffect {
   type: PendingEffectType;
   sourceCard: CardDef;
   playerId: string;
   data?: Record<string, unknown>;
+  /** この選択待ちが片付いたら先頭から順に実行する残りの使用（玉座の間） */
+  continuation?: PendingContinuation[];
 }
 
 export interface SupplyPile {

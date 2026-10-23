@@ -5,6 +5,7 @@
 import type {
   CardInstance,
   GameState,
+  PendingContinuation,
   PendingEffectType,
   ShuffleFn,
 } from '../../types';
@@ -32,6 +33,7 @@ import {
 import {
   createMinePending,
   createThroneRoomPending,
+  playCardTimes,
   resolveArtisan,
   resolveMine,
   resolveRemodel,
@@ -51,13 +53,19 @@ const defaultShuffle = createShuffleFn();
 
 // ===== Helpers =====
 
+/** 手札を使わない（手札が空でも選択が要る）選択待ち */
+const HAND_FREE_PENDING: ReadonlySet<PendingEffectType> = new Set([
+  'workshop',
+  'artisan',
+]);
+
 function createPending(
   state: GameState,
   type: PendingEffectType,
   card: CardInstance,
 ): GameState {
   const player = getCurrentPlayer(state);
-  if (player.hand.length === 0) return state;
+  if (!HAND_FREE_PENDING.has(type) && player.hand.length === 0) return state;
   return {
     ...state,
     pendingEffect: {
@@ -75,7 +83,7 @@ function createPendingWithData(
   data: Record<string, unknown>,
 ): GameState {
   const player = getCurrentPlayer(state);
-  if (type !== 'artisan' && player.hand.length === 0) return state;
+  if (!HAND_FREE_PENDING.has(type) && player.hand.length === 0) return state;
   return {
     ...state,
     pendingEffect: {
@@ -170,5 +178,43 @@ export function resolvePendingEffect(
   if (!state.pendingEffect) return state;
   const handler = PENDING_EFFECT_HANDLERS[state.pendingEffect.type];
   if (!handler) return { ...state, pendingEffect: null };
-  return handler(state, choice, shuffleFn);
+
+  // 続き（玉座の間の残りの使用）は外してから解決し、解決後に引き継ぐ
+  const { continuation, ...pending } = state.pendingEffect;
+  const result = handler(
+    { ...state, pendingEffect: pending },
+    choice,
+    shuffleFn,
+  );
+  if (!continuation || continuation.length === 0) return result;
+  return continueAfterPending(result, continuation, shuffleFn);
+}
+
+/**
+ * 選択待ちを 1 つ解決したあとの続き。
+ * まだ選択待ちがある（同じカードの次の段階 / 新しく出た選択）ならその後ろに続きを積み、
+ * 無ければ続きを先頭から実行する。
+ */
+function continueAfterPending(
+  state: GameState,
+  continuation: PendingContinuation[],
+  shuffleFn: ShuffleFn,
+): GameState {
+  if (state.pendingEffect) {
+    return {
+      ...state,
+      pendingEffect: {
+        ...state.pendingEffect,
+        continuation: [
+          ...(state.pendingEffect.continuation ?? []),
+          ...continuation,
+        ],
+      },
+    };
+  }
+
+  const [next, ...rest] = continuation;
+  const result = playCardTimes(state, next.card, next.remaining, shuffleFn);
+  if (rest.length === 0) return result;
+  return continueAfterPending(result, rest, shuffleFn);
 }
