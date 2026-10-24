@@ -34,6 +34,16 @@ describe('TurnBar: 次に何をするかの一言と、ターンを進めるボ�
     expect(screen.getByText(/光っているカードをプレイするか/)).toBeVisible();
   });
 
+  it('「N コイン」と（）の中も途中で折り返さない（スマホで「5 コ／イン」と切れていた）', () => {
+    render(
+      <TurnBar message="AIが財宝を出しました: 銅貨×3・銀貨 → 5 コイン" busy />,
+    );
+    expect(screen.getByText('5 コイン')).toHaveClass('whitespace-nowrap');
+
+    render(<TurnBar message="AIが鍛冶屋をプレイ（+3 ドロー）" busy />);
+    expect(screen.getByText('（+3 ドロー）')).toHaveClass('whitespace-nowrap');
+  });
+
   it('ボタンは押しやすい高さ（44px 以上）', () => {
     render(
       <TurnBar
@@ -92,5 +102,22 @@ describe('TurnBar: 次に何をするかの一言と、ターンを進めるボ�
     expect(screen.getByText('AIが考えています...')).toBeVisible();
     expect(screen.getByTestId('turn-bar-spinner')).toBeInTheDocument();
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('AI の番に onSkip があれば「スキップ」を出し、押すとすぐ終わらせる（44px 以上）', () => {
+    const onSkip = vi.fn();
+    render(
+      <TurnBar
+        message="AIが財宝を出しました: 銅貨×3 → 3 コイン"
+        busy
+        onSkip={onSkip}
+      />,
+    );
+    expect(liveRegion()).toHaveTextContent('AIが財宝を出しました');
+    const skip = screen.getByRole('button', { name: 'AIのターンをスキップ' });
+    expect(skip).toHaveTextContent('スキップ');
+    expect(skip.className).toMatch(/\bmin-h-11\b/);
+    fireEvent.click(skip);
+    expect(onSkip).toHaveBeenCalledTimes(1);
   });
 });

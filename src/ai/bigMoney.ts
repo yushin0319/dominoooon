@@ -11,13 +11,12 @@
  * decision-making logic, while domain functions are low-level game mechanics.
  */
 
-import { getCardDef } from '../domain/card';
-import { addLog, endTurn } from '../domain/game';
 import { createShuffleFn } from '../domain/shuffle';
 import { getSupplyPile } from '../domain/supply';
 import { advancePhase, buyCard } from '../domain/turn';
 import type { GameState, ShuffleFn } from '../types';
 import { Phase } from '../types';
+import { type AITurnStrategy, planAITurn } from './aiTurn';
 
 const defaultShuffle = createShuffleFn();
 
@@ -58,6 +57,7 @@ export function bigMoneyAction(
 
 /**
  * Buy phase: purchase cards by priority (Province > Gold > Silver).
+ * ログは書かない（何を買ったかは planAITurn がまとめの 1 行で残す）
  */
 export function bigMoneyBuy(state: GameState): GameState {
   let current = state;
@@ -66,11 +66,16 @@ export function bigMoneyBuy(state: GameState): GameState {
     const cardName = chooseBuy(current);
     if (!cardName) break;
     current = buyCard(current, cardName);
-    current = addLog(current, `AIが${getCardDef(cardName).nameJa}を購入`);
   }
 
   return current;
 }
+
+/** 段階に分けて見せるための戦略（Big Money はアクションを使わない） */
+export const bigMoneyStrategy: AITurnStrategy = {
+  playActions: (state) => state,
+  buy: bigMoneyBuy,
+};
 
 /**
  * Execute a full Big Money turn: action → buy → end turn.
@@ -79,11 +84,7 @@ export function bigMoneyTurn(
   state: GameState,
   shuffleFn: ShuffleFn = defaultShuffle,
 ): GameState {
-  let current = addLog(state, `--- ターン${state.turnNumber}: AIのターン ---`);
-  current = bigMoneyAction(current, shuffleFn);
-  current = bigMoneyBuy(current);
-  current = endTurn(current, shuffleFn);
-  return current;
+  return planAITurn(state, bigMoneyStrategy, shuffleFn).final;
 }
 
 /**

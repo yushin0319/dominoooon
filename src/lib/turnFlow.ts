@@ -1,3 +1,4 @@
+import type { AITurnStepKind } from '../ai/aiTurn';
 import { getAvailableCards, getGameEndReason } from '../domain/supply';
 import { canBuy, canPlayAction } from '../domain/turn';
 import type { GameState, TurnState } from '../types';
@@ -15,6 +16,38 @@ export const GAME_OVER_DELAY_MS = 1500;
 
 export const TURN_START_NOTICE = 'あなたのターン';
 export const BUY_PHASE_NOTICE = '購入フェーズ';
+
+/** AI の番になってから最初の段階を見せるまでの時間（ms） */
+const AI_TURN_START_MS = 400;
+
+/**
+ * AI のターンの各段階を見せる時間（ms）。財宝を場に出す所は 1 秒ほど見せる。
+ * 始まりの待ちと合わせて、アクションを使わないターンは 2.2 秒、使うターンは 2.9 秒（待たされすぎないよう 3 秒以内）
+ */
+const AI_STEP_MS: Record<AITurnStepKind, number> = {
+  action: 700,
+  treasure: 1000,
+  buy: 800,
+};
+
+/** 動きを減らす設定（prefers-reduced-motion）のときに掛ける割合（全体で 1 秒ほどにする） */
+const AI_REDUCED_MOTION_RATE = 0.3;
+
+/** AI の番になってから最初の段階を見せるまでの時間 */
+export function getAITurnStartMs(reducedMotion: boolean): number {
+  return reducedMotion
+    ? Math.round(AI_TURN_START_MS * AI_REDUCED_MOTION_RATE)
+    : AI_TURN_START_MS;
+}
+
+/** AI のターンのその段階を見せておく時間 */
+export function getAIStepMs(
+  kind: AITurnStepKind,
+  reducedMotion: boolean,
+): number {
+  const ms = AI_STEP_MS[kind];
+  return reducedMotion ? Math.round(ms * AI_REDUCED_MOTION_RATE) : ms;
+}
 
 /**
  * 人間の番で、アクションフェーズにいるのに使えるアクションが無い（アクションが 0 か、手札にアクションカードが無い）。

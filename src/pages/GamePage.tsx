@@ -6,13 +6,20 @@ import GameLog from '../components/GameLog';
 import Hand from '../components/Hand';
 import PendingEffectUI from '../components/PendingEffectUI';
 import PlayArea from '../components/PlayArea';
+import PlayerStatus, {
+  PlayerStatusButton,
+  PlayerStatusDialog,
+} from '../components/PlayerStatus';
 import SupplyArea from '../components/SupplyArea';
 import TurnBar from '../components/TurnBar';
 import TurnInfo from '../components/TurnInfo';
 import { getCardDef } from '../domain/card';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { getGameEndReasonText, getGameEndStatus } from '../lib/gameEnd';
 import {
   GAME_OVER_DELAY_MS,
+  getAIStepMs,
+  getAITurnStartMs,
   getTurnGuide,
   getTurnNotice,
   NOTICE_MS,
@@ -21,12 +28,15 @@ import {
   type TurnAction,
   type TurnPoint,
 } from '../lib/turnFlow';
-import { selectUndoableBuy, useGameStore } from '../stores/gameStore';
+import {
+  selectAITurnStep,
+  selectUndoableBuy,
+  useGameStore,
+} from '../stores/gameStore';
 import type { PendingEffect, PlayerState } from '../types';
 import { CardType } from '../types';
 
-// Timing constants
-const AI_TURN_DELAY_MS = 400;
+// Timing constants（AI のターンの段階を見せる時間は lib/turnFlow.ts）
 const EFFECT_RESOLVE_DELAY_MS = 400;
 
 // Game flow state machine
@@ -74,6 +84,9 @@ export default function GamePage() {
   );
   // 取り消せる購入（買った直後の状態のままのときだけ）
   const undoableBuy = useGameStore(selectUndoableBuy);
+  // 段階ごとに見せている AI のターンの、今の段階（使ったアクション / 財宝を場に出した / 買った）
+  const aiStep = useGameStore(selectAITurnStep);
+  const reducedMotion = usePrefersReducedMotion();
 
   const playAction = useGameStore((s) => s.playAction);
   const skipAction = useGameStore((s) => s.skipAction);
@@ -81,6 +94,8 @@ export default function GamePage() {
   const undoBuy = useGameStore((s) => s.undoBuy);
   const skipBuy = useGameStore((s) => s.skipBuy);
   const resolvePending = useGameStore((s) => s.resolvePending);
+  const startAITurn = useGameStore((s) => s.startAITurn);
+  const advanceAITurn = useGameStore((s) => s.advanceAITurn);
   const executeAITurn = useGameStore((s) => s.executeAITurn);
   const goToResult = useGameStore((s) => s.goToResult);
 
@@ -88,6 +103,20 @@ export default function GamePage() {
   const [confirm, setConfirm] = useState<TurnAction | null>(null);
   // ターン・フェーズのお知らせ（同じ文が続いても新しいオブジェクトにして、消すまでの時間を数え直す）
   const [notice, setNotice] = useState<{ text: string } | null>(null);
+  // 狭い画面で山札・捨て札・勝利点を開いているか（PC は常に見えている）
+  const [statusOpen, setStatusOpen] = useState(false);
+  // ゲームログの見出しに置く、狭い画面用のボタン（GameLog は memo なので、両者のカードが変わったときだけ作り直す）
+  const statusButton = useMemo(
+    () =>
+      players ? (
+        <PlayerStatusButton
+          players={players}
+          onOpen={() => setStatusOpen(true)}
+          className="lg:hidden"
+        />
+      ) : null,
+    [players],
+  );
   const prevTurnRef = useRef<TurnPoint | null>(null);
   const gameOverTitleId = useId();
 
@@ -103,6 +132,8 @@ export default function GamePage() {
     const text = getTurnNotice(prevTurnRef.current, next);
     prevTurnRef.current = next;
     if (text) setNotice({ text });
+    // AI の番になったら自分の番のお知らせは消す（残っていると AI が何をしたかの一言を隠す）
+    else if (!isHumanTurn) setNotice(null);
   }, [phase, turnNumber, isHumanTurn]);
 
   // お知らせは少しで消す
@@ -123,9 +154,10 @@ export default function GamePage() {
 
     switch (flowState) {
       case 'ai-turn': {
-        const timer = setTimeout(() => {
-          executeAITurn();
-        }, AI_TURN_DELAY_MS);
+        // 少し待ってから段階に分けて始め、各段階を少しずつ見せる（最後の段階のあとで人間の番へ）
+        const timer = aiStep
+          ? setTimeout(advanceAITurn, getAIStepMs(aiStep.kind, reducedMotion))
+          : setTimeout(startAITurn, getAITurnStartMs(reducedMotion));
         return () => clearTimeout(timer);
       }
 
@@ -159,7 +191,10 @@ export default function GamePage() {
     gameOver,
     pendingEffect,
     isAITurn,
-    executeAITurn,
+    aiStep,
+    reducedMotion,
+    startAITurn,
+    advanceAITurn,
     resolvePending,
     goToResult,
   ]);
@@ -206,6 +241,8 @@ export default function GamePage() {
   }
 
   const turnAction = guide.action;
+  // AI のターンを見ている間（選択待ち・ゲーム終了を除く）は、今の段階の一言と「スキップ」を出す
+  const watchingAITurn = isAITurn && !pendingEffect && !gameOver;
 
   return (
     <div className="relative w-full h-screen overflow-hidden flex flex-col bg-linear-to-b from-slate-900 via-slate-900 to-slate-800">
@@ -227,6 +264,15 @@ export default function GamePage() {
             endStatus={endStatus}
           />
 
+          {/* 山札・捨て札・勝利点 - lg 以上は左上に常に出す（右は TurnInfo、左下は GameLog で、左上が空いている）。
+              lg 未満はゲームログの見出しのボタンから開く（縦に余りが無いため） */}
+          <div
+            data-testid="player-status-panel"
+            className="hidden lg:block absolute left-3 top-3 z-30 w-64 p-3 bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-600 shadow-xl"
+          >
+            <PlayerStatus players={players} />
+          </div>
+
           {/* Supply and Play Area (center) - lg 未満は上詰め、lg 以上は中央寄せ。
               中身が高いときは上詰めに戻す（justify-center-safe。ただの中央寄せだとはみ出た上端がスクロールで見えなくなる）。
               ターンを進めるボタンはここ（スクロールの中）には置かない（スマホ・PC 1366x768 でスクロールしないと見えなかった） */}
@@ -240,17 +286,20 @@ export default function GamePage() {
                 maxCost={canBuyCards ? turnState.coins : undefined}
               />
 
-              <PlayArea cards={currentPlayer.playArea} />
+              <PlayArea
+                cards={currentPlayer.playArea}
+                ownerLabel={isAITurn ? `${currentPlayer.name}の場` : undefined}
+              />
             </div>
           </div>
 
           {/* GameLog - lg 未満は手札の上に固定の高さで置く、lg 以上はフローティング（コンポーネント内で absolute 配置） */}
-          <GameLog log={log} />
+          <GameLog log={log} headerAction={statusButton} />
         </div>
 
         {/* 次に何をするかの一言とターンを進めるボタン。手札のすぐ上に常に見える */}
         <TurnBar
-          message={guide.message}
+          message={(watchingAITurn && aiStep?.message) || guide.message}
           busy={guide.busy}
           notice={notice?.text ?? null}
           primaryLabel={turnAction ? TURN_ACTION_LABEL[turnAction] : undefined}
@@ -261,6 +310,7 @@ export default function GamePage() {
             undoableBuy ? getCardDef(undoableBuy).nameJa : undefined
           }
           onUndo={undoBuy}
+          onSkip={watchingAITurn ? executeAITurn : undefined}
         />
 
         {/* Player hand - bottom */}
@@ -288,6 +338,14 @@ export default function GamePage() {
             />
           </div>
         </div>
+      )}
+
+      {/* 狭い画面: 山札・捨て札・勝利点 */}
+      {statusOpen && (
+        <PlayerStatusDialog
+          players={players}
+          onClose={() => setStatusOpen(false)}
+        />
       )}
 
       {/* まだできることが残っているのに、フェーズを進める / ターンを終えるときの確認 */}

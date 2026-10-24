@@ -14,18 +14,27 @@ interface TurnBarProps {
   /** 取り消せる購入のカード名（あるときだけ「購入を取り消す」を出す） */
   undoCardName?: string;
   onUndo?: () => void;
+  /** AI のターンをすぐ終わらせる（あるときだけ「スキップ」を出す） */
+  onSkip?: () => void;
 }
 
-/** 「」で囲んだ所（ボタン名）の途中では折り返さない（狭い画面で「購入へ進／む」と切れていた） */
+/**
+ * 途中で折り返さない所: 「」で囲んだ所（ボタン名。狭い画面で「購入へ進／む」と切れていた）、
+ * （）の中と「N コイン」（AI のターンの一言が「5 コ／イン」と切れていた）
+ */
+const NO_WRAP = /(「[^」]*」|（[^）]*）|\d+ コイン)/;
+
 function renderMessage(message: string) {
   let offset = 0;
+  // 括弧付きの正規表現で split すると、折り返さない所が奇数番目に入る
   return message
-    .split(/(「[^」]*」)/)
-    .filter((part) => part !== '')
-    .map((part) => {
+    .split(NO_WRAP)
+    .map((part, i) => ({ part, noWrap: i % 2 === 1 }))
+    .filter(({ part }) => part !== '')
+    .map(({ part, noWrap }) => {
       const key = offset;
       offset += part.length;
-      return part.startsWith('「') ? (
+      return noWrap ? (
         <span key={key} className="whitespace-nowrap">
           {part}
         </span>
@@ -48,10 +57,11 @@ const TurnBar = memo(function TurnBar({
   onPrimary,
   undoCardName,
   onUndo,
+  onSkip,
 }: TurnBarProps) {
   const showUndo = Boolean(onUndo && undoCardName);
   const showPrimary = Boolean(onPrimary && primaryLabel);
-  const hasButtons = showUndo || showPrimary;
+  const hasButtons = showUndo || showPrimary || Boolean(onSkip);
   return (
     // 高さは中身が変わっても同じにする（ボタンの有無・お知らせで手札の位置が動かないように）
     <div className="shrink-0 z-10 px-2 min-h-12 py-0.5 flex items-center justify-center">
@@ -107,6 +117,17 @@ const TurnBar = memo(function TurnBar({
             className="shrink-0 min-h-11 px-3 text-sm font-medium text-slate-200 whitespace-nowrap bg-slate-700/90 border border-slate-500 rounded-lg hover:bg-slate-600 transition-colors"
           >
             購入を取り消す
+          </button>
+        )}
+        {onSkip && (
+          // 主ボタンと同じ右端に置く（AI のターンを見ている間の唯一の操作）
+          <button
+            type="button"
+            onClick={onSkip}
+            aria-label="AIのターンをスキップ"
+            className="shrink-0 min-h-11 px-4 text-sm font-medium text-slate-200 whitespace-nowrap bg-slate-700/90 border border-slate-500 rounded-lg hover:bg-slate-600 transition-colors"
+          >
+            スキップ
           </button>
         )}
         {showPrimary && (

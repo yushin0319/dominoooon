@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
+import { useDialogKeyboard } from '../hooks/useDialogKeyboard';
 
 interface ConfirmDialogProps {
   title: string;
@@ -21,43 +22,8 @@ export default function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  // ref で最新の onCancel を保持してエフェクトの再実行を防ぐ
-  const onCancelRef = useRef(onCancel);
-  onCancelRef.current = onCancel;
-
-  useEffect(() => {
-    // ダイアログ表示時に確認ボタンへフォーカス
-    const buttons =
-      dialogRef.current?.querySelectorAll<HTMLButtonElement>('button');
-    buttons?.[buttons.length - 1]?.focus();
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onCancelRef.current();
-        return;
-      }
-      // フォーカストラップ: Tab キーをダイアログ内に閉じ込める
-      if (e.key === 'Tab' && dialogRef.current) {
-        const focusable = Array.from(
-          dialogRef.current.querySelectorAll<HTMLElement>(
-            'button, [href], input, [tabindex]:not([tabindex="-1"])',
-          ),
-        );
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last?.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []); // マウント時に1回だけ登録
+  // 開いたら確認ボタンへフォーカス、Esc でやめる、Tab はダイアログの中で回す
+  useDialogKeyboard(dialogRef, onCancel);
 
   return (
     <div
