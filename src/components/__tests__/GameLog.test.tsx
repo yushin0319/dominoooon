@@ -6,7 +6,9 @@ import GameLog from '../GameLog';
 
 // ログ欄（見出し「ゲームログ」を持つスクロール領域）
 function getLogBox(): HTMLElement {
-  return screen.getByText('ゲームログ').parentElement as HTMLElement;
+  return screen
+    .getByText('ゲームログ')
+    .closest('[data-game-log]') as HTMLElement;
 }
 
 describe('GameLog の自動スクロール', () => {

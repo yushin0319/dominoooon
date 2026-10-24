@@ -1,11 +1,11 @@
-import { getCardDef } from '../domain/card';
-import { addLog, endTurn, getCurrentPlayer } from '../domain/game';
+import { getCurrentPlayer } from '../domain/game';
 import { getAllCards } from '../domain/player';
 import { createShuffleFn } from '../domain/shuffle';
 import { getSupplyPile } from '../domain/supply';
 import { advancePhase, buyCard, canBuy, playActionCard } from '../domain/turn';
 import type { GameState, PlayerState, ShuffleFn } from '../types';
 import { Phase } from '../types';
+import { type AITurnStrategy, planAITurn } from './aiTurn';
 
 const defaultShuffle = createShuffleFn();
 
@@ -17,28 +17,31 @@ export function countCardInDeck(player: PlayerState, cardName: string): number {
 }
 
 /**
+ * アクションフェーズ: 手札に鍛冶屋があれば使う（フェーズは進めない）
+ */
+export function playSmithyIfInHand(
+  state: GameState,
+  shuffleFn: ShuffleFn = defaultShuffle,
+): GameState {
+  if (state.phase !== Phase.Action || state.turnState.actions <= 0) {
+    return state;
+  }
+  const smithy = getCurrentPlayer(state).hand.find(
+    (c) => c.def.name === 'Smithy',
+  );
+  return smithy ? playActionCard(state, smithy.instanceId, shuffleFn) : state;
+}
+
+/**
  * Action phase: play Smithy if available, then advance to Buy phase.
  */
 export function bigMoneySmithyAction(
   state: GameState,
   shuffleFn: ShuffleFn = defaultShuffle,
 ): GameState {
-  let s = state;
-
-  if (s.phase === Phase.Action) {
-    const player = getCurrentPlayer(s);
-    const smithy = player.hand.find((c) => c.def.name === 'Smithy');
-
-    if (smithy && s.turnState.actions > 0) {
-      s = playActionCard(s, smithy.instanceId, shuffleFn);
-      s = addLog(s, `AIが鍛冶屋をプレイ`);
-    }
-
-    // Advance to Buy phase (auto-plays treasures)
-    s = advancePhase(s, shuffleFn);
-  }
-
-  return s;
+  if (state.phase !== Phase.Action) return state;
+  // Advance to Buy phase (auto-plays treasures)
+  return advancePhase(playSmithyIfInHand(state, shuffleFn), shuffleFn);
 }
 
 /**
@@ -70,6 +73,7 @@ function decideBuy(state: GameState): string | null {
 
 /**
  * Buy phase: purchase cards according to Big Money + Smithy priority.
+ * ログは書かない（何を買ったかは planAITurn がまとめの 1 行で残す）
  */
 export function bigMoneySmithyBuy(state: GameState): GameState {
   let s = state;
@@ -78,11 +82,16 @@ export function bigMoneySmithyBuy(state: GameState): GameState {
     const cardName = decideBuy(s);
     if (!cardName) break;
     s = buyCard(s, cardName);
-    s = addLog(s, `AIが${getCardDef(cardName).nameJa}を購入`);
   }
 
   return s;
 }
+
+/** 段階に分けて見せるための戦略 */
+export const bigMoneySmithyStrategy: AITurnStrategy = {
+  playActions: playSmithyIfInHand,
+  buy: bigMoneySmithyBuy,
+};
 
 /**
  * Execute a full AI turn: action → buy → end turn.
@@ -91,11 +100,7 @@ export function bigMoneySmithyTurn(
   state: GameState,
   shuffleFn: ShuffleFn = defaultShuffle,
 ): GameState {
-  let s = addLog(state, `--- ターン${state.turnNumber}: AIのターン ---`);
-  s = bigMoneySmithyAction(s, shuffleFn);
-  s = bigMoneySmithyBuy(s);
-  s = endTurn(s, shuffleFn);
-  return s;
+  return planAITurn(state, bigMoneySmithyStrategy, shuffleFn).final;
 }
 
 /**

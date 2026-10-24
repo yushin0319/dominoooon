@@ -6,6 +6,8 @@ import type { GameState, PendingEffect } from '../../types';
 import { Phase } from '../../types';
 import {
   BUY_PHASE_NOTICE,
+  getAIStepMs,
+  getAITurnStartMs,
   getTurnGuide,
   getTurnNotice,
   needsConfirmToEndTurn,
@@ -252,5 +254,33 @@ describe('getTurnGuide: 次に何をすればよいかの一言と主ボタン',
     expect(g.message).toBe('ゲーム終了');
     expect(g.action).toBeNull();
     expect(g.busy).toBe(false);
+  });
+});
+
+describe('AI のターンの見せ方の時間', () => {
+  /** 始まりの待ち + 各段階の時間の合計 */
+  const total = (kinds: ('action' | 'treasure' | 'buy')[], reduced: boolean) =>
+    getAITurnStartMs(reduced) +
+    kinds.reduce((sum, k) => sum + getAIStepMs(k, reduced), 0);
+
+  it('財宝を場に出す段階は 1 秒ほど見せる', () => {
+    expect(getAIStepMs('treasure', false)).toBeGreaterThanOrEqual(900);
+    expect(getAIStepMs('treasure', false)).toBeLessThanOrEqual(1200);
+  });
+
+  it('全体で 2〜3 秒に収める（アクションを使ったターンも 3 秒以内）', () => {
+    expect(total(['treasure', 'buy'], false)).toBeGreaterThanOrEqual(2000);
+    expect(total(['action', 'treasure', 'buy'], false)).toBeLessThanOrEqual(
+      3000,
+    );
+  });
+
+  it('動きを減らす設定（prefers-reduced-motion）では短くする（1 秒ほど）', () => {
+    for (const k of ['action', 'treasure', 'buy'] as const) {
+      expect(getAIStepMs(k, true)).toBeLessThan(getAIStepMs(k, false));
+    }
+    expect(total(['action', 'treasure', 'buy'], true)).toBeLessThanOrEqual(
+      1000,
+    );
   });
 });

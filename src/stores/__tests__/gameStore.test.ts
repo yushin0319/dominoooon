@@ -2,7 +2,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createCardInstance, getCardDef } from '../../domain/card';
 import { Phase } from '../../types';
-import { selectUndoableBuy, useGameStore } from '../gameStore';
+import {
+  selectAITurnStep,
+  selectUndoableBuy,
+  useGameStore,
+} from '../gameStore';
 
 const kingdom = [
   getCardDef('Village'),
@@ -23,6 +27,7 @@ beforeEach(() => {
     page: 'title',
     gameState: null,
     lastBuy: null,
+    aiTurn: null,
     aiStrategy: 'bigMoney',
     shuffleFn: useGameStore.getState().shuffleFn,
   });
@@ -431,6 +436,154 @@ describe('undoBuy: 直前の 1 回の購入だけ取り消せる', () => {
   });
 });
 
+/** 人間がターンを終えて AI の番にし、AI の手札・山札を差し替える */
+function toAITurn(aiHand: string[], aiDeck?: string[]) {
+  useGameStore.getState().startGame(kingdom, 'bigMoney');
+  setHuman({
+    hand: [],
+    deck: ['Copper', 'Copper', 'Copper', 'Estate', 'Estate'],
+    phase: Phase.Buy,
+  });
+  useGameStore.getState().skipBuy();
+  const gs = useGameStore.getState().gameState!;
+  const mk = (names: string[]) =>
+    names.map((n) => createCardInstance(getCardDef(n)));
+  useGameStore.setState({
+    gameState: {
+      ...gs,
+      players: [
+        gs.players[0],
+        {
+          ...gs.players[1],
+          hand: mk(aiHand),
+          deck: mk(
+            aiDeck ?? ['Copper', 'Copper', 'Copper', 'Estate', 'Estate'],
+          ),
+          discard: [],
+        },
+      ],
+    },
+  });
+}
+
+describe('AI のターンを段階ごとに見せる（startAITurn → advanceAITurn）', () => {
+  it('始めると、財宝を場に出した段階を見せる（まだ買っていない・番は AI のまま）', () => {
+    toAITurn(['Copper', 'Copper', 'Copper', 'Silver', 'Estate']);
+    useGameStore.getState().startAITurn();
+
+    const s = useGameStore.getState();
+    expect(selectAITurnStep(s)?.kind).toBe('treasure');
+    expect(s.gameState!.currentPlayerIndex).toBe(1);
+    expect(s.gameState!.players[1].playArea).toHaveLength(4);
+    expect(s.gameState!.turnState.coins).toBe(5);
+    expect(s.gameState!.players[1].discard).toEqual([]);
+  });
+
+  it('進めると購入の段階、もう一度進めると人間の番に戻る', () => {
+    toAITurn(['Copper', 'Copper', 'Copper', 'Silver', 'Estate']);
+    useGameStore.getState().startAITurn();
+
+    useGameStore.getState().advanceAITurn();
+    let s = useGameStore.getState();
+    expect(selectAITurnStep(s)?.kind).toBe('buy');
+    expect(s.gameState!.players[1].discard.map((c) => c.def.name)).toEqual([
+      'Silver',
+    ]);
+    expect(s.gameState!.log.at(-1)).toBe('AI: 5 コイン → 銀貨を購入');
+
+    useGameStore.getState().advanceAITurn();
+    s = useGameStore.getState();
+    expect(selectAITurnStep(s)).toBeNull();
+    expect(s.aiTurn).toBeNull();
+    expect(s.gameState!.currentPlayerIndex).toBe(0);
+    // 人間の手札にアクションカードが無いので、購入フェーズから始まる（自動進行）
+    expect(s.gameState!.phase).toBe(Phase.Buy);
+    expect(s.gameState!.turnState.coins).toBe(3);
+  });
+
+  it('途中でスキップ（executeAITurn）すると、最後まで見たときと同じ結果になってすぐ終わる', () => {
+    toAITurn(['Copper', 'Copper', 'Copper', 'Silver', 'Estate']);
+    useGameStore.getState().startAITurn();
+    const planned = useGameStore.getState().aiTurn!.final;
+
+    useGameStore.getState().executeAITurn();
+    const s = useGameStore.getState();
+    expect(s.aiTurn).toBeNull();
+    expect(s.gameState!.currentPlayerIndex).toBe(0);
+    expect(s.gameState!.players[1]).toEqual(planned.players[1]);
+    expect(s.gameState!.supply).toEqual(planned.supply);
+    expect(s.gameState!.log).toEqual(planned.log);
+  });
+
+  it('始める前にスキップしても、まとめの 1 行が残る', () => {
+    toAITurn(['Copper', 'Copper', 'Estate', 'Estate', 'Estate']);
+    useGameStore.getState().executeAITurn();
+
+    const gs = useGameStore.getState().gameState!;
+    expect(gs.currentPlayerIndex).toBe(0);
+    expect(gs.log.slice(-2)).toEqual([
+      '--- ターン2: AIのターン ---',
+      'AI: 2 コイン → 購入なし',
+    ]);
+  });
+
+  it('スキップを 2 回押しても、人間の番を AI が進めない', () => {
+    toAITurn(['Copper', 'Copper', 'Copper', 'Silver', 'Estate']);
+    useGameStore.getState().startAITurn();
+    useGameStore.getState().executeAITurn();
+    const afterSkip = useGameStore.getState().gameState;
+
+    useGameStore.getState().executeAITurn();
+    useGameStore.getState().advanceAITurn();
+    expect(useGameStore.getState().gameState).toBe(afterSkip);
+  });
+
+  it('2 回始めても、最初からやり直さない', () => {
+    toAITurn(['Copper', 'Copper', 'Copper', 'Silver', 'Estate']);
+    useGameStore.getState().startAITurn();
+    useGameStore.getState().advanceAITurn();
+    const shown = useGameStore.getState().gameState;
+
+    useGameStore.getState().startAITurn();
+    expect(useGameStore.getState().gameState).toBe(shown);
+    expect(selectAITurnStep(useGameStore.getState())?.kind).toBe('buy');
+  });
+
+  it('見せている途中でほかの経路で状態が変わっていたら、古い段階で上書きしない', () => {
+    toAITurn(['Copper', 'Copper', 'Copper', 'Silver', 'Estate']);
+    useGameStore.getState().startAITurn();
+    const changed = {
+      ...useGameStore.getState().gameState!,
+      turnNumber: 99,
+    };
+    useGameStore.setState({ gameState: changed });
+
+    useGameStore.getState().advanceAITurn();
+    expect(useGameStore.getState().gameState).toBe(changed);
+    expect(useGameStore.getState().aiTurn).toBeNull();
+  });
+
+  it('人間の番には始めない', () => {
+    useGameStore.getState().startGame(kingdom, 'bigMoney');
+    const gs = useGameStore.getState().gameState;
+    useGameStore.getState().startAITurn();
+    expect(useGameStore.getState().gameState).toBe(gs);
+    expect(useGameStore.getState().aiTurn).toBeNull();
+  });
+
+  it('タイトルへ戻る・新しいゲームを始めると、途中の AI のターンは捨てる', () => {
+    toAITurn(['Copper', 'Copper', 'Copper', 'Silver', 'Estate']);
+    useGameStore.getState().startAITurn();
+    useGameStore.getState().goToTitle();
+    expect(useGameStore.getState().aiTurn).toBeNull();
+
+    toAITurn(['Copper', 'Copper', 'Copper', 'Silver', 'Estate']);
+    useGameStore.getState().startAITurn();
+    useGameStore.getState().startGame(kingdom, 'bigMoney');
+    expect(useGameStore.getState().aiTurn).toBeNull();
+  });
+});
+
 describe('null gameState guards — throw instead of silent return', () => {
   // gameState is null by default (before startGame)
   it('playAction throws when gameState is null', () => {
@@ -455,5 +608,9 @@ describe('null gameState guards — throw instead of silent return', () => {
 
   it('executeAITurn throws when gameState is null', () => {
     expect(() => useGameStore.getState().executeAITurn()).toThrow();
+  });
+
+  it('startAITurn throws when gameState is null', () => {
+    expect(() => useGameStore.getState().startAITurn()).toThrow();
   });
 });
