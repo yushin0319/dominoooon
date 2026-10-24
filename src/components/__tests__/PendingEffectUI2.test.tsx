@@ -70,7 +70,7 @@ function makePendingEffect(
 // ===== SupplySelectUI レンダリングテスト =====
 
 describe('PendingEffectUI - SupplySelectUI', () => {
-  it('shows maxCost instruction for workshop (cost 4)', () => {
+  it('shows maxCost in the title for workshop (cost 4)', () => {
     const supply = [
       makeSupplyPile('Village', 3, 10),
       makeSupplyPile('Market', 5, 10),
@@ -79,14 +79,12 @@ describe('PendingEffectUI - SupplySelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('workshop')}
         hand={[]}
+        discard={[]}
         supply={supply}
         onResolve={vi.fn()}
       />,
     );
-    // h2タイトルにも「コスト4以下」が含まれるので、instruction用のpタグを検証
-    const instruction =
-      screen.getByText(/獲得するカードをクリックしてください/);
-    expect(instruction.textContent).toContain('コスト4以下');
+    expect(screen.getByRole('heading').textContent).toContain('コスト4以下');
   });
 
   it('filters out cards exceeding maxCost', () => {
@@ -98,6 +96,7 @@ describe('PendingEffectUI - SupplySelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('workshop')}
         hand={[]}
+        discard={[]}
         supply={supply}
         onResolve={vi.fn()}
       />,
@@ -117,6 +116,7 @@ describe('PendingEffectUI - SupplySelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('workshop')}
         hand={[]}
+        discard={[]}
         supply={supply}
         onResolve={vi.fn()}
       />,
@@ -126,7 +126,7 @@ describe('PendingEffectUI - SupplySelectUI', () => {
     expect(screen.getAllByText('Smithy').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('calls onResolve with selectedCardName when supply card is clicked', async () => {
+  it('calls onResolve with selectedCardName after selecting and confirming', async () => {
     const user = userEvent.setup();
     const onResolve = vi.fn();
     const supply = [makeSupplyPile('Village', 3, 10)];
@@ -134,6 +134,7 @@ describe('PendingEffectUI - SupplySelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('workshop')}
         hand={[]}
+        discard={[]}
         supply={supply}
         onResolve={onResolve}
       />,
@@ -142,6 +143,7 @@ describe('PendingEffectUI - SupplySelectUI', () => {
     // カードヘッダーのクリックがmotion.divのonClickに伝搬
     const villageElements = screen.getAllByText('Village');
     await user.click(villageElements[1]);
+    await user.click(screen.getByText('Villageを獲得する'));
     expect(onResolve).toHaveBeenCalledWith({ selectedCardName: 'Village' });
   });
 });
@@ -154,12 +156,13 @@ describe('PendingEffectUI - ConfirmUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('vassal')}
         hand={[]}
+        discard={[]}
         supply={[]}
         onResolve={vi.fn()}
       />,
     );
-    expect(screen.getByText('はい')).toBeInTheDocument();
-    expect(screen.getByText('いいえ')).toBeInTheDocument();
+    expect(screen.getByText('めくったカードをプレイする')).toBeInTheDocument();
+    expect(screen.getByText('プレイしない')).toBeInTheDocument();
   });
 
   it('calls onResolve with confirmed=true when yes is clicked', async () => {
@@ -169,11 +172,12 @@ describe('PendingEffectUI - ConfirmUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('vassal')}
         hand={[]}
+        discard={[]}
         supply={[]}
         onResolve={onResolve}
       />,
     );
-    await user.click(screen.getByText('はい'));
+    await user.click(screen.getByText('めくったカードをプレイする'));
     expect(onResolve).toHaveBeenCalledWith({ confirmed: true });
   });
 
@@ -184,11 +188,12 @@ describe('PendingEffectUI - ConfirmUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('vassal')}
         hand={[]}
+        discard={[]}
         supply={[]}
         onResolve={onResolve}
       />,
     );
-    await user.click(screen.getByText('いいえ'));
+    await user.click(screen.getByText('プレイしない'));
     expect(onResolve).toHaveBeenCalledWith({ confirmed: false });
   });
 });

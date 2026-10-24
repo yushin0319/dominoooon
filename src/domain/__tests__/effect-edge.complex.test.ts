@@ -143,6 +143,53 @@ describe('complex card edge cases', () => {
       expect(after.trash).toHaveLength(2);
       expect(after.players[0].deck).toHaveLength(0);
     });
+
+    it('discardCards に入れたカードは捨て札に置かれる（廃棄・戻すと混ぜられる）', () => {
+      const card = createCardInstance(getCardDef('Sentry'));
+      const c1 = createCardInstance(getCardDef('Copper'));
+      const c2 = createCardInstance(getCardDef('Estate'));
+      const rest = createCardInstance(getCardDef('Gold'));
+      const p1 = makePlayer({ hand: [], deck: [c1, c2, rest], discard: [] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      const choice: PendingEffectChoice = {
+        selectedCards: [c1.instanceId], // 廃棄
+        discardCards: [c2.instanceId], // 捨てる
+      };
+      const after = resolvePendingEffect(withPending, choice, shuffle);
+      expect(after.trash.map((c) => c.instanceId)).toEqual([c1.instanceId]);
+      expect(after.players[0].discard.map((c) => c.instanceId)).toEqual([
+        c2.instanceId,
+      ]);
+      expect(after.players[0].deck.map((c) => c.instanceId)).toEqual([
+        rest.instanceId,
+      ]);
+    });
+
+    it('戻す 2 枚は orderedCards の順（先頭が山札の一番上）で戻る', () => {
+      const card = createCardInstance(getCardDef('Sentry'));
+      const c1 = createCardInstance(getCardDef('Copper'));
+      const c2 = createCardInstance(getCardDef('Estate'));
+      const p1 = makePlayer({ hand: [], deck: [c1, c2], discard: [] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      const choice: PendingEffectChoice = {
+        orderedCards: [c2.instanceId, c1.instanceId],
+      };
+      const after = resolvePendingEffect(withPending, choice, shuffle);
+      expect(after.players[0].deck.map((c) => c.instanceId)).toEqual([
+        c2.instanceId,
+        c1.instanceId,
+      ]);
+      expect(after.trash).toHaveLength(0);
+      expect(after.players[0].discard).toHaveLength(0);
+    });
   });
 
   describe('mine', () => {

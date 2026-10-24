@@ -77,6 +77,36 @@ describe('resolveCustomEffect + resolvePendingEffect - complex cards', () => {
       expect(after.players[0].discard).toHaveLength(1);
     });
 
+    it('手札が空のサプライの数より少ないときは、手札を全部捨てればよい', () => {
+      const card = createCardInstance(getCardDef('Poacher'));
+      const estate = createCardInstance(getCardDef('Estate'));
+      const p1 = makePlayer({ hand: [estate] });
+      // 空のサプライが 2 つ、手札は 1 枚
+      const supply = initializeSupply(defaultKingdom, 2).map((p) =>
+        p.card.name === 'Village' || p.card.name === 'Smithy'
+          ? { ...p, count: 0 }
+          : p,
+      );
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+        supply,
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      expect(withPending.pendingEffect!.data!.discardCount).toBe(2);
+
+      const after = resolvePendingEffect(
+        withPending,
+        { selectedCards: [estate.instanceId] },
+        shuffle,
+      );
+      expect(after.pendingEffect).toBeNull();
+      expect(after.players[0].hand).toHaveLength(0);
+      expect(after.players[0].discard.map((c) => c.def.name)).toEqual([
+        'Estate',
+      ]);
+    });
+
     it('does nothing when no empty piles', () => {
       const card = createCardInstance(getCardDef('Poacher'));
       const state = makeGameState();

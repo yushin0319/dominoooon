@@ -173,7 +173,11 @@ export function resolvePoacher(
 ): GameState {
   const selected = choice.selectedCards || [];
   const data = state.pendingEffect?.data || {};
-  const needed = (data.discardCount as number) || 0;
+  // 手札が足りないときは持っている分だけ捨てればよい
+  const needed = Math.min(
+    (data.discardCount as number) || 0,
+    getCurrentPlayer(state).hand.length,
+  );
 
   // Validate: must have at least 'needed' cards
   if (selected.length < needed) {

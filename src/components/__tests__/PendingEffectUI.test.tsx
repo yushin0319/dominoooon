@@ -3,7 +3,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { EFFECT_LABELS } from '../../constants/effectLabels';
+import { EFFECT_LABELS, getEffectTitle } from '../../constants/effectLabels';
 import type { CardDef, CardInstance, PendingEffect } from '../../types';
 import { CardType } from '../../types';
 import PendingEffectUI from '../PendingEffectUI';
@@ -70,20 +70,52 @@ function makePendingEffect(
 // ===== 既存のスモークテスト =====
 
 describe('PendingEffectUI - labels', () => {
-  it('effect label helper returns correct label for cellar', () => {
-    expect(EFFECT_LABELS.cellar).toBe(
-      '地下貯蔵庫: 好きな枚数を捨て、同数ドローする。',
-    );
+  it('段階の無い選択待ちは種類ごとの説明を返す', () => {
+    expect(getEffectTitle({ type: 'cellar' })).toBe(EFFECT_LABELS.cellar);
+    expect(EFFECT_LABELS.cellar).toContain('捨てた枚数だけ引きます');
+    expect(getEffectTitle({ type: 'chapel' })).toContain('4枚まで');
+    expect(getEffectTitle({ type: 'workshop' })).toContain('コスト4以下');
   });
 
-  it('effect label helper returns correct label for chapel', () => {
-    expect(EFFECT_LABELS.chapel).toBe('礼拝堂: 手札から最大4枚を廃棄する。');
+  it('改築は段階ごとに説明が変わり、獲得段階では廃棄したカード名と上限コストを出す', () => {
+    expect(
+      getEffectTitle({ type: 'remodel', data: { phase: 'trash' } }),
+    ).toContain('改築（1/2）: 廃棄するカード');
+    const gain = getEffectTitle({
+      type: 'remodel',
+      data: { phase: 'gain', trashedCost: 2, trashedName: 'Estate' },
+    });
+    expect(gain).toContain('改築（2/2）');
+    expect(gain).toContain('屋敷を廃棄しました');
+    expect(gain).toContain('コスト4以下');
   });
 
-  it('effect label helper returns correct label for workshop', () => {
-    expect(EFFECT_LABELS.workshop).toBe(
-      '工房: コスト4以下のカードを1枚獲得する。',
-    );
+  it('鉱山の獲得段階は廃棄した財宝と上限コストを出す', () => {
+    const gain = getEffectTitle({
+      type: 'mine',
+      data: { phase: 'gain', trashedCost: 0, trashedName: 'Copper' },
+    });
+    expect(gain).toContain('銅貨を廃棄しました');
+    expect(gain).toContain('コスト3以下の財宝');
+  });
+
+  it('職人の 2 段階目はデッキの上に戻すと書く', () => {
+    expect(
+      getEffectTitle({ type: 'artisan', data: { phase: 'gain' } }),
+    ).toContain('職人（1/2）');
+    expect(
+      getEffectTitle({ type: 'artisan', data: { phase: 'putBack' } }),
+    ).toContain('デッキの上に戻します');
+  });
+
+  it('密猟者は捨てる枚数を出す', () => {
+    expect(
+      getEffectTitle({ type: 'poacher', data: { discardCount: 2 } }),
+    ).toContain('手札を2枚捨ててください');
+    // 手札が足りないときは全部捨てればよいと書く
+    expect(
+      getEffectTitle({ type: 'poacher', data: { discardCount: 2 } }, 1),
+    ).toContain('手札が1枚なので全部捨ててください');
   });
 });
 
@@ -96,6 +128,7 @@ describe('PendingEffectUI - CardSelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('cellar')}
         hand={[]}
+        discard={[]}
         supply={[]}
         onResolve={onResolve}
       />,
@@ -111,6 +144,7 @@ describe('PendingEffectUI - CardSelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('cellar')}
         hand={[]}
+        discard={[]}
         supply={[]}
         onResolve={onResolve}
       />,
@@ -128,12 +162,13 @@ describe('PendingEffectUI - CardSelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('cellar')}
         hand={hand}
+        discard={[]}
         supply={[]}
         onResolve={vi.fn()}
       />,
     );
-    expect(screen.getByText('確定')).toBeInTheDocument();
-    expect(screen.getByText('選択中: 0枚')).toBeInTheDocument();
+    expect(screen.getByText('捨てずに終える')).toBeInTheDocument();
+    expect(screen.getByText('0枚選択中')).toBeInTheDocument();
   });
 
   it('shows maxSelect instruction for chapel (max 4)', () => {
@@ -142,14 +177,13 @@ describe('PendingEffectUI - CardSelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('chapel')}
         hand={hand}
+        discard={[]}
         supply={[]}
         onResolve={vi.fn()}
       />,
     );
-    // h2タイトルにも「最大4枚」が含まれるので、instruction用のpタグを検証
-    const instruction =
-      screen.getByText(/カードをクリックして選択してください/);
-    expect(instruction.textContent).toContain('最大4枚');
+    // 選んだ枚数 / 上限 を出す
+    expect(screen.getByText('0/4枚')).toBeInTheDocument();
   });
 
   it('calls onResolve with selected card instanceIds on confirm', async () => {
@@ -161,6 +195,7 @@ describe('PendingEffectUI - CardSelectUI', () => {
       <PendingEffectUI
         pendingEffect={makePendingEffect('cellar')}
         hand={[card1, card2]}
+        discard={[]}
         supply={[]}
         onResolve={onResolve}
       />,
@@ -170,7 +205,7 @@ describe('PendingEffectUI - CardSelectUI', () => {
     // ツールチップにはonClickなし、カードヘッダーのクリックがmotion.divに伝搬
     const copperElements = screen.getAllByText('Copper');
     await user.click(copperElements[1]);
-    await user.click(screen.getByText('確定'));
+    await user.click(screen.getByText('1枚捨てて1枚引く'));
     expect(onResolve).toHaveBeenCalledWith({
       selectedCards: [card1.instanceId],
     });

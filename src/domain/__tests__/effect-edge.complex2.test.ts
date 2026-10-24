@@ -109,6 +109,17 @@ describe('complex card edge cases - remodel, workshop, artisan, throneRoom', () 
       const after = resolvePendingEffect(withPending, choice, shuffle);
       expect(after.pendingEffect).toBeNull();
     });
+
+    it('手札が空でも獲得の選択が出る（工房は手札を使わない）', () => {
+      const card = createCardInstance(getCardDef('Workshop'));
+      const p1 = makePlayer({ hand: [] });
+      const state = makeGameState({
+        players: [p1, createPlayer('p2', 'Bob', shuffle)],
+      });
+
+      const withPending = resolveCustomEffect(state, card, shuffle);
+      expect(withPending.pendingEffect?.type).toBe('workshop');
+    });
   });
 
   describe('artisan', () => {
@@ -183,7 +194,7 @@ describe('misc edge cases', () => {
   });
 
   it('resolveCustomEffect handles empty hand for pending creators', () => {
-    // Cellar, Chapel, Workshop all check hand.length === 0 via createPending
+    // Cellar, Chapel check hand.length === 0 via createPending（Workshop は手札を使わないので対象外）
     const cellar = createCardInstance(getCardDef('Cellar'));
     const p1 = makePlayer({ hand: [] });
     const state = makeGameState({

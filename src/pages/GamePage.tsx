@@ -258,15 +258,20 @@ export default function GamePage() {
         </div>
       </div>
 
-      {/* PendingEffect オーバーレイ（人間プレイヤー対象） */}
+      {/* PendingEffect オーバーレイ（人間プレイヤー対象）。
+          中身が画面より高いとき（スマホで手札が多い等）は重ね画面ごとスクロールする。
+          枠そのものはスクロールさせない（カードのツールチップが枠で切れないように） */}
       {pendingEffect && pendingEffect.playerId === humanPlayer.id && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <PendingEffectUI
-            pendingEffect={pendingEffect}
-            hand={humanPlayer.hand}
-            supply={supply}
-            onResolve={resolvePending}
-          />
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto overscroll-contain">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <PendingEffectUI
+              pendingEffect={pendingEffect}
+              hand={humanPlayer.hand}
+              discard={humanPlayer.discard}
+              supply={supply}
+              onResolve={resolvePending}
+            />
+          </div>
         </div>
       )}
 
