@@ -20,6 +20,11 @@ describe('GameLog の自動スクロール', () => {
     vi.restoreAllMocks();
   });
 
+  it('最初の表示で scrollIntoView を呼ばない（はみ出しを隠したルートまで動いて画面全体がずれるため）', () => {
+    render(<GameLog log={['Game started']} />);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it('新しい行が増えたら、ログ欄を一番下までスクロールする', () => {
     const { rerender } = render(<GameLog log={['Game started']} />);
     const box = getLogBox();

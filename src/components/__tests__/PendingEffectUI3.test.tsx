@@ -76,9 +76,10 @@ async function pickCard(
   name: string,
   nth = 0,
 ) {
+  // カードの名前の欄（ツールチップの見出しは除く）
   const heads = screen
     .getAllByText(name)
-    .filter((el) => el.className.includes('truncate'));
+    .filter((el) => !el.closest('[role="tooltip"]'));
   await user.click(heads[nth]);
 }
 

@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react';
+import { getSupplyPileStatus } from '../lib/cardStatus';
 import { CardType, type SupplyPile } from '../types';
 import CardView from './CardView';
 
@@ -22,69 +23,53 @@ const SupplyPileItem = memo(function SupplyPileItem({
   canBuy,
   maxCost,
 }: SupplyPileItemProps) {
-  const affordable =
-    canBuy &&
-    maxCost !== undefined &&
-    pile.card.cost <= maxCost &&
-    pile.count > 0;
   const empty = pile.count === 0;
-  const coinShortage =
-    canBuy &&
-    maxCost !== undefined &&
-    pile.card.cost > maxCost &&
-    pile.count > 0;
+  // 売り切れはいつも暗く、購入フェーズでは買えるカードを光らせ、買えないカードを暗くする
+  const status = empty
+    ? 'unavailable'
+    : getSupplyPileStatus(pile, Boolean(canBuy), maxCost);
+  // 押すと購入の確認を開く（買えるときだけ）
+  const buy =
+    status === 'available' && onBuy ? () => onBuy(pile.card.name) : undefined;
+  // 買えない理由（コイン不足）は画面には出さず、読み上げ用にだけ残す（バッジがコストの数字を隠していたため）
+  const shortage =
+    canBuy && maxCost !== undefined && !empty && pile.card.cost > maxCost
+      ? pile.card.cost - maxCost
+      : 0;
 
-  // バッジテキストと色を決定
-  let badgeText = '';
-  let badgeColor = '';
-  if (empty) {
-    badgeText = '売り切れ';
-    badgeColor = 'bg-gray-500';
-  } else if (coinShortage) {
-    const shortage = pile.card.cost - maxCost!;
-    badgeText = `コイン不足 (-${shortage})`;
-    badgeColor = 'bg-orange-500';
-  }
-
-  const handleKeyDown =
-    affordable && onBuy
-      ? (e: React.KeyboardEvent) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onBuy(pile.card.name);
-          }
+  const handleKeyDown = buy
+    ? (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          buy();
         }
-      : undefined;
+      }
+    : undefined;
 
   return (
+    // クリックは CardView の onClick で受ける（ここでも受けると 1 回のクリックで 2 回呼ばれる）。キーボード操作はここで受ける
     <div
-      className={`
-        relative
-        transition-all duration-200
-        ${empty ? 'opacity-35 pointer-events-none' : 'opacity-100'}
-      `}
-      role={affordable && onBuy ? 'button' : undefined}
-      tabIndex={affordable && onBuy ? 0 : undefined}
-      onClick={affordable && onBuy ? () => onBuy(pile.card.name) : undefined}
+      className="relative"
+      role={buy ? 'button' : undefined}
+      tabIndex={buy ? 0 : undefined}
       onKeyDown={handleKeyDown}
     >
       <CardView
         card={pile.card}
         small
-        onClick={affordable && onBuy ? () => onBuy(pile.card.name) : undefined}
+        status={status}
+        onClick={buy}
         remaining={pile.count}
       />
-      {/* 購入不可理由バッジ */}
-      {badgeText && (
-        <div
-          className={`
-            absolute -bottom-1 left-1/2 -translate-x-1/2
-            px-2 py-0.5 rounded-full text-[11px] font-bold text-white
-            shadow-md whitespace-nowrap
-            ${badgeColor}
-          `}
-        >
-          {badgeText}
+      {shortage > 0 && (
+        <span className="sr-only">コイン不足（あと{shortage}）</span>
+      )}
+      {/* 売り切れ: カードの中央に出す（左下のコストの丸に重ねない） */}
+      {empty && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold text-white bg-gray-600 shadow-md whitespace-nowrap">
+            売り切れ
+          </span>
         </div>
       )}
     </div>
@@ -137,10 +122,12 @@ const SupplyArea = memo(function SupplyArea({
   );
 
   return (
-    <div className="flex flex-col gap-6 py-4">
+    <div className="flex flex-col gap-5">
       {/* キングダムカード（PC では 5 枚 × 2 行、狭い画面では折り返す） */}
       <div className="flex flex-col items-center gap-3">
-        <h3 className="text-sm font-semibold opacity-70 mb-1">キングダム</h3>
+        <h3 className="text-sm font-semibold text-slate-300 mb-1">
+          キングダム
+        </h3>
 
         {/* 最大幅 448px = カード幅 80px（w-20）× 5 + 間隔 12px（gap-3）× 4 で 1 行 5 枚に揃える */}
         <div className="flex flex-wrap items-center justify-center gap-3 max-w-[448px]">
@@ -158,7 +145,9 @@ const SupplyArea = memo(function SupplyArea({
 
       {/* 基本カード（財宝 + 勝利点）。狭い画面では種類ごとに折り返す */}
       <div className="flex flex-col items-center gap-3">
-        <h3 className="text-sm font-semibold opacity-70 mb-1">基本カード</h3>
+        <h3 className="text-sm font-semibold text-slate-300 mb-1">
+          基本カード
+        </h3>
 
         <div className="flex flex-wrap items-center justify-center gap-3 lg:gap-6">
           {/* 財宝カード */}

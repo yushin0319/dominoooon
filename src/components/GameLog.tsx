@@ -6,14 +6,11 @@ interface GameLogProps {
 
 const GameLog = memo(function GameLog({ log }: GameLogProps) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
   const entryCount = log.length;
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  // 新しい行が増えたら、ログ欄だけを一番下までスクロールする（scrollIntoView と違い画面全体は動かさない）
+  // 新しい行が増えたら、ログ欄だけを一番下までスクロールする。
+  // scrollIntoView は使わない: はみ出しを隠している画面全体（overflow-hidden のルート）まで動かし、
+  // PC で画面全体が上にずれて「キングダム」の見出しが切れていた
   useEffect(() => {
     const box = boxRef.current;
     if (box && entryCount > 0) box.scrollTop = box.scrollHeight;
@@ -44,7 +41,6 @@ const GameLog = memo(function GameLog({ log }: GameLogProps) {
             {entry}
           </div>
         ))}
-        <div ref={endRef} />
       </div>
     </div>
   );

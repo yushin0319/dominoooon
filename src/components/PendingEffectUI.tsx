@@ -1,7 +1,8 @@
-import { useId, useState, useSyncExternalStore } from 'react';
+import { useId, useState } from 'react';
 import { getEffectTitle } from '../constants/effectLabels';
 import { getCardDef } from '../domain/card';
 import type { PendingEffectChoice } from '../domain/effect';
+import { useViewportWidth } from '../hooks/useViewportWidth';
 import type { CardInstance, PendingEffect, SupplyPile } from '../types';
 import { CardType } from '../types';
 import CardView from './CardView';
@@ -26,16 +27,8 @@ const FOOTER =
 
 // 狭い画面（スマホ）では小さいカードで並べる
 const NARROW_MAX_WIDTH = 640;
-function subscribeResize(onChange: () => void) {
-  window.addEventListener('resize', onChange);
-  return () => window.removeEventListener('resize', onChange);
-}
 function useIsNarrow(): boolean {
-  return useSyncExternalStore(
-    subscribeResize,
-    () => window.innerWidth < NARROW_MAX_WIDTH,
-    () => false,
-  );
+  return useViewportWidth() < NARROW_MAX_WIDTH;
 }
 
 // 選択待ちが新しくなったら（玉座の間の 2 回目のように同じ種類が続いても）選択状態を作り直すための番号。
@@ -123,6 +116,7 @@ function CardPicker({
             small={narrow}
             selected={selected.includes(c.instanceId)}
             onClick={() => toggle(c.instanceId)}
+            detailOnTap
           />
         ))}
       </div>
@@ -218,6 +212,7 @@ function SupplyPicker({
                 prev === p.card.name ? null : p.card.name,
               )
             }
+            detailOnTap
           />
         ))}
       </div>

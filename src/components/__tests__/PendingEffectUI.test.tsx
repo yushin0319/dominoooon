@@ -201,10 +201,12 @@ describe('PendingEffectUI - CardSelectUI', () => {
       />,
     );
 
-    // CardViewはツールチップ(index 0)+カードヘッダー(index 1)で2回nameJa表示
-    // ツールチップにはonClickなし、カードヘッダーのクリックがmotion.divに伝搬
-    const copperElements = screen.getAllByText('Copper');
-    await user.click(copperElements[1]);
+    // ツールチップはホバー中だけ body 直下に出るので、カードの名前の欄（ツールチップの外）を押す。
+    // カードヘッダーのクリックがmotion.divに伝搬
+    const [copperHeader] = screen
+      .getAllByText('Copper')
+      .filter((el) => !el.closest('[role="tooltip"]'));
+    await user.click(copperHeader);
     await user.click(screen.getByText('1枚捨てて1枚引く'));
     expect(onResolve).toHaveBeenCalledWith({
       selectedCards: [card1.instanceId],
