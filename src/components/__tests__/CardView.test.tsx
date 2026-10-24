@@ -180,7 +180,7 @@ describe('CardView: 指（タッチ）で説明を見る', () => {
     expect(tooltip()).toBeNull();
   });
 
-  it('押すと確認画面が開くカード（使える手札・買えるカード）は、タップで押した処理だけ（説明は確認画面にある）', () => {
+  it('押すとすぐ使う・買うカード（使える手札・買えるカード）は、タップで押した処理だけ（説明は長押しで出す）', () => {
     const onClick = vi.fn();
     render(<CardView card={getCardDef('Workshop')} onClick={onClick} />);
     tap(cardRoot('工房'));

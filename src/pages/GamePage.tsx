@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { resolveAIPendingEffect } from '../ai/aiPendingResolver';
 import ConfirmDialog from '../components/ConfirmDialog';
 import GameLog from '../components/GameLog';
@@ -6,11 +7,23 @@ import Hand from '../components/Hand';
 import PendingEffectUI from '../components/PendingEffectUI';
 import PlayArea from '../components/PlayArea';
 import SupplyArea from '../components/SupplyArea';
+import TurnBar from '../components/TurnBar';
 import TurnInfo from '../components/TurnInfo';
 import { getCardDef } from '../domain/card';
-import { useGameStore } from '../stores/gameStore';
+import { getGameEndReasonText, getGameEndStatus } from '../lib/gameEnd';
+import {
+  GAME_OVER_DELAY_MS,
+  getTurnGuide,
+  getTurnNotice,
+  NOTICE_MS,
+  TURN_ACTION_CONFIRM,
+  TURN_ACTION_LABEL,
+  type TurnAction,
+  type TurnPoint,
+} from '../lib/turnFlow';
+import { selectUndoableBuy, useGameStore } from '../stores/gameStore';
 import type { PendingEffect, PlayerState } from '../types';
-import { CardType, Phase } from '../types';
+import { CardType } from '../types';
 
 // Timing constants
 const AI_TURN_DELAY_MS = 400;
@@ -55,47 +68,49 @@ export default function GamePage() {
     (s) => s.gameState?.currentPlayerIndex === 0,
   );
   const isAITurn = useGameStore((s) => s.gameState?.currentPlayerIndex === 1);
+  // 次に何をすればよいかの一言と主ボタン（中身が同じなら描き直さない）
+  const guide = useGameStore(
+    useShallow((s) => (s.gameState ? getTurnGuide(s.gameState) : null)),
+  );
+  // 取り消せる購入（買った直後の状態のままのときだけ）
+  const undoableBuy = useGameStore(selectUndoableBuy);
 
   const playAction = useGameStore((s) => s.playAction);
   const skipAction = useGameStore((s) => s.skipAction);
   const buyCard = useGameStore((s) => s.buyCard);
+  const undoBuy = useGameStore((s) => s.undoBuy);
   const skipBuy = useGameStore((s) => s.skipBuy);
   const resolvePending = useGameStore((s) => s.resolvePending);
   const executeAITurn = useGameStore((s) => s.executeAITurn);
   const goToResult = useGameStore((s) => s.goToResult);
 
-  const [buyTarget, setBuyTarget] = useState<string | null>(null);
-  const [playTarget, setPlayTarget] = useState<string | null>(null);
-  const [phaseNotification, setPhaseNotification] = useState<string | null>(
-    null,
+  // 取り返しのつかない操作（購入へ進む / ターン終了）の確認を出しているか
+  const [confirm, setConfirm] = useState<TurnAction | null>(null);
+  // ターン・フェーズのお知らせ（同じ文が続いても新しいオブジェクトにして、消すまでの時間を数え直す）
+  const [notice, setNotice] = useState<{ text: string } | null>(null);
+  const prevTurnRef = useRef<TurnPoint | null>(null);
+  const gameOverTitleId = useId();
+
+  const endStatus = useMemo(
+    () => (supply ? getGameEndStatus(supply) : null),
+    [supply],
   );
-  const [prevPhase, setPrevPhase] = useState<Phase | null>(null);
 
-  // Phase transition notification
+  // ターン・フェーズが変わったらお知らせを出す（自分の番の始まりは「あなたのターン」）
   useEffect(() => {
-    if (!phase || !isHumanTurn) return;
-    if (prevPhase === null) {
-      setPrevPhase(phase);
-      return;
-    }
-    if (prevPhase !== phase) {
-      const phaseNames: Record<Phase, string> = {
-        [Phase.Action]: 'アクションフェーズ',
-        [Phase.Buy]: '購入フェーズ',
-        [Phase.Cleanup]: 'クリーンアップフェーズ',
-      };
-      const newPhaseName = phaseNames[phase];
-      setPhaseNotification(`${newPhaseName}に移りました`);
-      setPrevPhase(phase);
-    }
-  }, [phase, isHumanTurn, prevPhase]);
+    if (phase === undefined || turnNumber === undefined) return;
+    const next: TurnPoint = { turnNumber, isHumanTurn, phase };
+    const text = getTurnNotice(prevTurnRef.current, next);
+    prevTurnRef.current = next;
+    if (text) setNotice({ text });
+  }, [phase, turnNumber, isHumanTurn]);
 
-  // Auto-dismiss phase notification
+  // お知らせは少しで消す
   useEffect(() => {
-    if (!phaseNotification) return;
-    const timer = setTimeout(() => setPhaseNotification(null), 2500);
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), NOTICE_MS);
     return () => clearTimeout(timer);
-  }, [phaseNotification]);
+  }, [notice]);
 
   // Unified game flow state machine
   useEffect(() => {
@@ -132,8 +147,9 @@ export default function GamePage() {
       }
 
       case 'game-over': {
-        goToResult();
-        return;
+        // 終わった理由を少し見せてから結果画面へ（いきなり結果画面に切り替わっていた）
+        const timer = setTimeout(goToResult, GAME_OVER_DELAY_MS);
+        return () => clearTimeout(timer);
       }
       default:
         return;
@@ -154,29 +170,42 @@ export default function GamePage() {
     phase === undefined ||
     supply === undefined ||
     log === undefined ||
-    turnNumber === undefined
+    turnNumber === undefined ||
+    !guide ||
+    !endStatus
   )
     return null;
-
-  if (gameOver) return null;
 
   const humanPlayer = players[0];
   const currentPlayer = players[currentPlayerIndex];
 
+  // 主ボタンが出ている = 人間の番・選択待ちなし・ゲーム中（getTurnGuide）
   const canPlayActions =
-    isHumanTurn &&
-    phase === Phase.Action &&
-    turnState.actions > 0 &&
-    !pendingEffect;
+    guide.action === 'end-actions' && turnState.actions > 0;
+  const canBuyCards = guide.action === 'end-turn' && turnState.buys > 0;
+  const runTurnAction: Record<TurnAction, () => void> = {
+    'end-actions': skipAction,
+    'end-turn': skipBuy,
+  };
 
-  const canBuyCards =
-    isHumanTurn && phase === Phase.Buy && turnState.buys > 0 && !pendingEffect;
-
+  // 押したらすぐプレイする（確認画面は出さない。カードの説明は PC はホバー、指は長押しで見られる）
   function handlePlayCard(instanceId: string) {
     const card = humanPlayer.hand.find((c) => c.instanceId === instanceId);
-    if (!card || !card.def.types.includes(CardType.Action)) return;
-    setPlayTarget(instanceId);
+    if (!card?.def.types.includes(CardType.Action)) return;
+    playAction(instanceId);
   }
+
+  // 購入へ進む / ターン終了: まだできることが残っていて戻れないときだけ確認する
+  function handleTurnAction(action: TurnAction) {
+    const gs = useGameStore.getState().gameState;
+    if (gs && TURN_ACTION_CONFIRM[action].needsConfirm(gs)) {
+      setConfirm(action);
+    } else {
+      runTurnAction[action]();
+    }
+  }
+
+  const turnAction = guide.action;
 
   return (
     <div className="relative w-full h-screen overflow-hidden flex flex-col bg-linear-to-b from-slate-900 via-slate-900 to-slate-800">
@@ -195,62 +224,44 @@ export default function GamePage() {
             phase={phase}
             turnNumber={turnNumber}
             currentPlayer={currentPlayer.name}
+            endStatus={endStatus}
           />
 
           {/* Supply and Play Area (center) - lg 未満は上詰め、lg 以上は中央寄せ。
               中身が高いときは上詰めに戻す（justify-center-safe。ただの中央寄せだとはみ出た上端がスクロールで見えなくなる）。
-              lg 以上の下の余白は、手札の欄のすぐ上に浮かせた案内文の分（スクロールしきっても案内文にボタンが隠れない） */}
-          <div className="flex-1 min-h-0 flex flex-col items-center justify-start lg:justify-center-safe p-4 lg:pb-6 overflow-y-auto">
+              ターンを進めるボタンはここ（スクロールの中）には置かない（スマホ・PC 1366x768 でスクロールしないと見えなかった） */}
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-start lg:justify-center-safe p-4 overflow-y-auto">
             {/* 間隔は PC 1366x900 で手札まで画面に収まる詰め方（手札を画面内に入れたので、その分を詰めた） */}
             <div className="w-full max-w-5xl space-y-4">
               <SupplyArea
                 supply={supply}
-                onBuy={
-                  canBuyCards
-                    ? (cardName: string) => setBuyTarget(cardName)
-                    : undefined
-                }
+                onBuy={canBuyCards ? buyCard : undefined}
                 canBuy={canBuyCards}
                 maxCost={canBuyCards ? turnState.coins : undefined}
               />
 
               <PlayArea cards={currentPlayer.playArea} />
-
-              {/* Action buttons */}
-              <div className="flex gap-2 justify-center items-center">
-                {isHumanTurn && phase === Phase.Action && !pendingEffect && (
-                  <button
-                    type="button"
-                    onClick={skipAction}
-                    className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded hover:bg-slate-700/80 transition-colors"
-                  >
-                    アクションスキップ
-                  </button>
-                )}
-                {isHumanTurn && phase === Phase.Buy && !pendingEffect && (
-                  <button
-                    type="button"
-                    onClick={skipBuy}
-                    className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/80 border border-slate-600 rounded hover:bg-slate-700/80 transition-colors"
-                  >
-                    購入スキップ
-                  </button>
-                )}
-                {isAITurn && (
-                  <div className="flex items-center gap-2 py-2">
-                    <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-slate-400">
-                      AIが考えています...
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
           {/* GameLog - lg 未満は手札の上に固定の高さで置く、lg 以上はフローティング（コンポーネント内で absolute 配置） */}
           <GameLog log={log} />
         </div>
+
+        {/* 次に何をするかの一言とターンを進めるボタン。手札のすぐ上に常に見える */}
+        <TurnBar
+          message={guide.message}
+          busy={guide.busy}
+          notice={notice?.text ?? null}
+          primaryLabel={turnAction ? TURN_ACTION_LABEL[turnAction] : undefined}
+          onPrimary={
+            turnAction ? () => handleTurnAction(turnAction) : undefined
+          }
+          undoCardName={
+            undoableBuy ? getCardDef(undoableBuy).nameJa : undefined
+          }
+          onUndo={undoBuy}
+        />
 
         {/* Player hand - bottom */}
         <div className="relative z-20">
@@ -279,52 +290,41 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* 購入確認ダイアログ */}
-      {buyTarget && (
+      {/* まだできることが残っているのに、フェーズを進める / ターンを終えるときの確認 */}
+      {confirm && (
         <ConfirmDialog
-          title={getCardDef(buyTarget).nameJa ?? getCardDef(buyTarget).name}
-          cardDef={getCardDef(buyTarget)}
-          confirmLabel="購入する"
+          title={TURN_ACTION_CONFIRM[confirm].title}
+          message={TURN_ACTION_CONFIRM[confirm].message(turnState)}
+          confirmLabel={TURN_ACTION_LABEL[confirm]}
           onConfirm={() => {
-            buyCard(buyTarget);
-            setBuyTarget(null);
+            setConfirm(null);
+            runTurnAction[confirm]();
           }}
-          onCancel={() => setBuyTarget(null)}
-          details={{
-            cost: getCardDef(buyTarget).cost,
-            types: getCardDef(buyTarget).types,
-          }}
+          onCancel={() => setConfirm(null)}
         />
       )}
 
-      {/* プレイ確認ダイアログ */}
-      {playTarget &&
-        (() => {
-          const card = humanPlayer.hand.find(
-            (c) => c.instanceId === playTarget,
-          );
-          if (!card) return null;
-          return (
-            <ConfirmDialog
-              title={card.def.nameJa ?? card.def.name}
-              cardDef={card.def}
-              confirmLabel="プレイする"
-              onConfirm={() => {
-                playAction(playTarget);
-                setPlayTarget(null);
-              }}
-              onCancel={() => setPlayTarget(null)}
-            />
-          );
-        })()}
-
-      {/* Phase transition notification */}
-      {phaseNotification && (
-        <div
-          aria-live="polite"
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-slate-800 text-slate-100 text-sm font-medium border border-slate-600 rounded shadow-lg animate-fade-in"
-        >
-          {phaseNotification}
+      {/* ゲーム終了: 理由を少し見せてから結果画面へ */}
+      {gameOver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div
+            role="status"
+            aria-labelledby={gameOverTitleId}
+            className="px-8 py-6 text-center bg-slate-800 border border-slate-600 rounded-lg shadow-xl motion-safe:animate-fade-in"
+          >
+            <h2
+              id={gameOverTitleId}
+              className="text-2xl font-bold text-white mb-2"
+            >
+              ゲーム終了
+            </h2>
+            {endStatus.reason && (
+              <p className="text-base text-slate-200">
+                {getGameEndReasonText(endStatus.reason)}
+              </p>
+            )}
+            <p className="mt-3 text-xs text-slate-400">結果画面へ移ります</p>
+          </div>
         </div>
       )}
     </div>

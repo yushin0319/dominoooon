@@ -273,7 +273,7 @@ const CardView = memo(function CardView({
     pointerTypeRef.current = e.pointerType;
     suppressClickRef.current = false;
     if (isHoverPointer(e.pointerType)) {
-      // クリックしたら説明は閉じる（確認画面などの上に残さない）
+      // クリックしたら説明は閉じる（選択画面・確認画面などの上に残さない）
       setTooltip((t) => (t === 'hover' ? null : t));
       return;
     }

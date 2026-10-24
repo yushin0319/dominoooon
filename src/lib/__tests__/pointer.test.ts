@@ -32,7 +32,7 @@ describe('shouldShowDetailOnTap（指でタップしたときに説明を出す�
     ).toBe(true);
   });
 
-  it('押すと確認画面が開くカード（使える手札・買えるサプライ）は、タップで説明を出さない（確認画面に説明がある）', () => {
+  it('押すとすぐ使う・買うカード（使える手札・買えるサプライ）は、タップで説明を出さない（タップ=実行、説明は長押し）', () => {
     expect(
       shouldShowDetailOnTap({
         pointerType: 'touch',
