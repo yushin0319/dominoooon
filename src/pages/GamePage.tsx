@@ -1,8 +1,15 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { resolveAIPendingEffect } from '../ai/aiPendingResolver';
 import ConfirmDialog from '../components/ConfirmDialog';
-import GameLog from '../components/GameLog';
+import GameLog, { GameLogDialog } from '../components/GameLog';
 import Hand from '../components/Hand';
 import PendingEffectUI from '../components/PendingEffectUI';
 import PlayArea from '../components/PlayArea';
@@ -14,12 +21,14 @@ import SupplyArea from '../components/SupplyArea';
 import TurnBar from '../components/TurnBar';
 import TurnInfo from '../components/TurnInfo';
 import { getCardDef } from '../domain/card';
+import { getRoundNumber } from '../domain/game';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { getGameEndReasonText, getGameEndStatus } from '../lib/gameEnd';
 import {
   GAME_OVER_DELAY_MS,
   getAIStepMs,
   getAITurnStartMs,
+  getEmptyHandNote,
   getTurnGuide,
   getTurnNotice,
   NOTICE_MS,
@@ -82,6 +91,12 @@ export default function GamePage() {
   const guide = useGameStore(
     useShallow((s) => (s.gameState ? getTurnGuide(s.gameState) : null)),
   );
+  // 手札が空のときに手札の欄に出す一言（財宝を自動で場に出した、など）
+  const emptyHandNote = useGameStore((s) =>
+    s.gameState && s.gameState.players[0].hand.length === 0
+      ? getEmptyHandNote(s.gameState)
+      : undefined,
+  );
   // 取り消せる購入（買った直後の状態のままのときだけ）
   const undoableBuy = useGameStore(selectUndoableBuy);
   // 段階ごとに見せている AI のターンの、今の段階（使ったアクション / 財宝を場に出した / 買った）
@@ -105,6 +120,10 @@ export default function GamePage() {
   const [notice, setNotice] = useState<{ text: string } | null>(null);
   // 狭い画面で山札・捨て札・勝利点を開いているか（PC は常に見えている）
   const [statusOpen, setStatusOpen] = useState(false);
+  // 狭い画面でゲームログを広げているか（ログ欄は 2〜3 行しか見えない）
+  const [logOpen, setLogOpen] = useState(false);
+  // GameLog は memo なので、毎回同じ関数を渡す
+  const openLog = useCallback(() => setLogOpen(true), []);
   // ゲームログの見出しに置く、狭い画面用のボタン（GameLog は memo なので、両者のカードが変わったときだけ作り直す）
   const statusButton = useMemo(
     () =>
@@ -259,7 +278,7 @@ export default function GamePage() {
           <TurnInfo
             turnState={turnState}
             phase={phase}
-            turnNumber={turnNumber}
+            round={getRoundNumber(turnNumber, players.length)}
             currentPlayer={currentPlayer.name}
             endStatus={endStatus}
           />
@@ -286,15 +305,21 @@ export default function GamePage() {
                 maxCost={canBuyCards ? turnState.coins : undefined}
               />
 
-              <PlayArea
-                cards={currentPlayer.playArea}
-                ownerLabel={isAITurn ? `${currentPlayer.name}の場` : undefined}
-              />
+              {/* lg 以上は左右の浮かせた欄（左: 山札・捨て札 / ゲームログ w-64 + 余白 12px ずつ）に重ならない幅にする
+                  （ゲームログの下にプレイエリアの左端が 97px 隠れていた）。1366px で 806px = 小さいカード 9 枚が 1 行に入る */}
+              <div className="lg:mx-auto lg:max-w-[calc(100vw-560px)]">
+                <PlayArea
+                  cards={currentPlayer.playArea}
+                  ownerLabel={
+                    isAITurn ? `${currentPlayer.name}の場` : undefined
+                  }
+                />
+              </div>
             </div>
           </div>
 
           {/* GameLog - lg 未満は手札の上に固定の高さで置く、lg 以上はフローティング（コンポーネント内で absolute 配置） */}
-          <GameLog log={log} headerAction={statusButton} />
+          <GameLog log={log} headerAction={statusButton} onExpand={openLog} />
         </div>
 
         {/* 次に何をするかの一言とターンを進めるボタン。手札のすぐ上に常に見える */}
@@ -319,6 +344,7 @@ export default function GamePage() {
             hand={humanPlayer.hand}
             onPlay={canPlayActions ? handlePlayCard : undefined}
             canPlay={canPlayActions}
+            emptyMessage={emptyHandNote}
           />
         </div>
       </div>
@@ -347,6 +373,9 @@ export default function GamePage() {
           onClose={() => setStatusOpen(false)}
         />
       )}
+
+      {/* 狭い画面: ゲームログを全部 */}
+      {logOpen && <GameLogDialog log={log} onClose={() => setLogOpen(false)} />}
 
       {/* まだできることが残っているのに、フェーズを進める / ターンを終えるときの確認 */}
       {confirm && (

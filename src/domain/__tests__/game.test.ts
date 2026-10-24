@@ -60,7 +60,7 @@ describe('createGame', () => {
     expect(game.turnState).toEqual({ actions: 1, buys: 1, coins: 0 });
     expect(game.pendingEffect).toBeNull();
     expect(game.trash).toEqual([]);
-    expect(game.log).toContain('Game started');
+    expect(game.log[0]).toBe('ゲーム開始');
   });
 
   it('initializes supply correctly (Copper: 46 in 2-player game)', () => {

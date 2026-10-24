@@ -16,6 +16,8 @@ interface HandProps {
   onPlay?: (instanceId: string) => void;
   canPlay?: boolean;
   selectedCards?: string[];
+  /** 手札が空のときに出す一言（財宝を自動で場に出した、など） */
+  emptyMessage?: string;
 }
 
 interface HandCardProps {
@@ -89,6 +91,7 @@ const Hand = memo(function Hand({
   onPlay,
   canPlay,
   selectedCards,
+  emptyMessage,
 }: HandProps) {
   // PC 幅は従来どおりの扇形、狭い画面・枚数が多いときは傾けずに一列（収まらなければ横スクロール）
   const viewportWidth = useViewportWidth();
@@ -108,14 +111,23 @@ const Hand = memo(function Hand({
           layout.mode === 'row' && 'overflow-x-auto overflow-y-hidden',
         )}
       >
-        {/* 列の高さは傾き・持ち上げ分を含む（扇形の端のカードのコストの丸が欄の下で切れないように） */}
+        {/* 列の高さは傾き・持ち上げ分を含む（扇形の端のカードのコストの丸が欄の下で切れないように）。
+            手札が空のときは、狭い画面では低くする（高さが変わるときは少しずつ動かす） */}
         <div
+          data-hand-row=""
           className={cn(
-            'flex w-max mx-auto',
-            layout.mode === 'row' ? 'items-end px-1' : 'items-start',
+            'flex mx-auto motion-safe:transition-[height] motion-safe:duration-300',
+            hand.length === 0 ? 'w-full items-center justify-center' : 'w-max',
+            hand.length > 0 &&
+              (layout.mode === 'row' ? 'items-end px-1' : 'items-start'),
           )}
           style={{ height: layout.rowHeight }}
         >
+          {hand.length === 0 && emptyMessage && (
+            <p className="px-2 text-xs sm:text-sm leading-tight text-center text-slate-300">
+              {emptyMessage}
+            </p>
+          )}
           {hand.map((card, index) => (
             <HandCard
               key={card.instanceId}

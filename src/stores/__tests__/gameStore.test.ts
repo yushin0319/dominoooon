@@ -521,9 +521,11 @@ describe('AI のターンを段階ごとに見せる（startAITurn → advanceAI
 
     const gs = useGameStore.getState().gameState!;
     expect(gs.currentPlayerIndex).toBe(0);
-    expect(gs.log.slice(-2)).toEqual([
-      '--- ターン2: AIのターン ---',
+    // 区切りは両者のターンに入る（AI の番は人間がターンを終えたとき、人間の番は AI がターンを終えたとき）
+    expect(gs.log.slice(-3)).toEqual([
+      '--- ラウンド 1: AIのターン ---',
       'AI: 2 コイン → 購入なし',
+      '--- ラウンド 2: あなたのターン ---',
     ]);
   });
 

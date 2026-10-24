@@ -375,11 +375,12 @@ const CardView = memo(function CardView({
           status === 'unavailable' && 'brightness-50 saturate-50',
         )}
       >
-        {/* Card Header。小さいカードは 2 行まで折り返し、残り枚数のバッジの分だけ右を空ける */}
+        {/* Card Header。小さいカードは 2 行まで折り返し、残り枚数のバッジの分だけ右を空ける。
+            小さいカードの左の余白は 6px（12px の文字で「地下貯蔵庫」が「地下貯 / 蔵庫」の 2 行に収まるように） */}
         <div
           className={cn(
-            'px-2 py-1 font-bold text-white bg-black/20 text-[11px]',
-            small ? 'line-clamp-2 leading-tight' : 'truncate',
+            'py-1 font-bold text-white bg-black/20 text-xs',
+            small ? 'px-1.5 line-clamp-2 leading-tight' : 'px-2 truncate',
             small && remaining !== undefined && 'pr-[25px]',
           )}
         >
@@ -406,7 +407,7 @@ const CardView = memo(function CardView({
             'absolute bg-slate-800/90 rounded-full flex items-center justify-center font-bold text-white border-2',
             borderColor,
             small
-              ? 'bottom-1 left-1 w-4 h-4 text-[11px]'
+              ? 'bottom-1 left-1 w-6 h-6 text-xs'
               : 'bottom-2 left-2 w-8 h-8 text-xs',
           )}
         >

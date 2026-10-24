@@ -51,7 +51,7 @@ const PlayerStatus = memo(function PlayerStatus({
       <table className="w-full text-xs">
         <caption className="sr-only">{TITLE}</caption>
         <thead>
-          <tr className="text-[10px] text-slate-400">
+          <tr className="text-xs text-slate-400">
             <th scope="col" className="font-medium text-left">
               <span className="sr-only">プレイヤー</span>
             </th>
@@ -130,7 +130,7 @@ const PlayerStatus = memo(function PlayerStatus({
         <div id={listId} className="mt-2 pt-2 border-t border-slate-600">
           <p
             id={listTitleId}
-            className="mb-1.5 text-[11px] font-bold text-slate-300"
+            className="mb-1.5 text-xs font-bold text-slate-300"
           >
             {openPlayer.name}の捨て札（{openPlayer.discard.length} 枚）
           </p>
@@ -181,7 +181,7 @@ export function PlayerStatusButton({
       className={cn(
         // 見出しの高さ（ログの見える行数）を変えないよう上下を詰め、押せる範囲は上下に広げて 44px にする
         // （上はログ欄の枠で切れるので 10px、下に 16px。広げた所はログの行に重なるが、ログの行は押せないので困らない）
-        "relative shrink-0 -my-0.5 inline-flex items-center gap-1 px-2 py-px rounded-md border border-slate-500 bg-slate-700/80 text-[11px] leading-4 font-bold text-slate-100 whitespace-nowrap hover:bg-slate-600 transition-colors before:absolute before:inset-x-0 before:-top-2.5 before:-bottom-4 before:content-['']",
+        "relative shrink-0 -my-0.5 inline-flex items-center gap-1 px-2 py-px rounded-md border border-slate-500 bg-slate-700/80 text-xs leading-4 font-bold text-slate-100 whitespace-nowrap hover:bg-slate-600 transition-colors before:absolute before:inset-x-0 before:-top-2.5 before:-bottom-4 before:content-['']",
         className,
       )}
     >

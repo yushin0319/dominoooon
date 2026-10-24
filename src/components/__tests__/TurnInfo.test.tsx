@@ -11,7 +11,7 @@ function renderInfo(endStatus: GameEndStatus) {
     <TurnInfo
       turnState={{ actions: 1, buys: 1, coins: 0 }}
       phase={Phase.Action}
-      turnNumber={3}
+      round={2}
       currentPlayer="あなた"
       endStatus={endStatus}
     />,
@@ -53,5 +53,18 @@ describe('TurnInfo: ゲーム終了の近さ', () => {
     });
     expect(el.dataset.level).toBe('end');
     expect(el).toHaveTextContent('このターンで終了');
+  });
+});
+
+describe('TurnInfo: ラウンドの表記', () => {
+  it('両者で 1 ラウンドと数えた「ラウンド N」を日本語で出す（英語の「Turn」は出さない）', () => {
+    renderInfo({
+      provincesLeft: 8,
+      emptyPiles: 0,
+      level: 'normal',
+      reason: null,
+    });
+    expect(screen.getByText('ラウンド 2')).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Turn/);
   });
 });

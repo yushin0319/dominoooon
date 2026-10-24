@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EMPTY_HAND_ROW_HEIGHT,
   getHandLayout,
   HAND_CARD_HEIGHT,
   HAND_CARD_WIDTH,
@@ -116,6 +117,27 @@ describe('getHandLayout: 狭い幅（傾けずに一列）', () => {
   it('一列の高さはカードの高さ + 持ち上げ分（スクロール領域の上で持ち上げたカードが切れない）', () => {
     expect(getHandLayout(5, 390).rowHeight).toBeGreaterThanOrEqual(
       HAND_CARD_HEIGHT + HOVER_LIFT,
+    );
+  });
+});
+
+describe('getHandLayout: 手札が空のとき', () => {
+  it('縦に積む画面（lg = 1024px 未満）では低くして、ほかの欄に高さを回す（スマホの購入フェーズで空の欄が 188px を使っていた）', () => {
+    for (const width of [390, 768, 1023]) {
+      const layout = getHandLayout(0, width);
+      expect(layout.rowHeight).toBe(EMPTY_HAND_ROW_HEIGHT);
+      expect(layout.rowHeight).toBeLessThan(getHandLayout(5, width).rowHeight);
+    }
+    // 一言（2 行まで）が入る高さは残す
+    expect(EMPTY_HAND_ROW_HEIGHT).toBeGreaterThanOrEqual(30);
+  });
+
+  it('PC 幅（1024px 以上）では高さを変えない（中央の列が上下に動かないように）', () => {
+    expect(getHandLayout(0, 1024).rowHeight).toBe(
+      getHandLayout(5, 1024).rowHeight,
+    );
+    expect(getHandLayout(0, 1366).rowHeight).toBe(
+      getHandLayout(5, 1366).rowHeight,
     );
   });
 });

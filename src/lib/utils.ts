@@ -38,6 +38,6 @@ export function getEffectText(def: CardDef): string {
   if (e.buys) parts.push(`+${e.buys} 購入`);
   if (e.coins) parts.push(`+${e.coins} コイン`);
   if (e.custom) parts.push(customEffectText[e.custom] ?? '特殊効果');
-  if (def.vpValue !== undefined) parts.push(`${def.vpValue} VP`);
+  if (def.vpValue !== undefined) parts.push(`${def.vpValue} 勝利点`);
   return parts.join('、');
 }
