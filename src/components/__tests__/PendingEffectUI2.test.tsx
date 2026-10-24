@@ -139,10 +139,12 @@ describe('PendingEffectUI - SupplySelectUI', () => {
         onResolve={onResolve}
       />,
     );
-    // CardViewはツールチップ(index 0)+カードヘッダー(index 1)で2回表示
+    // ツールチップはホバー中だけ body 直下に出るので、カードの名前の欄（ツールチップの外）を押す。
     // カードヘッダーのクリックがmotion.divのonClickに伝搬
-    const villageElements = screen.getAllByText('Village');
-    await user.click(villageElements[1]);
+    const [villageHeader] = screen
+      .getAllByText('Village')
+      .filter((el) => !el.closest('[role="tooltip"]'));
+    await user.click(villageHeader);
     await user.click(screen.getByText('Villageを獲得する'));
     expect(onResolve).toHaveBeenCalledWith({ selectedCardName: 'Village' });
   });

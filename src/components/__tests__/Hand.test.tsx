@@ -1,37 +1,50 @@
 // @vitest-environment jsdom
 
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCardDef } from '../../domain/card';
-import { getHandCardOverlap } from '../../lib/handLayout';
+import { getHandLayout, MIN_TOUCH_STRIP } from '../../lib/handLayout';
 import type { CardInstance } from '../../types';
 import Hand from '../Hand';
 
-// framer-motion をモック（jsdomで動かないため）。レイアウト確認に必要な style は通す
+// framer-motion をモック（jsdomで動かないため）。並べ方の確認に必要な値を data 属性で通す
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style }: Record<string, unknown>) => (
-      <div
-        className={className as string | undefined}
-        style={style as React.CSSProperties | undefined}
-        data-testid={
-          (style as React.CSSProperties | undefined)?.marginLeft !== undefined
-            ? 'hand-card'
-            : undefined
-        }
-      >
-        {children as React.ReactNode}
-      </div>
-    ),
+    div: ({
+      children,
+      className,
+      style,
+      onClick,
+      animate,
+      whileHover,
+      ...rest
+    }: Record<string, unknown>) => {
+      const a = animate as { rotate?: number } | undefined;
+      const h = whileHover as { zIndex?: number } | undefined;
+      const props: Record<string, unknown> = {
+        className,
+        style,
+        onClick,
+        'data-hand-card': rest['data-hand-card'],
+        'data-status': rest['data-status'],
+        'data-rotate': a?.rotate,
+        'data-hover': h ? 'lift' : undefined,
+        'data-hover-z': h?.zIndex,
+      };
+      return <div {...props}>{children as React.ReactNode}</div>;
+    },
   },
 }));
 
-function makeHand(count: number): CardInstance[] {
-  const copper = getCardDef('Copper');
-  return Array.from({ length: count }, (_, i) => ({
-    instanceId: `c${i}`,
-    def: copper,
+function makeHand(names: string[]): CardInstance[] {
+  return names.map((name, i) => ({
+    instanceId: `${name}-${i}`,
+    def: getCardDef(name),
   }));
+}
+
+function copper(count: number): CardInstance[] {
+  return makeHand(Array.from({ length: count }, () => 'Copper'));
 }
 
 function setViewportWidth(width: number) {
@@ -42,51 +55,150 @@ function setViewportWidth(width: number) {
   });
 }
 
-function marginsOf(cards: HTMLElement[]): string[] {
-  return cards.map((el) => el.style.marginLeft);
+function handCards(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>('[data-hand-card]')];
 }
 
-describe('Hand のカードの重なり', () => {
+// 手札のカード本体（data-status を持つ要素）
+function cardOf(name: string, nth = 0): HTMLElement {
+  const headers = screen.getAllByText(name, { selector: 'div' });
+  return headers[nth].parentElement as HTMLElement;
+}
+
+describe('Hand のカードの並べ方', () => {
   const originalWidth = window.innerWidth;
   afterEach(() => setViewportWidth(originalWidth));
 
-  it('PC 幅（1366px）では従来どおり 2 枚目以降を 16px 重ねる', () => {
+  it('PC 幅（1366px）では従来どおり 2 枚目以降を 16px 重ね、扇形に傾ける', () => {
     setViewportWidth(1366);
-    const { getAllByTestId } = render(<Hand hand={makeHand(5)} />);
-    expect(marginsOf(getAllByTestId('hand-card'))).toEqual([
+    render(<Hand hand={copper(5)} />);
+    expect(handCards().map((el) => el.style.marginLeft)).toEqual([
       '0px',
       '-16px',
       '-16px',
       '-16px',
       '-16px',
     ]);
+    expect(handCards().map((el) => el.dataset.rotate)).toEqual([
+      '-10',
+      '-5',
+      '0',
+      '5',
+      '10',
+    ]);
   });
 
-  it('スマホ幅（390px）では画面幅に収まる重なりにする', () => {
+  it('スマホ幅（390px）では傾けずに並べ、各カードの見える帯を 44px 以上にする', () => {
     setViewportWidth(390);
-    const { getAllByTestId } = render(<Hand hand={makeHand(5)} />);
-    const overlap = getHandCardOverlap(5, 390);
-    expect(overlap).toBeGreaterThan(16);
-    expect(marginsOf(getAllByTestId('hand-card'))).toEqual([
+    render(<Hand hand={copper(5)} />);
+    const { overlap } = getHandLayout(5, 390);
+    expect(120 - overlap).toBeGreaterThanOrEqual(MIN_TOUCH_STRIP);
+    expect(handCards().map((el) => el.style.marginLeft)).toEqual([
       '0px',
       `-${overlap}px`,
       `-${overlap}px`,
       `-${overlap}px`,
       `-${overlap}px`,
     ]);
+    expect(handCards().every((el) => el.dataset.rotate === '0')).toBe(true);
   });
 
-  it('画面幅が変わったら（resize）重なりを計算し直す', () => {
+  it('スマホ幅で 9 枚なら、横スクロールできる欄に入れる', () => {
+    setViewportWidth(390);
+    render(<Hand hand={copper(9)} />);
+    const scroller = handCards()[0].closest('.overflow-x-auto');
+    expect(scroller).not.toBeNull();
+  });
+
+  it('画面幅が変わったら（resize）並べ方を計算し直す', () => {
     setViewportWidth(1366);
-    const { getAllByTestId } = render(<Hand hand={makeHand(5)} />);
-    expect(getAllByTestId('hand-card')[1].style.marginLeft).toBe('-16px');
+    render(<Hand hand={copper(5)} />);
+    expect(handCards()[1].style.marginLeft).toBe('-16px');
 
     act(() => {
       setViewportWidth(390);
       window.dispatchEvent(new Event('resize'));
     });
-    expect(getAllByTestId('hand-card')[1].style.marginLeft).toBe(
-      `-${getHandCardOverlap(5, 390)}px`,
+    expect(handCards()[1].style.marginLeft).toBe(
+      `-${getHandLayout(5, 390).overlap}px`,
     );
+  });
+});
+
+describe('Hand: 使えるカードと使えないカードの見分け（アクションフェーズ）', () => {
+  const originalWidth = window.innerWidth;
+  afterEach(() => setViewportWidth(originalWidth));
+  const hand = makeHand(['Copper', 'Estate', 'Workshop', 'Estate', 'Copper']);
+
+  it('アクションカードだけが押せる。銅貨・屋敷を押しても onPlay は呼ばれない', () => {
+    setViewportWidth(1366);
+    const onPlay = vi.fn();
+    render(<Hand hand={hand} onPlay={onPlay} canPlay />);
+    fireEvent.click(cardOf('屋敷'));
+    fireEvent.click(cardOf('銅貨'));
+    expect(onPlay).not.toHaveBeenCalled();
+    fireEvent.click(cardOf('工房'));
+    expect(onPlay).toHaveBeenCalledWith('Workshop-2');
+  });
+
+  it('使えるカードは光る枠・指カーソル・持ち上げ、使えないカードは暗く・持ち上げなし', () => {
+    setViewportWidth(1366);
+    render(<Hand hand={hand} onPlay={() => {}} canPlay />);
+    expect(cardOf('工房').dataset.status).toBe('available');
+    expect(cardOf('屋敷').dataset.status).toBe('unavailable');
+    expect(cardOf('銅貨').dataset.status).toBe('unavailable');
+    const [c0, , c2] = handCards();
+    expect(c2.dataset.hover).toBe('lift');
+    expect(c2.className).toMatch(/cursor-pointer/);
+    expect(c0.dataset.hover).toBeUndefined();
+    expect(c0.className).not.toMatch(/cursor-pointer/);
+  });
+
+  it('使えるカードがあるときだけ、案内文を出す', () => {
+    setViewportWidth(1366);
+    const { rerender } = render(<Hand hand={hand} onPlay={() => {}} canPlay />);
+    expect(screen.getByText('光っているカードを押してプレイ')).toBeVisible();
+
+    // アクションカードが無い手札
+    rerender(
+      <Hand hand={makeHand(['Copper', 'Estate'])} onPlay={() => {}} canPlay />,
+    );
+    expect(screen.queryByText('光っているカードを押してプレイ')).toBeNull();
+
+    // プレイできない場面（購入フェーズなど）
+    rerender(<Hand hand={hand} />);
+    expect(screen.queryByText('光っているカードを押してプレイ')).toBeNull();
+  });
+
+  it('プレイできない場面では、どのカードにも印を付けない', () => {
+    setViewportWidth(1366);
+    render(<Hand hand={hand} />);
+    expect(cardOf('工房').dataset.status).toBeUndefined();
+    expect(cardOf('屋敷').dataset.status).toBeUndefined();
+  });
+});
+
+describe('Hand: ホバーで持ち上げたカードが隣を覆わない', () => {
+  const originalWidth = window.innerWidth;
+  afterEach(() => setViewportWidth(originalWidth));
+  const hand = makeHand([
+    'Workshop',
+    'Workshop',
+    'Workshop',
+    'Estate',
+    'Copper',
+  ]);
+
+  it('PC 幅（扇形）では従来どおりホバーしたカードを手前に出す', () => {
+    setViewportWidth(1366);
+    render(<Hand hand={hand} onPlay={() => {}} canPlay />);
+    expect(handCards()[1].dataset.hoverZ).toBe('50');
+  });
+
+  it('スマホ幅（重なりが大きい）では手前に出さず、上にずらすだけにする', () => {
+    setViewportWidth(390);
+    render(<Hand hand={hand} onPlay={() => {}} canPlay />);
+    expect(handCards()[1].dataset.hover).toBe('lift');
+    expect(handCards()[1].dataset.hoverZ).toBeUndefined();
   });
 });

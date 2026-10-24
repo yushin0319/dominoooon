@@ -186,8 +186,9 @@ export default function GamePage() {
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Main area: lg 未満は TurnInfo → サプライ/プレイエリア → GameLog の縦積み、lg 以上は TurnInfo と GameLog を浮かせる。
-            lg 未満の min-h-0 は中身の高さで伸びて手札を画面外に押し出さないため（lg 以上は従来どおり） */}
-        <div className="flex-1 min-h-0 lg:min-h-auto relative flex flex-col lg:flex-row">
+            min-h-0: 中身の高さで伸びて手札を画面外に押し出さないため（PC も同じ。伸びると画面全体が overflow-hidden の
+            ルートの中ではみ出し、手札の下が切れたり、ルートがスクロールして上の見出しが切れたりしていた） */}
+        <div className="flex-1 min-h-0 relative flex flex-col lg:flex-row">
           {/* TurnInfo - lg 未満は上部の横長バー、lg 以上はフローティング（コンポーネント内で absolute 配置） */}
           <TurnInfo
             turnState={turnState}
@@ -196,9 +197,12 @@ export default function GamePage() {
             currentPlayer={currentPlayer.name}
           />
 
-          {/* Supply and Play Area (center) - lg 未満は上詰め（中央寄せだとはみ出た上端がスクロールで見えなくなる） */}
-          <div className="flex-1 min-h-0 flex flex-col items-center justify-start lg:justify-center p-4 overflow-y-auto">
-            <div className="w-full max-w-5xl space-y-6">
+          {/* Supply and Play Area (center) - lg 未満は上詰め、lg 以上は中央寄せ。
+              中身が高いときは上詰めに戻す（justify-center-safe。ただの中央寄せだとはみ出た上端がスクロールで見えなくなる）。
+              lg 以上の下の余白は、手札の欄のすぐ上に浮かせた案内文の分（スクロールしきっても案内文にボタンが隠れない） */}
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-start lg:justify-center-safe p-4 lg:pb-6 overflow-y-auto">
+            {/* 間隔は PC 1366x900 で手札まで画面に収まる詰め方（手札を画面内に入れたので、その分を詰めた） */}
+            <div className="w-full max-w-5xl space-y-4">
               <SupplyArea
                 supply={supply}
                 onBuy={
