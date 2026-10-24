@@ -86,13 +86,27 @@ export function getSupplyPile(
   return supply.find((p) => p.card.name === cardName);
 }
 
+/** サプライの山がこの数だけ空になったらゲーム終了 */
+export const EMPTY_PILES_TO_END = 3;
+
+/** ゲームが終わる理由（属州の山が空 / サプライの山が 3 つ空） */
+export type GameEndReason = 'province' | 'piles';
+
+/**
+ * ゲームの終了条件を満たした理由。満たしていなければ null。
+ * 属州の山が空なら 'province'（空の山が 3 つ以上でも属州を優先）、空の山が 3 つ以上なら 'piles'。
+ */
+export function getGameEndReason(supply: SupplyPile[]): GameEndReason | null {
+  const provincePile = getSupplyPile(supply, CARD.PROVINCE);
+  if (provincePile && provincePile.count === 0) return 'province';
+  return getEmptyPileCount(supply) >= EMPTY_PILES_TO_END ? 'piles' : null;
+}
+
 /**
  * Check if the game is over (Province empty or 3+ empty piles).
  */
 export function isGameOver(supply: SupplyPile[]): boolean {
-  const provincePile = getSupplyPile(supply, CARD.PROVINCE);
-  if (provincePile && provincePile.count === 0) return true;
-  return getEmptyPileCount(supply) >= 3;
+  return getGameEndReason(supply) !== null;
 }
 
 /**

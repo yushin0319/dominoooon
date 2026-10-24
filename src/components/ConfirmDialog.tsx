@@ -1,23 +1,24 @@
 import { useEffect, useRef } from 'react';
-import type { CardDef } from '../types';
-import CardView from './CardView';
 
 interface ConfirmDialogProps {
   title: string;
-  cardDef: CardDef;
+  /** 何が起きるか・何が残っているかの説明 */
+  message: string;
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
-  details?: { cost: number; types: string[] };
 }
 
+/**
+ * 取り返しのつかない操作の前の確認（まだ使えるアクション・買えるコインが残っているのに、フェーズを進める / ターンを終えるとき）。
+ * カードを使う・買うときの確認は出さない（毎回 2 タップになっていた。購入は直前の 1 回を取り消せる）
+ */
 export default function ConfirmDialog({
   title,
-  cardDef,
+  message,
   confirmLabel,
   onConfirm,
   onCancel,
-  details,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   // ref で最新の onCancel を保持してエフェクトの再実行を防ぐ
@@ -71,32 +72,21 @@ export default function ConfirmDialog({
         className="bg-slate-800 border border-slate-600 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-2xl font-bold text-slate-100 mb-4">{title}</h2>
-        <div className="flex justify-center mb-4">
-          <CardView card={cardDef} />
-        </div>
-        {details && (
-          <div className="space-y-1 mb-6">
-            <p className="text-sm text-slate-300">
-              コスト: {details.cost} コイン
-            </p>
-            <p className="text-sm text-slate-300">
-              種別: {details.types.join(' / ')}
-            </p>
-          </div>
-        )}
+        <h2 className="text-xl font-bold text-slate-100 mb-3">{title}</h2>
+        <p className="text-sm text-slate-300 mb-6">{message}</p>
+        {/* ボタンは押しやすい高さ（44px） */}
         <div className="flex gap-3 justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
           >
             やめる
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
+            className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
           >
             {confirmLabel}
           </button>

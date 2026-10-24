@@ -28,7 +28,7 @@ const SupplyPileItem = memo(function SupplyPileItem({
   const status = empty
     ? 'unavailable'
     : getSupplyPileStatus(pile, Boolean(canBuy), maxCost);
-  // 押すと購入の確認を開く（買えるときだけ）
+  // 押すとすぐ買う（買えるときだけ。買い間違いは直前の 1 回を取り消せる）
   const buy =
     status === 'available' && onBuy ? () => onBuy(pile.card.name) : undefined;
   // 買えない理由（コイン不足）は画面には出さず、読み上げ用にだけ残す（バッジがコストの数字を隠していたため）
@@ -64,10 +64,11 @@ const SupplyPileItem = memo(function SupplyPileItem({
       {shortage > 0 && (
         <span className="sr-only">コイン不足（あと{shortage}）</span>
       )}
-      {/* 売り切れ: カードの中央に出す（左下のコストの丸に重ねない） */}
+      {/* 売り切れ: カードの中央に出す（左下のコストの丸に重ねない）。暗いカードの上でも目立つ色にする
+          （灰色だと暗くしたカードに溶けて、空の山に気づきにくかった。空の山が 3 つでゲーム終了） */}
       {empty && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold text-white bg-gray-600 shadow-md whitespace-nowrap">
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold text-white bg-rose-600 ring-1 ring-white/60 shadow-md whitespace-nowrap">
             売り切れ
           </span>
         </div>

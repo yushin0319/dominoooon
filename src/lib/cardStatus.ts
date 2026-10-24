@@ -20,16 +20,6 @@ export function getHandCardStatus(
   return card.def.types.includes(CardType.Action) ? 'available' : 'unavailable';
 }
 
-/** 手札にプレイできるカードが 1 枚でもあるか（案内文を出すかどうか） */
-export function hasPlayableCard(
-  hand: CardInstance[],
-  canPlayActions: boolean,
-): boolean {
-  return hand.some(
-    (card) => getHandCardStatus(card, canPlayActions) === 'available',
-  );
-}
-
 /**
  * サプライのカードが今買えるか。
  * 購入フェーズ（canBuy）で手持ちのコイン（maxCost）が分かるときだけ判定する。

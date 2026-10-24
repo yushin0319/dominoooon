@@ -1,11 +1,7 @@
 import { motion } from 'framer-motion';
 import { memo, useCallback, useMemo } from 'react';
 import { useViewportWidth } from '../hooks/useViewportWidth';
-import {
-  type CardStatus,
-  getHandCardStatus,
-  hasPlayableCard,
-} from '../lib/cardStatus';
+import { type CardStatus, getHandCardStatus } from '../lib/cardStatus';
 import {
   getHandLayout,
   type HandCardPose,
@@ -101,22 +97,10 @@ const Hand = memo(function Hand({
     [hand.length, viewportWidth],
   );
   const canPlayActions = Boolean(canPlay) && onPlay !== undefined;
-  const showHint = hasPlayableCard(hand, canPlayActions);
 
   return (
+    // 案内文（光っているカードを押して…）は手札のすぐ上の帯（TurnBar）に出す
     <div className="relative flex flex-col items-center px-2 pt-1 pb-2 lg:pt-2 lg:pb-0 rounded-xl bg-white/5">
-      {/* 案内文（プレイできるカードがあるときだけ）。lg 未満は手札の上の 1 行（出ていなくても高さをとって、
-          出し入れで画面が動かないようにする）、lg 以上は手札の欄のすぐ上に浮かせる（縦の幅をとらない） */}
-      <div
-        aria-live="polite"
-        className="h-5 lg:h-0 w-full flex items-center justify-center"
-      >
-        {showHint && (
-          <p className="text-xs font-medium text-emerald-200 whitespace-nowrap pointer-events-none lg:absolute lg:bottom-full lg:left-1/2 lg:-translate-x-1/2 lg:mb-1 lg:px-3 lg:py-0.5 lg:rounded-full lg:bg-slate-900/95">
-            光っているカードを押してプレイ
-          </p>
-        )}
-      </div>
       {/* 一列のときは横スクロールできる欄に入れる（扇形は傾いた端が欄の外にはみ出すので切らない） */}
       <div
         className={cn(

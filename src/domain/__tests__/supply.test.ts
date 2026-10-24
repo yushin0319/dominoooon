@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { SupplyPile } from '../../types';
 import { CARD_DEFS } from '../card';
 import {
+  EMPTY_PILES_TO_END,
   getAvailableCards,
   getEmptyPileCount,
+  getGameEndReason,
   getSupplyPile,
   initializeSupply,
   isGameOver,
@@ -179,6 +181,41 @@ describe('isGameOver', () => {
 
   it('returns false when all piles have cards', () => {
     const supply = initializeSupply(kingdom, 2);
+    expect(isGameOver(supply)).toBe(false);
+  });
+});
+
+describe('getGameEndReason', () => {
+  const withCounts = (counts: Record<string, number>) =>
+    initializeSupply(kingdom, 2).map((p) =>
+      p.card.name in counts ? { ...p, count: counts[p.card.name] } : p,
+    );
+
+  it('属州の山が空なら province', () => {
+    expect(getGameEndReason(withCounts({ Province: 0 }))).toBe('province');
+  });
+
+  it(`空の山が ${EMPTY_PILES_TO_END} つなら piles`, () => {
+    expect(
+      getGameEndReason(withCounts({ Village: 0, Smithy: 0, Market: 0 })),
+    ).toBe('piles');
+  });
+
+  it('空の山が 2 つまでなら null（終わらない）', () => {
+    expect(getGameEndReason(withCounts({ Village: 0, Smithy: 0 }))).toBeNull();
+  });
+
+  it('属州が空で空の山も 3 つ以上なら、属州を理由にする', () => {
+    expect(
+      getGameEndReason(withCounts({ Province: 0, Village: 0, Smithy: 0 })),
+    ).toBe('province');
+  });
+
+  it('属州の山が無いサプライは、属州を理由にしない（isGameOver と同じ判定）', () => {
+    const supply = initializeSupply(kingdom, 2).filter(
+      (p) => p.card.name !== 'Province',
+    );
+    expect(getGameEndReason(supply)).toBeNull();
     expect(isGameOver(supply)).toBe(false);
   });
 });

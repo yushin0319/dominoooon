@@ -154,20 +154,10 @@ describe('Hand: 使えるカードと使えないカードの見分け（アク�
     expect(c0.className).not.toMatch(/cursor-pointer/);
   });
 
-  it('使えるカードがあるときだけ、案内文を出す', () => {
+  it('案内文は手札の欄には出さない（手札のすぐ上の帯 TurnBar に出す）', () => {
     setViewportWidth(1366);
-    const { rerender } = render(<Hand hand={hand} onPlay={() => {}} canPlay />);
-    expect(screen.getByText('光っているカードを押してプレイ')).toBeVisible();
-
-    // アクションカードが無い手札
-    rerender(
-      <Hand hand={makeHand(['Copper', 'Estate'])} onPlay={() => {}} canPlay />,
-    );
-    expect(screen.queryByText('光っているカードを押してプレイ')).toBeNull();
-
-    // プレイできない場面（購入フェーズなど）
-    rerender(<Hand hand={hand} />);
-    expect(screen.queryByText('光っているカードを押してプレイ')).toBeNull();
+    render(<Hand hand={hand} onPlay={() => {}} canPlay />);
+    expect(screen.queryByText(/光っているカード/)).toBeNull();
   });
 
   it('プレイできない場面では、どのカードにも印を付けない', () => {

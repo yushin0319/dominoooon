@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getCardDef } from '../../domain/card';
 import type { CardInstance, SupplyPile } from '../../types';
-import {
-  getHandCardStatus,
-  getSupplyPileStatus,
-  hasPlayableCard,
-} from '../cardStatus';
+import { getHandCardStatus, getSupplyPileStatus } from '../cardStatus';
 
 function inst(name: string): CardInstance {
   return { instanceId: `${name}-1`, def: getCardDef(name) };
@@ -46,26 +42,6 @@ describe('getHandCardStatus（手札のカードが今プレイできるか）',
   it('アクションをプレイできない場面（購入フェーズ・アクション 0・相手の番）では、どのカードにも印を付けない', () => {
     expect(getHandCardStatus(inst('Workshop'), false)).toBeUndefined();
     expect(getHandCardStatus(inst('Copper'), false)).toBeUndefined();
-  });
-});
-
-describe('hasPlayableCard（案内文を出すかどうか）', () => {
-  it('アクションカードが 1 枚でもあれば true', () => {
-    expect(
-      hasPlayableCard([inst('Copper'), inst('Estate'), inst('Workshop')], true),
-    ).toBe(true);
-  });
-
-  it('アクションカードが無ければ false（銅貨と屋敷だけの手札）', () => {
-    expect(hasPlayableCard([inst('Copper'), inst('Estate')], true)).toBe(false);
-  });
-
-  it('プレイできない場面では、アクションカードがあっても false', () => {
-    expect(hasPlayableCard([inst('Workshop')], false)).toBe(false);
-  });
-
-  it('手札が空なら false', () => {
-    expect(hasPlayableCard([], true)).toBe(false);
   });
 });
 
