@@ -3,7 +3,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCardDef } from '../../domain/card';
-import { getHandLayout, MIN_TOUCH_STRIP } from '../../lib/handLayout';
+import {
+  EMPTY_HAND_ROW_HEIGHT,
+  getHandLayout,
+  MIN_TOUCH_STRIP,
+} from '../../lib/handLayout';
 import type { CardInstance } from '../../types';
 import Hand from '../Hand';
 
@@ -190,5 +194,34 @@ describe('Hand: ホバーで持ち上げたカードが隣を覆わない', () =
     render(<Hand hand={hand} onPlay={() => {}} canPlay />);
     expect(handCards()[1].dataset.hover).toBe('lift');
     expect(handCards()[1].dataset.hoverZ).toBeUndefined();
+  });
+});
+
+describe('Hand: 手札が空のとき', () => {
+  const originalWidth = window.innerWidth;
+  afterEach(() => setViewportWidth(originalWidth));
+
+  const note = '財宝 3 枚を自動で場に出しました（合計 4 コイン）';
+
+  it('空のときは一言を出す', () => {
+    setViewportWidth(390);
+    render(<Hand hand={[]} emptyMessage={note} />);
+    expect(screen.getByText(note)).toBeInTheDocument();
+    expect(handCards()).toHaveLength(0);
+  });
+
+  it('スマホ幅では欄を低くする（カードがあるときの列の高さより低い）', () => {
+    setViewportWidth(390);
+    render(<Hand hand={[]} emptyMessage={note} />);
+    const row = screen
+      .getByText(note)
+      .closest('[data-hand-row]') as HTMLElement;
+    expect(row.style.height).toBe(`${EMPTY_HAND_ROW_HEIGHT}px`);
+  });
+
+  it('カードがあるときは一言を出さない', () => {
+    setViewportWidth(390);
+    render(<Hand hand={copper(2)} emptyMessage={note} />);
+    expect(screen.queryByText(note)).not.toBeInTheDocument();
   });
 });

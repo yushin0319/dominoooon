@@ -8,6 +8,7 @@ import {
   BUY_PHASE_NOTICE,
   getAIStepMs,
   getAITurnStartMs,
+  getEmptyHandNote,
   getTurnGuide,
   getTurnNotice,
   needsConfirmToEndTurn,
@@ -282,5 +283,53 @@ describe('AI のターンの見せ方の時間', () => {
     expect(total(['action', 'treasure', 'buy'], true)).toBeLessThanOrEqual(
       1000,
     );
+  });
+});
+
+describe('getEmptyHandNote: 手札が空のときの一言', () => {
+  /** 人間の場に cards を置いた場面（手札は空） */
+  const withPlayArea = (
+    cardNames: string[],
+    opts: Parameters<typeof scene>[0],
+  ) => {
+    const s = scene({ ...opts, hand: [] });
+    return {
+      ...s,
+      players: [{ ...s.players[0], playArea: cards(cardNames) }, s.players[1]],
+    };
+  };
+
+  it('購入フェーズで財宝が場に出ていれば、自動で出した枚数と合計のコインを伝える', () => {
+    const s = withPlayArea(['Copper', 'Copper', 'Silver', 'Gold'], {
+      phase: Phase.Buy,
+      coins: 7,
+    });
+    expect(getEmptyHandNote(s)).toBe(
+      '財宝 4 枚を自動で場に出しました（合計 7 コイン）',
+    );
+  });
+
+  it('合計は場の財宝のコインだけを数える（アクションの +コインや、買って減った後のコインに左右されない）', () => {
+    const s = withPlayArea(['Market', 'Copper', 'Silver'], {
+      phase: Phase.Buy,
+      coins: 0,
+    });
+    expect(getEmptyHandNote(s)).toBe(
+      '財宝 2 枚を自動で場に出しました（合計 3 コイン）',
+    );
+  });
+
+  it('場に財宝が無い・購入フェーズでない・AI の番なら「手札はありません」', () => {
+    expect(
+      getEmptyHandNote(withPlayArea(['Village'], { phase: Phase.Buy })),
+    ).toBe('手札はありません');
+    expect(
+      getEmptyHandNote(withPlayArea(['Copper'], { phase: Phase.Action })),
+    ).toBe('手札はありません');
+    expect(
+      getEmptyHandNote(
+        withPlayArea(['Copper'], { phase: Phase.Buy, current: 1 }),
+      ),
+    ).toBe('手札はありません');
   });
 });

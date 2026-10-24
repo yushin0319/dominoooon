@@ -53,7 +53,7 @@ function aiTurnStart(opts: {
     phase: Phase.Action,
     turnState: { actions: 1, buys: 1, coins: 0 },
     turnNumber: opts.turnNumber ?? 2,
-    log: ['Game started'],
+    log: ['ゲーム開始'],
   };
 }
 
@@ -90,16 +90,18 @@ describe('planAITurn: AI のターンを段階に分ける（財宝を場に出�
     expect(buy.currentPlayerIndex).toBe(1);
     expect(names(buy.players[1].discard)).toEqual(['Silver']);
     expect(plan.steps[1].message).toBe('AIが銀貨を購入');
-    expect(buy.log.slice(-2)).toEqual([
-      '--- ターン2: AIのターン ---',
-      'AI: 5 コイン → 銀貨を購入',
-    ]);
+    // ターンの区切り（「--- ラウンド N: AIのターン ---」）は前の人がターンを終えたときに入っている（endTurn）
+    expect(buy.log).toEqual(['ゲーム開始', 'AI: 5 コイン → 銀貨を購入']);
 
     // 最後: ターンを終えて人間の番へ
     expect(plan.final.currentPlayerIndex).toBe(0);
     expect(plan.final.turnNumber).toBe(3);
     expect(plan.final.players[1].playArea).toEqual([]);
-    expect(plan.final.log).toEqual(buy.log);
+    // ターンを終えたら、次の人（人間）のターンの区切りが入る（通し 3 ターン目 = ラウンド 2）
+    expect(plan.final.log).toEqual([
+      ...buy.log,
+      '--- ラウンド 2: あなたのターン ---',
+    ]);
   });
 
   it('何も買わなかったターンも、まとめの 1 行をログに残す', () => {
@@ -109,10 +111,7 @@ describe('planAITurn: AI のターンを段階に分ける（財宝を場に出�
     const plan = planAITurn(start, bigMoneyStrategy, shuffle);
 
     expect(plan.steps[1].message).toBe('AIは何も買いませんでした');
-    expect(plan.final.log.slice(-2)).toEqual([
-      '--- ターン2: AIのターン ---',
-      'AI: 2 コイン → 購入なし',
-    ]);
+    expect(plan.steps[1].state.log.at(-1)).toBe('AI: 2 コイン → 購入なし');
   });
 
   it('財宝が 1 枚も無いときは、そう伝える（0 コイン）', () => {
@@ -124,7 +123,7 @@ describe('planAITurn: AI のターンを段階に分ける（財宝を場に出�
     expect(plan.steps[0].message).toBe(
       'AIの手札に財宝はありません（0 コイン）',
     );
-    expect(plan.final.log.at(-1)).toBe('AI: 0 コイン → 購入なし');
+    expect(plan.steps[1].state.log.at(-1)).toBe('AI: 0 コイン → 購入なし');
   });
 
   it('鍛冶屋を使う AI: 使ったアクションの段階が先に入り、ログにも残る', () => {
@@ -153,8 +152,8 @@ describe('planAITurn: AI のターンを段階に分ける（財宝を場に出�
       'AIが財宝を出しました: 銅貨×4・銀貨・金貨 → 9 コイン',
     );
     expect(plan.steps[2].message).toBe('AIが属州を購入');
-    expect(plan.final.log.slice(-3)).toEqual([
-      '--- ターン2: AIのターン ---',
+    expect(plan.steps[2].state.log).toEqual([
+      'ゲーム開始',
       'AIは鍛冶屋をプレイしました（+3 ドロー）',
       'AI: 9 コイン → 属州を購入',
     ]);

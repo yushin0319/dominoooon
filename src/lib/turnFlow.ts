@@ -2,7 +2,7 @@ import type { AITurnStepKind } from '../ai/aiTurn';
 import { getAvailableCards, getGameEndReason } from '../domain/supply';
 import { canBuy, canPlayAction } from '../domain/turn';
 import type { GameState, TurnState } from '../types';
-import { Phase } from '../types';
+import { CardType, Phase } from '../types';
 import { getGameEndReasonText } from './gameEnd';
 
 /** 人間のプレイヤーの番号（players[0]） */
@@ -191,4 +191,30 @@ export function getTurnGuide(state: GameState): TurnGuide {
     };
   }
   return { message: '', action: null, busy: false };
+}
+
+/**
+ * 手札が空のときに手札の欄に出す一言。
+ * 購入フェーズでは財宝が自動で場に出て手札が空になることが多いので、何が起きたかを伝える。
+ * 合計は場の財宝のコインだけを数える（買ったあとに残りのコインが減っても変わらないように）
+ */
+export function getEmptyHandNote(state: GameState): string {
+  const human = state.players[HUMAN_PLAYER_INDEX];
+  if (
+    human &&
+    state.currentPlayerIndex === HUMAN_PLAYER_INDEX &&
+    state.phase === Phase.Buy
+  ) {
+    const treasures = human.playArea.filter((c) =>
+      c.def.types.includes(CardType.Treasure),
+    );
+    if (treasures.length > 0) {
+      const coins = treasures.reduce(
+        (sum, c) => sum + (c.def.effects.coins ?? 0),
+        0,
+      );
+      return `財宝 ${treasures.length} 枚を自動で場に出しました（合計 ${coins} コイン）`;
+    }
+  }
+  return '手札はありません';
 }

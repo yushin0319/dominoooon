@@ -68,7 +68,7 @@ const SupplyPileItem = memo(function SupplyPileItem({
           （灰色だと暗くしたカードに溶けて、空の山に気づきにくかった。空の山が 3 つでゲーム終了） */}
       {empty && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold text-white bg-rose-600 ring-1 ring-white/60 shadow-md whitespace-nowrap">
+          <span className="px-2 py-0.5 rounded-full text-xs font-bold text-white bg-rose-600 ring-1 ring-white/60 shadow-md whitespace-nowrap">
             売り切れ
           </span>
         </div>
@@ -165,7 +165,7 @@ const SupplyArea = memo(function SupplyArea({
           </div>
 
           {/* 区切り線（ダークテーマ対応）。折り返す幅では行末に残るので出さない */}
-          <div className="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600" />
+          <div className="hidden lg:block w-px h-16 bg-gray-600" />
 
           {/* 勝利点カード */}
           <div className="flex items-center gap-3">
@@ -183,7 +183,7 @@ const SupplyArea = memo(function SupplyArea({
           {/* 呪いカード（存在する場合） */}
           {curse.length > 0 && (
             <>
-              <div className="hidden lg:block w-px h-16 bg-gray-300 dark:bg-gray-600" />
+              <div className="hidden lg:block w-px h-16 bg-gray-600" />
               <div className="flex items-center gap-3">
                 {curse.map((pile) => (
                   <SupplyPileItem

@@ -73,7 +73,8 @@ export function planAITurn(
 ): AITurnPlan {
   const idx = state.currentPlayerIndex;
   const steps: AITurnStep[] = [];
-  let s = addLog(state, `--- ターン${state.turnNumber}: AIのターン ---`);
+  // ターンの区切り（「--- ラウンド N: AIのターン ---」）は、前の人がターンを終えたときに endTurn が入れている
+  let s = state;
 
   if (s.phase === Phase.Action) {
     // 1. アクション（使ったカードは場の末尾に増える）

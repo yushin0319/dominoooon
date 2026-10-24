@@ -20,6 +20,15 @@ export const HAND_ROW_SIDE_MARGIN = 24;
 /** 一列に並べるとき、各カードの見えている帯の最小幅（指で押せる大きさの目安 44px） */
 export const MIN_TOUCH_STRIP = 44;
 
+/**
+ * 手札が空のときの列の高さ（縦に積む画面だけ）。一言（2 行まで）が入る高さ。
+ * スマホの購入フェーズでは財宝が自動で場に出て手札が空になり、空の欄が高さを使い続けていた
+ */
+export const EMPTY_HAND_ROW_HEIGHT = 32;
+
+/** これより狭い画面は縦に積む（Tailwind の lg）。PC 幅では手札が空でも高さを変えない（中央の列が上下に動かないように） */
+const STACKED_LAYOUT_MAX_WIDTH = 1024;
+
 /** 使えるカードにホバーしたときに持ち上げる量（px） */
 export const HOVER_LIFT = 5;
 
@@ -95,6 +104,18 @@ export function getHandLayout(
   cardCount: number,
   viewportWidth: number,
 ): HandLayout {
+  // 手札が空: 縦に積む画面では低くして、ほかの欄（サプライ）に高さを回す
+  if (cardCount === 0 && viewportWidth < STACKED_LAYOUT_MAX_WIDTH) {
+    return {
+      mode: 'row',
+      overlap: HAND_MIN_OVERLAP,
+      poses: [],
+      rowHeight: EMPTY_HAND_ROW_HEIGHT,
+      scrollable: false,
+      raiseOnHover: false,
+    };
+  }
+
   const fanFits =
     viewportWidth >= FAN_MIN_VIEWPORT &&
     rowWidth(cardCount, HAND_MIN_OVERLAP) <= viewportWidth - HAND_SIDE_MARGIN;
