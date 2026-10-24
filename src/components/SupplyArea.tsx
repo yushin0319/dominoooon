@@ -1,4 +1,5 @@
-import { memo, useMemo } from 'react';
+import { memo, type ReactNode, useMemo } from 'react';
+import { BASIC_SUPPLY, isKingdomPile } from '../domain/supply';
 import { getSupplyPileStatus } from '../lib/cardStatus';
 import { CardType, type SupplyPile } from '../types';
 import CardView from './CardView';
@@ -8,6 +9,8 @@ interface SupplyAreaProps {
   onBuy?: (cardName: string) => void;
   canBuy?: boolean;
   maxCost?: number;
+  /** 「キングダム」の見出しの右に置くもの（スマホのゲーム中の「?」とメニュー） */
+  headerAction?: ReactNode;
 }
 
 interface SupplyPileItemProps {
@@ -77,22 +80,12 @@ const SupplyPileItem = memo(function SupplyPileItem({
   );
 });
 
-// 基本サプライカード名（王国カードと区別するため）
-const BASIC_CARDS = new Set([
-  'Copper',
-  'Silver',
-  'Gold',
-  'Estate',
-  'Duchy',
-  'Province',
-  'Curse',
-]);
-
 const SupplyArea = memo(function SupplyArea({
   supply,
   onBuy,
   canBuy,
   maxCost,
+  headerAction,
 }: SupplyAreaProps) {
   // 基本カード vs 王国カードで分類（Gardens等のVictory王国カードを正しく分類）
   const treasure = useMemo(
@@ -100,7 +93,7 @@ const SupplyArea = memo(function SupplyArea({
       supply.filter(
         (p) =>
           p.card.types.includes(CardType.Treasure) &&
-          BASIC_CARDS.has(p.card.name),
+          BASIC_SUPPLY.has(p.card.name),
       ),
     [supply],
   );
@@ -109,7 +102,7 @@ const SupplyArea = memo(function SupplyArea({
       supply.filter(
         (p) =>
           p.card.types.includes(CardType.Victory) &&
-          BASIC_CARDS.has(p.card.name),
+          BASIC_SUPPLY.has(p.card.name),
       ),
     [supply],
   );
@@ -117,18 +110,27 @@ const SupplyArea = memo(function SupplyArea({
     () => supply.filter((p) => p.card.types.includes(CardType.Curse)),
     [supply],
   );
-  const kingdom = useMemo(
-    () => supply.filter((p) => !BASIC_CARDS.has(p.card.name)),
-    [supply],
-  );
+  const kingdom = useMemo(() => supply.filter(isKingdomPile), [supply]);
 
   return (
     <div className="flex flex-col gap-5">
       {/* キングダムカード（PC では 5 枚 × 2 行、狭い画面では折り返す） */}
       <div className="flex flex-col items-center gap-3">
-        <h3 className="text-sm font-semibold text-slate-300 mb-1">
-          キングダム
-        </h3>
+        {headerAction ? (
+          // 見出しは真ん中のまま、右端に置く。置くものが lg 以上で隠れるときは高さも元に戻す（PC は縦の余りが無い）
+          <div className="relative w-full flex items-center justify-center min-h-11 lg:min-h-0">
+            <h3 className="text-sm font-semibold text-slate-300 mb-1">
+              キングダム
+            </h3>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2">
+              {headerAction}
+            </div>
+          </div>
+        ) : (
+          <h3 className="text-sm font-semibold text-slate-300 mb-1">
+            キングダム
+          </h3>
+        )}
 
         {/* 最大幅 448px = カード幅 80px（w-20）× 5 + 間隔 12px（gap-3）× 4 で 1 行 5 枚に揃える */}
         <div className="flex flex-wrap items-center justify-center gap-3 max-w-[448px]">

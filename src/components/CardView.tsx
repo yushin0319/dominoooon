@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import type { CardStatus } from '../lib/cardStatus';
+import { getTextColor, typeNameJa } from '../lib/cardType';
 import {
   isHoverPointer,
   isLongPressCancelled,
@@ -57,28 +58,6 @@ function getBorderColor(types: CardType[]): string {
   if (types.includes('Curse' as CardType)) return 'border-purple-500';
   if (types.includes('Action' as CardType)) return 'border-gray-400';
   return 'border-gray-500';
-}
-
-function getTextColor(types: CardType[]): string {
-  if (types.includes('Attack' as CardType)) return 'text-red-400';
-  if (types.includes('Reaction' as CardType)) return 'text-blue-400';
-  if (types.includes('Treasure' as CardType)) return 'text-amber-300';
-  if (types.includes('Victory' as CardType)) return 'text-green-300';
-  if (types.includes('Curse' as CardType)) return 'text-purple-400';
-  if (types.includes('Action' as CardType)) return 'text-gray-300';
-  return 'text-gray-400';
-}
-
-function typeNameJa(type: CardType): string {
-  const map: Record<string, string> = {
-    Action: 'アクション',
-    Treasure: '財宝',
-    Victory: '勝利点',
-    Curse: '呪い',
-    Attack: 'アタック',
-    Reaction: 'リアクション',
-  };
-  return map[type] ?? type;
 }
 
 /**

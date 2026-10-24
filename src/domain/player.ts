@@ -127,18 +127,16 @@ export function gainCardToDeck(
   return { ...player, deck: [instance, ...player.deck] };
 }
 
+/** カード 1 枚の勝利点（固定の点 + 庭園のように持っているカードで決まる点）。結果画面の内訳もこれで数える */
+export function getCardVP(def: CardDef, player: PlayerState): number {
+  return (def.vpValue ?? 0) + (def.vpCalculator?.(player) ?? 0);
+}
+
 export function calculateVP(player: PlayerState): number {
-  const all = getAllCards(player);
-  let vp = 0;
-  for (const card of all) {
-    if (card.def.vpValue !== undefined) {
-      vp += card.def.vpValue;
-    }
-    if (card.def.vpCalculator) {
-      vp += card.def.vpCalculator(player);
-    }
-  }
-  return vp;
+  return getAllCards(player).reduce(
+    (vp, card) => vp + getCardVP(card.def, player),
+    0,
+  );
 }
 
 export function getAllCards(player: PlayerState): CardInstance[] {

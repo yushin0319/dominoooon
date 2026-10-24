@@ -6,6 +6,8 @@ interface ConfirmDialogProps {
   /** 何が起きるか・何が残っているかの説明 */
   message: string;
   confirmLabel: string;
+  /** やめる側のボタン（既定は「やめる」。確定が「やめる」のとき＝ゲームをやめる確認では「続ける」にする） */
+  cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,6 +20,7 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel,
+  cancelLabel = 'やめる',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -47,7 +50,7 @@ export default function ConfirmDialog({
             onClick={onCancel}
             className="min-h-11 px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
           >
-            やめる
+            {cancelLabel}
           </button>
           <button
             type="button"
