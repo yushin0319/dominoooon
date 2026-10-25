@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useViewportWidth } from '../hooks/useViewportWidth';
 import { type CardStatus, getHandCardStatus } from '../lib/cardStatus';
 import {
@@ -44,6 +44,9 @@ const HandCard = memo(function HandCard({
 }: HandCardProps) {
   // 押せるのは今プレイできるカード（アクションフェーズのアクションカード）だけ
   const playable = status === 'available' && onPlay !== undefined;
+  // キーボードで選んでいる間は、ホバーと同じく持ち上げて一番手前に出す（重なった隣のカードにフォーカスの枠が隠れないように）
+  const [keyboardFocused, setKeyboardFocused] = useState(false);
+  const lifted = playable && keyboardFocused;
 
   const handleClick = useCallback(() => {
     if (playable && onPlay) {
@@ -56,7 +59,7 @@ const HandCard = memo(function HandCard({
       data-hand-card=""
       initial={{ y: 100, opacity: 0 }}
       animate={{
-        y: isSelected ? pose.y - 30 : pose.y,
+        y: isSelected ? pose.y - 30 : lifted ? pose.y - HOVER_LIFT : pose.y,
         opacity: 1,
         rotate: pose.rotate,
         scale: isSelected ? 1.05 : 1,
@@ -72,7 +75,7 @@ const HandCard = memo(function HandCard({
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       style={{
         marginLeft: index === 0 ? 0 : -overlap,
-        zIndex: isSelected ? 100 : index,
+        zIndex: isSelected ? 100 : lifted ? 60 : index,
       }}
       className={cn('shrink-0', playable ? 'cursor-pointer' : 'cursor-default')}
     >
@@ -81,6 +84,10 @@ const HandCard = memo(function HandCard({
         selected={isSelected}
         status={status}
         onClick={playable ? handleClick : undefined}
+        label={`${card.def.nameJa}をプレイ`}
+        // 数字キー 1〜9 で左から N 枚目をプレイできる（GamePage）
+        keyShortcut={index < 9 ? String(index + 1) : undefined}
+        onKeyboardFocusChange={setKeyboardFocused}
       />
     </motion.div>
   );

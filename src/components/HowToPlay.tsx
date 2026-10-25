@@ -27,6 +27,14 @@ const CONTROLS = [
   ['途中でやめても大丈夫', '自動で保存し、次に開いたときに続きから遊べる'],
 ];
 
+/** キーボードでの操作（パソコン） */
+const KEYBOARD = [
+  ['Tab / Shift + Tab', '押せるカード・ボタンへ移る（説明も出る）'],
+  ['Enter / Space', 'カードを使う・買う、ボタンを押す、選択画面でカードを選ぶ'],
+  ['1〜9', '手札の左から 1〜9 枚目を使う'],
+  ['Esc', '遊び方・メニュー・確認などを閉じる（効果の選択画面は閉じない）'],
+];
+
 interface HowToPlayDialogProps {
   onClose: () => void;
 }
@@ -44,8 +52,14 @@ export default function HowToPlayDialog({ onClose }: HowToPlayDialogProps) {
       backdropClassName="bg-black/70"
       className="w-full max-w-lg max-h-full flex flex-col bg-slate-800 border border-slate-600 rounded-lg shadow-xl text-slate-200"
     >
-      {/* 中身が画面より高いときは、ここだけスクロールする（見出しと「閉じる」は常に見える） */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 space-y-5 text-sm leading-relaxed">
+      {/* 中身が画面より高いときは、ここだけスクロールする（見出しと「閉じる」は常に見える）。
+          キーボードでも読み進められるよう Tab で選べる欄にする（選んで矢印キー・PageDown でスクロール） */}
+      <section
+        aria-label="遊び方の説明"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: スクロールする欄をキーボードでスクロールできるようにする（WCAG 2.1.1。axe の scrollable-region-focusable と同じ考え方）
+        tabIndex={0}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 space-y-5 text-sm leading-relaxed"
+      >
         <section>
           <h3 className="mb-1 font-bold text-white">勝ち方</h3>
           <p>
@@ -95,7 +109,19 @@ export default function HowToPlayDialog({ onClose }: HowToPlayDialogProps) {
             ))}
           </dl>
         </section>
-      </div>
+
+        <section>
+          <h3 className="mb-2 font-bold text-white">キーボード（パソコン）</h3>
+          <dl className="space-y-2">
+            {KEYBOARD.map(([keys, desc]) => (
+              <div key={keys}>
+                <dt className="font-semibold text-slate-100">{keys}</dt>
+                <dd className="text-slate-300">{desc}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      </section>
       <div className="px-5 py-3 flex justify-end border-t border-slate-700">
         <button
           type="button"

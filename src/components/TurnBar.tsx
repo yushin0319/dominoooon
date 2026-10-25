@@ -95,7 +95,7 @@ const TurnBar = memo(function TurnBar({
                 <span
                   data-testid="turn-bar-spinner"
                   aria-hidden="true"
-                  className="shrink-0 w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"
+                  className="shrink-0 w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full motion-safe:animate-spin"
                 />
               )}
               <p
@@ -131,10 +131,14 @@ const TurnBar = memo(function TurnBar({
           </button>
         )}
         {showPrimary && (
+          // 名前が変わったら（購入へ進む → ターン終了）別のボタンとして作り直す。同じボタンのままだとフォーカスが残り、
+          // キーボードで Enter を 2 回押しただけで、買わずにターンを終えてしまう（フォーカスはサプライへ移す: GamePage）
           <button
+            key={primaryLabel}
             type="button"
+            data-turn-primary=""
             onClick={onPrimary}
-            className="shrink-0 min-h-11 px-5 text-sm font-bold text-white whitespace-nowrap bg-purple-600 rounded-lg shadow-lg hover:bg-purple-700 active:scale-95 transition"
+            className="shrink-0 min-h-11 px-5 text-sm font-bold text-white whitespace-nowrap bg-purple-600 rounded-lg shadow-lg hover:bg-purple-700 motion-safe:active:scale-95 transition"
           >
             {primaryLabel}
           </button>

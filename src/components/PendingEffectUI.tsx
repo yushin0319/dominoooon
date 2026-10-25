@@ -1,8 +1,10 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { getEffectTitle } from '../constants/effectLabels';
 import { getCardDef } from '../domain/card';
 import type { PendingEffectChoice } from '../domain/effect';
+import { useDialogKeyboard } from '../hooks/useDialogKeyboard';
 import { useViewportWidth } from '../hooks/useViewportWidth';
+import { getTabbable } from '../lib/focus';
 import type { CardInstance, PendingEffect, SupplyPile } from '../types';
 import { CardType } from '../types';
 import CardView from './CardView';
@@ -117,6 +119,8 @@ function CardPicker({
             selected={selected.includes(c.instanceId)}
             onClick={() => toggle(c.instanceId)}
             detailOnTap
+            toggle
+            label={nameOf(c)}
           />
         ))}
       </div>
@@ -213,6 +217,8 @@ function SupplyPicker({
               )
             }
             detailOnTap
+            toggle
+            label={`${p.card.nameJa ?? p.card.name}（コスト ${p.card.cost}）`}
           />
         ))}
       </div>
@@ -595,10 +601,31 @@ function PendingBody({
   }
 }
 
+// 閉じる手段は無い（Esc で閉じると効果が消えるので、選んで確定するまで出しておく）
+const noClose = () => {};
+
 export default function PendingEffectUI(props: PendingEffectUIProps) {
   const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const pendingKey = getPendingKey(props.pendingEffect);
+  // キーボード: 開いたら最初のカード（無ければ最初のボタン）へ、Tab は中で回す、Esc では閉じない
+  useDialogKeyboard(dialogRef, noClose, {
+    initialFocus: 'first',
+    closeOnEscape: false,
+  });
+
+  // 選択待ちが新しくなったら（玉座の間の 2 回目など、画面は開いたまま中身だけ作り直す）、また最初のカードへ。
+  // 押した確定ボタンは作り直しで消え、フォーカスが行き場をなくすため
+  useEffect(() => {
+    void pendingKey; // 選択待ちが変わったときに動かすための依存（中では使わない）
+    const dialog = dialogRef.current;
+    if (!dialog || dialog.contains(document.activeElement)) return;
+    getTabbable(dialog)[0]?.focus();
+  }, [pendingKey]);
+
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -607,7 +634,7 @@ export default function PendingEffectUI(props: PendingEffectUIProps) {
       <h2 id={titleId} className="text-lg sm:text-xl font-bold text-white mb-4">
         {getEffectTitle(props.pendingEffect, props.hand.length)}
       </h2>
-      <PendingBody key={getPendingKey(props.pendingEffect)} {...props} />
+      <PendingBody key={pendingKey} {...props} />
     </div>
   );
 }

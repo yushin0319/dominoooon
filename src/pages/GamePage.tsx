@@ -24,6 +24,7 @@ import TurnBar from '../components/TurnBar';
 import TurnInfo from '../components/TurnInfo';
 import { getCardDef } from '../domain/card';
 import { getRoundNumber } from '../domain/game';
+import { useFocusFallback } from '../hooks/useFocusFallback';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { getGameEndReasonText, getGameEndStatus } from '../lib/gameEnd';
 import {
@@ -45,10 +46,35 @@ import {
   useGameStore,
 } from '../stores/gameStore';
 import type { PendingEffect, PlayerState } from '../types';
-import { CardType } from '../types';
+import { CardType, Phase } from '../types';
 
 // Timing constants（AI のターンの段階を見せる時間は lib/turnFlow.ts）
 const EFFECT_RESOLVE_DELAY_MS = 400;
+
+/**
+ * キーボードで遊んでいてフォーカスが行き場をなくしたときの移し先（自分の番だけ）:
+ * アクションフェーズは使える手札、購入フェーズは買えるカード、どちらも無ければターンを進めるボタン
+ */
+function getKeyboardFocusTarget(): HTMLElement | null {
+  const gs = useGameStore.getState().gameState;
+  if (!gs || gs.gameOver || gs.pendingEffect || gs.currentPlayerIndex !== 0) {
+    return null;
+  }
+  const area = gs.phase === Phase.Action ? '[data-hand-card]' : '[data-supply]';
+  return (
+    document.querySelector<HTMLElement>(`${area} [tabindex="0"]`) ??
+    document.querySelector<HTMLElement>('[data-turn-primary]')
+  );
+}
+
+/** 数字キーの手札の近道を受けない入力欄（今は無いが、文字を打つ所では数字を打てるように） */
+function isTextInput(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+  );
+}
 
 // Game flow state machine
 type GameFlowState =
@@ -154,6 +180,28 @@ export default function GamePage() {
   );
   const prevTurnRef = useRef<TurnPoint | null>(null);
   const gameOverTitleId = useId();
+  // キーボードで遊んでいるとき、使ったカードが消えた・ボタンが消えた・自分の番になったら、次に押す所へフォーカスを移す
+  useFocusFallback(getKeyboardFocusTarget);
+
+  // 数字キー 1〜9 で手札の左から N 枚目をプレイする（使えるアクションカードのときだけ）。
+  // ダイアログ（確認・メニュー・遊び方・ログ・山札の欄・効果の選択）を開いている間は受けない
+  const dialogOpen = confirm !== null || menu !== null || statusOpen || logOpen;
+  useEffect(() => {
+    if (dialogOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!/^[1-9]$/.test(e.key) || e.repeat) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || isTextInput(e.target)) return;
+      const gs = useGameStore.getState().gameState;
+      if (!gs || getTurnGuide(gs).action !== 'end-actions') return;
+      if (gs.turnState.actions <= 0) return;
+      const card = gs.players[0].hand[Number(e.key) - 1];
+      if (!card?.def.types.includes(CardType.Action)) return;
+      e.preventDefault();
+      playAction(card.instanceId);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [dialogOpen, playAction]);
 
   const endStatus = useMemo(
     () => (supply ? getGameEndStatus(supply) : null),

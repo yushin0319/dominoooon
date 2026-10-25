@@ -96,4 +96,11 @@
     width: 100%;
     min-height: 100vh;
   }
+
+  /* キーボードで移ったときに見える枠（:focus-visible なので、マウス・指で押したときは出ない）。
+     暗い背景の上でも、カードの光る枠（緑）・選んだ枠（黄）とも見分けられる青（sky-400）。角は要素の丸みに沿う */
+  :focus-visible {
+    outline: 3px solid #38bdf8;
+    outline-offset: 2px;
+  }
 }

@@ -1,47 +1,80 @@
 import { type RefObject, useEffect, useRef } from 'react';
+import { getTabbable } from '../lib/focus';
 
-const FOCUSABLE = 'button, [href], input, [tabindex]:not([tabindex="-1"])';
+export interface DialogKeyboardOptions {
+  /**
+   * 開いたときにフォーカスを当てる所。
+   * 'last'（既定）= 最後の押せるボタン（閉じる・確定）/ 'first' = 最初の押せる要素（選択画面のカード）/
+   * 要素の ref = その要素（確認ダイアログの「やめる」「続ける」）
+   */
+  initialFocus?: 'first' | 'last' | RefObject<HTMLElement | null>;
+  /** Esc で閉じるか（既定 true。閉じると効果が消える選択画面は false） */
+  closeOnEscape?: boolean;
+}
+
+/** 開いたときにフォーカスする要素（押せないボタンは飛ばす） */
+function pickInitial(
+  dialog: HTMLElement,
+  initialFocus: DialogKeyboardOptions['initialFocus'],
+): HTMLElement | undefined {
+  if (initialFocus && typeof initialFocus === 'object') {
+    return initialFocus.current ?? undefined;
+  }
+  const tabbable = getTabbable(dialog);
+  if (initialFocus === 'first') return tabbable[0];
+  const buttons = tabbable.filter((el) => el.tagName === 'BUTTON');
+  return buttons[buttons.length - 1] ?? tabbable[0];
+}
 
 /**
- * ダイアログのキーボード操作: 開いたら最後のボタン（確定・閉じる）にフォーカス、Esc で閉じる、
- * Tab はダイアログの中で回す。閉じたら開く前にフォーカスがあった所へ戻す
+ * ダイアログのキーボード操作: 開いたらダイアログの中へフォーカス（既定は最後のボタン）、Esc で閉じる、
+ * Tab はダイアログの中で回す（外にフォーカスがあれば中へ戻す）。閉じたら開く前にフォーカスがあった所へ戻す
  */
 export function useDialogKeyboard(
   dialogRef: RefObject<HTMLElement | null>,
   onClose: () => void,
+  options: DialogKeyboardOptions = {},
 ) {
-  // ref で最新の onClose を保持してエフェクトの再実行を防ぐ
+  // ref で最新の値を保持してエフェクトの再実行を防ぐ（開いている間に何度描き直しても、開いたときの処理は 1 回だけ）
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   useEffect(() => {
     const opener =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
-    const buttons =
-      dialogRef.current?.querySelectorAll<HTMLButtonElement>('button');
-    buttons?.[buttons.length - 1]?.focus();
+    const dialog = dialogRef.current;
+    if (dialog) pickInitial(dialog, optionsRef.current.initialFocus)?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onCloseRef.current();
+        if (optionsRef.current.closeOnEscape !== false) onCloseRef.current();
         return;
       }
       // フォーカストラップ: Tab キーをダイアログ内に閉じ込める
-      if (e.key === 'Tab' && dialogRef.current) {
-        const focusable = Array.from(
-          dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
-        );
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last?.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
+      const current = dialogRef.current;
+      if (e.key !== 'Tab' || !current) return;
+      const tabbable = getTabbable(current);
+      const first = tabbable[0];
+      const last = tabbable[tabbable.length - 1];
+      if (!first || !last) {
+        e.preventDefault();
+        return;
+      }
+      const active = document.activeElement;
+      if (!(active instanceof Node) || !current.contains(active)) {
+        // 外（後ろの画面・body）にフォーカスがあるときは中へ戻す
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
 

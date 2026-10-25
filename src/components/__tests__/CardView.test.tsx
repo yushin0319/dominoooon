@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCardDef } from '../../domain/card';
 import { LONG_PRESS_MS } from '../../lib/pointer';
@@ -312,5 +313,125 @@ describe('CardView: 文字がバッジに隠れない', () => {
     render(<CardView card={getCardDef('Cellar')} small remaining={10} />);
     const header = screen.getByText('地下貯蔵庫', { selector: 'div' });
     expect(header.className).toContain('pr-[25px]');
+  });
+});
+
+describe('CardView: キーボードで押す', () => {
+  const original = { w: window.innerWidth, h: window.innerHeight };
+  beforeEach(() => {
+    setViewport(1366, 900);
+    mockRects(PC_HAND_CARD);
+  });
+  afterEach(() => {
+    setViewport(original.w, original.h);
+    vi.restoreAllMocks();
+  });
+
+  it('押せるカードは Tab で選べるボタン。名前は label（何が起きるか）', async () => {
+    const user = userEvent.setup();
+    render(
+      <CardView
+        card={getCardDef('Village')}
+        onClick={() => {}}
+        label="村をプレイ"
+      />,
+    );
+    await user.tab();
+    expect(screen.getByRole('button', { name: '村をプレイ' })).toHaveFocus();
+  });
+
+  it('押せないカードはボタンにしない（Tab で止まらない）', () => {
+    render(<CardView card={getCardDef('Copper')} label="銅貨" />);
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(cardRoot('銅貨')).not.toHaveAttribute('tabindex');
+  });
+
+  it('Enter と Space で押せる（1 回押せば 1 回だけ）', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(<CardView card={getCardDef('Village')} onClick={onClick} />);
+    await user.tab();
+    await user.keyboard('{Enter}');
+    expect(onClick).toHaveBeenCalledTimes(1);
+    await user.keyboard(' ');
+    expect(onClick).toHaveBeenCalledTimes(2);
+  });
+
+  it('選択画面のカード（toggle）は、選んでいるかを読み上げで伝える（aria-pressed）', () => {
+    const { rerender } = render(
+      <CardView card={getCardDef('Village')} onClick={() => {}} toggle />,
+    );
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
+    rerender(
+      <CardView
+        card={getCardDef('Village')}
+        onClick={() => {}}
+        toggle
+        selected
+      />,
+    );
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('キーボードで移ってきたら説明を出し（読み上げでもつなぐ）、離れたら消す', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <CardView
+          card={getCardDef('Village')}
+          onClick={() => {}}
+          label="村をプレイ"
+        />
+        <button type="button">次</button>
+      </>,
+    );
+    await user.tab();
+    const tip = tooltip() as HTMLElement;
+    expect(tip).toHaveTextContent('+2 アクション');
+    expect(screen.getByRole('button', { name: '村をプレイ' })).toHaveAttribute(
+      'aria-describedby',
+      tip.id,
+    );
+    await user.tab();
+    expect(tooltip()).toBeNull();
+  });
+
+  it('押せなくなったら（買ってコインが足りなくなった等）キーボードで出した説明を閉じる', async () => {
+    const user = userEvent.setup();
+    const onFocusChange = vi.fn();
+    const { rerender } = render(
+      <CardView
+        card={getCardDef('Silver')}
+        onClick={() => {}}
+        label="銀貨を購入"
+        onKeyboardFocusChange={onFocusChange}
+      />,
+    );
+    await user.tab();
+    expect(tooltip()).not.toBeNull();
+    expect(onFocusChange).toHaveBeenLastCalledWith(true);
+    // 押せなくなった要素からはフォーカスが黙って外れ、blur が来ないことがある
+    rerender(
+      <CardView
+        card={getCardDef('Silver')}
+        label="銀貨を購入"
+        onKeyboardFocusChange={onFocusChange}
+      />,
+    );
+    expect(tooltip()).toBeNull();
+    expect(onFocusChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('説明はスクロールで閉じず、場所を測り直す（キーボードで移ると、見える所までスクロールするため）', async () => {
+    const user = userEvent.setup();
+    render(
+      <CardView card={getCardDef('Village')} onClick={() => {}} label="村" />,
+    );
+    await user.tab();
+    expect(tooltip()).not.toBeNull();
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(tooltip()).not.toBeNull();
   });
 });

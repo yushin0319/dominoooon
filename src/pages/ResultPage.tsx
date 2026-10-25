@@ -43,7 +43,7 @@ export default function ResultPage() {
   const kingdom = getKingdomNames(gameState.supply);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 motion-safe:animate-fade-in">
       <div className="w-full max-w-lg space-y-5">
         <header className="text-center space-y-2">
           <p className="text-sm font-medium text-slate-400">ゲーム終了</p>
@@ -171,7 +171,7 @@ export default function ResultPage() {
             <button
               type="button"
               onClick={restartGame}
-              className="min-h-12 px-6 inline-flex items-center justify-center gap-2 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 active:scale-95 transition-all shadow-lg"
+              className="min-h-12 px-6 inline-flex items-center justify-center gap-2 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 motion-safe:active:scale-95 transition-all shadow-lg"
             >
               <RotateCcw aria-hidden="true" className="w-5 h-5" />
               同じキングダムでもう一度

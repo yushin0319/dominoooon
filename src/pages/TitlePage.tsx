@@ -9,7 +9,7 @@ export default function TitlePage() {
   const [helpOpen, setHelpOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-8 px-4 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 animate-fade-in">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-8 px-4 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 motion-safe:animate-fade-in">
       {/* 360px 幅では 60px の文字が画面から 6px はみ出していたので、狭い画面だけ一段小さくする */}
       <h1 className="text-5xl min-[380px]:text-6xl font-bold text-white drop-shadow-lg">
         Dominoooon
@@ -19,7 +19,7 @@ export default function TitlePage() {
         <button
           type="button"
           onClick={goToSetup}
-          className="px-8 py-4 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 active:scale-95 transition-all shadow-lg hover:shadow-xl"
+          className="px-8 py-4 text-lg font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 motion-safe:active:scale-95 transition-all shadow-lg hover:shadow-xl"
         >
           ゲーム開始
         </button>

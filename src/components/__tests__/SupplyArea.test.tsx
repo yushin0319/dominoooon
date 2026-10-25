@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { getCardDef } from '../../domain/card';
 import type { SupplyPile } from '../../types';
@@ -95,5 +96,39 @@ describe('SupplyArea: 見出し', () => {
       expect(h.className).toMatch(/text-slate-300/);
       expect(h.className).not.toMatch(/opacity-/);
     }
+  });
+});
+
+describe('SupplyArea: キーボードで買う', () => {
+  it('買えるカードだけが Tab で選べるボタン。名前に「購入」・コスト・残り枚数', () => {
+    render(
+      <SupplyArea supply={makeSupply()} onBuy={() => {}} canBuy maxCost={3} />,
+    );
+    const names = screen.getAllByRole('button').map((b) => b.textContent);
+    expect(names).toHaveLength(6); // 銅貨・銀貨・屋敷・呪い・地下貯蔵庫・工房（礼拝堂は売り切れ）
+    expect(
+      screen.getByRole('button', {
+        name: '銀貨を購入（コスト 3・残り 10 枚）',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /金貨/ })).toBeNull();
+  });
+
+  it('Tab で移って Enter で 1 回だけ買う（外側と内側で 2 回呼ばれない）', async () => {
+    const user = userEvent.setup();
+    const onBuy = vi.fn();
+    render(
+      <SupplyArea supply={makeSupply()} onBuy={onBuy} canBuy maxCost={3} />,
+    );
+    const silver = screen.getByRole('button', { name: /^銀貨を購入/ });
+    while (document.activeElement !== silver) await user.tab();
+    await user.keyboard('{Enter}');
+    expect(onBuy).toHaveBeenCalledTimes(1);
+    expect(onBuy).toHaveBeenCalledWith('Silver');
+  });
+
+  it('購入フェーズでなければ、どのカードも Tab で止まらない', () => {
+    render(<SupplyArea supply={makeSupply()} />);
+    expect(screen.queryAllByRole('button')).toEqual([]);
   });
 });
