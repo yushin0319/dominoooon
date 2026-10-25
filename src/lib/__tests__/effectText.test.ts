@@ -16,6 +16,12 @@ describe('getEffectText: カードの効果の文（カード・説明・ログ�
     );
   });
 
+  it('密猟者の説明は、画面の「空の山」と同じ言葉で短く書く（「空サプライ」と言い方が分かれ、手札のカードで 5 行になって絵が隠れていた）', () => {
+    expect(getEffectText(getCardDef('Poacher'))).toBe(
+      '+1 ドロー、+1 アクション、+1 コイン、空の山の数だけ手札を捨てる',
+    );
+  });
+
   it('庭園にも効果の文がある（セットアップ画面・説明で空欄だった）', () => {
     expect(getEffectText(getCardDef('Gardens'))).toBe(
       '自分のカード10枚につき1勝利点',

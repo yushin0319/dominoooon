@@ -35,6 +35,19 @@ describe('SetupPage: カードの効果が読める', () => {
     expect(gardens).toHaveTextContent('自分のカード10枚につき1勝利点');
   });
 
+  it('どのカードにもそのカードの絵を出す（飾りなので読み上げでは読まない）', () => {
+    render(<SetupPage />);
+    const throneRoom = cardButtons().find((b) =>
+      b.textContent?.includes('玉座の間'),
+    ) as HTMLElement;
+    const img = throneRoom.querySelector('img');
+    expect(img?.getAttribute('src')).toMatch(/cards\/throne_room\.webp$/);
+    expect(img).toHaveAttribute('alt', '');
+    for (const b of cardButtons()) {
+      expect(b.querySelector('img')).not.toBeNull();
+    }
+  });
+
   it('選んでいないカードも半透明にしない（不透明度 40% で読みにくかった）', () => {
     render(<SetupPage />);
     for (const b of cardButtons()) {
