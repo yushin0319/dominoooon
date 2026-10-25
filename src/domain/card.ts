@@ -131,6 +131,7 @@ export const CARD_DEFS: Record<string, CardDef> = {
     cost: 4,
     types: [CardType.Victory],
     effects: {},
+    vpText: '自分のカード10枚につき1勝利点',
     vpCalculator: (player: PlayerState) => {
       const totalCards =
         player.deck.length +

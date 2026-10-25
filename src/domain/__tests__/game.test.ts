@@ -9,7 +9,7 @@ import {
   createGame,
   endTurn,
   getCurrentPlayer,
-  getGameResults,
+  getGameOutcome,
   updateCurrentPlayer,
   updatePlayer,
 } from '../game';
@@ -176,36 +176,18 @@ describe('checkGameOver', () => {
   });
 });
 
-describe('getGameResults', () => {
-  it('returns results for all players', () => {
-    const game = makeGame();
-    const results = getGameResults(game);
-    expect(results).toHaveLength(2);
+// 勝敗・内訳・同点の扱いは outcome.test.ts（結果画面は getGameOutcome を使う。順位だけの getGameResults は廃止）
+describe('getGameOutcome（始めたばかりのゲーム）', () => {
+  it('両者の id・名前・勝利点を席の順に返す', () => {
+    const results = getGameOutcome(makeGame()).players;
+    expect(results.map((r) => [r.playerId, r.name])).toEqual([
+      ['0', 'Alice'],
+      ['1', 'Bob'],
+    ]);
   });
 
-  it('includes playerId, name, and vp', () => {
-    const game = makeGame();
-    const results = getGameResults(game);
-    for (const r of results) {
-      expect(r).toHaveProperty('playerId');
-      expect(r).toHaveProperty('name');
-      expect(r).toHaveProperty('vp');
-    }
-  });
-
-  it('sorts results by VP descending', () => {
-    const game = makeGame();
-    const results = getGameResults(game);
-    for (let i = 0; i < results.length - 1; i++) {
-      expect(results[i].vp).toBeGreaterThanOrEqual(results[i + 1].vp);
-    }
-  });
-
-  it('calculates VP from Estate cards (3 Estate = 3 VP per player)', () => {
-    const game = makeGame();
-    const results = getGameResults(game);
-    // Each player starts with 3 Estates (vpValue: 1 each) = 3 VP
-    for (const r of results) {
+  it('最初の屋敷 3 枚で 3 点ずつ', () => {
+    for (const r of getGameOutcome(makeGame()).players) {
       expect(r.vp).toBe(3);
     }
   });

@@ -10,7 +10,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { resolveAIPendingEffect } from '../ai/aiPendingResolver';
 import ConfirmDialog from '../components/ConfirmDialog';
 import GameLog, { GameLogDialog } from '../components/GameLog';
+import { GameMenuButtons, GameMenuDialog } from '../components/GameMenu';
 import Hand from '../components/Hand';
+import HowToPlayDialog from '../components/HowToPlay';
 import PendingEffectUI from '../components/PendingEffectUI';
 import PlayArea from '../components/PlayArea';
 import PlayerStatus, {
@@ -113,6 +115,7 @@ export default function GamePage() {
   const advanceAITurn = useGameStore((s) => s.advanceAITurn);
   const executeAITurn = useGameStore((s) => s.executeAITurn);
   const goToResult = useGameStore((s) => s.goToResult);
+  const goToTitle = useGameStore((s) => s.goToTitle);
 
   // 取り返しのつかない操作（購入へ進む / ターン終了）の確認を出しているか
   const [confirm, setConfirm] = useState<TurnAction | null>(null);
@@ -122,8 +125,21 @@ export default function GamePage() {
   const [statusOpen, setStatusOpen] = useState(false);
   // 狭い画面でゲームログを広げているか（ログ欄は 2〜3 行しか見えない）
   const [logOpen, setLogOpen] = useState(false);
+  // 遊び方 / メニュー / やめる確認のどれを開いているか（ゲーム中にやめる手段と遊び方の説明がなかった）
+  const [menu, setMenu] = useState<'help' | 'menu' | 'quit' | null>(null);
   // GameLog は memo なので、毎回同じ関数を渡す
   const openLog = useCallback(() => setLogOpen(true), []);
+  // SupplyArea は memo なので、スマホ用の「?」とメニューは一度だけ作る
+  const mobileMenuButtons = useMemo(
+    () => (
+      <GameMenuButtons
+        onHelp={() => setMenu('help')}
+        onMenu={() => setMenu('menu')}
+        className="lg:hidden"
+      />
+    ),
+    [],
+  );
   // ゲームログの見出しに置く、狭い画面用のボタン（GameLog は memo なので、両者のカードが変わったときだけ作り直す）
   const statusButton = useMemo(
     () =>
@@ -292,6 +308,18 @@ export default function GamePage() {
             <PlayerStatus players={players} />
           </div>
 
+          {/* 「?」（遊び方）とメニュー（やめる）- lg 以上は左上の山札・捨て札の欄の右（中央の列は縦の余りが無く、
+              右は TurnInfo、左下はゲームログ。山札・捨て札の欄は捨て札を開くと下に伸びるので、その下には置かない）。
+              左端 17.5rem = 欄の left-3（12px）+ 幅 w-64（256px）+ 間 12px。
+              上端は 8px: キングダムのカードの上端（中央の列の上から 52px）に重ならない高さ。
+              lg 未満はキングダムの見出しの右（SupplyArea の headerAction） */}
+          <GameMenuButtons
+            onHelp={() => setMenu('help')}
+            onMenu={() => setMenu('menu')}
+            showLabels
+            className="hidden lg:flex absolute left-[17.5rem] top-2 z-30"
+          />
+
           {/* Supply and Play Area (center) - lg 未満は上詰め、lg 以上は中央寄せ。
               中身が高いときは上詰めに戻す（justify-center-safe。ただの中央寄せだとはみ出た上端がスクロールで見えなくなる）。
               ターンを進めるボタンはここ（スクロールの中）には置かない（スマホ・PC 1366x768 でスクロールしないと見えなかった） */}
@@ -303,6 +331,7 @@ export default function GamePage() {
                 onBuy={canBuyCards ? buyCard : undefined}
                 canBuy={canBuyCards}
                 maxCost={canBuyCards ? turnState.coins : undefined}
+                headerAction={mobileMenuButtons}
               />
 
               {/* lg 以上は左右の浮かせた欄（左: 山札・捨て札 / ゲームログ w-64 + 余白 12px ずつ）に重ならない幅にする
@@ -376,6 +405,30 @@ export default function GamePage() {
 
       {/* 狭い画面: ゲームログを全部 */}
       {logOpen && <GameLogDialog log={log} onClose={() => setLogOpen(false)} />}
+
+      {/* 遊び方 */}
+      {menu === 'help' && <HowToPlayDialog onClose={() => setMenu(null)} />}
+
+      {/* メニュー: 遊び方を見る / ゲームをやめる */}
+      {menu === 'menu' && (
+        <GameMenuDialog
+          onHelp={() => setMenu('help')}
+          onQuit={() => setMenu('quit')}
+          onClose={() => setMenu(null)}
+        />
+      )}
+
+      {/* ゲームをやめる確認（やめたら途中のゲームは消える） */}
+      {menu === 'quit' && (
+        <ConfirmDialog
+          title="ゲームをやめますか？"
+          message="このゲームは終わりになり、続きから遊べなくなります。"
+          confirmLabel="やめる"
+          cancelLabel="続ける"
+          onConfirm={goToTitle}
+          onCancel={() => setMenu(null)}
+        />
+      )}
 
       {/* まだできることが残っているのに、フェーズを進める / ターンを終えるときの確認 */}
       {confirm && (

@@ -450,3 +450,77 @@ describe('GamePage: 山札・捨て札・勝利点', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+describe('GamePage: 遊び方とメニュー（やめる）', () => {
+  // PC 用（左上）とスマホ用（キングダムの見出しの右）の 2 か所にある。画面幅の切り替えは CSS なので、jsdom では両方ある
+  const firstButton = (name: string | RegExp) =>
+    screen.getAllByRole('button', { name })[0];
+
+  it('「?」で遊び方を開き、3 つのステップと勝ち方を見せる。Esc で閉じる', () => {
+    setScene({ hand: ['Copper'], phase: Phase.Buy, coins: 1 });
+    render(<GamePage />);
+    fireEvent.click(firstButton('遊び方'));
+
+    const dialog = screen.getByRole('dialog', { name: '遊び方' });
+    for (const step of ['アクション', '購入', 'ターン終了']) {
+      expect(
+        within(dialog).getByRole('heading', { name: new RegExp(step) }),
+      ).toBeInTheDocument();
+    }
+    expect(dialog).toHaveTextContent('長押し');
+    expect(dialog).toHaveTextContent('属州');
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    // ゲームはそのまま
+    expect(useGameStore.getState().page).toBe('game');
+  });
+
+  it('メニューの「ゲームをやめる」は確認を出し、「続ける」ならそのまま、「やめる」ならタイトルへ', () => {
+    setScene({ hand: ['Copper'], phase: Phase.Buy, coins: 1 });
+    render(<GamePage />);
+
+    fireEvent.click(firstButton('メニュー'));
+    const menu = screen.getByRole('dialog', { name: 'メニュー' });
+    fireEvent.click(
+      within(menu).getByRole('button', { name: 'ゲームをやめる' }),
+    );
+
+    const confirm = screen.getByRole('dialog', {
+      name: 'ゲームをやめますか？',
+    });
+    fireEvent.click(within(confirm).getByRole('button', { name: '続ける' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(useGameStore.getState().page).toBe('game');
+    expect(useGameStore.getState().gameState).not.toBeNull();
+
+    fireEvent.click(firstButton('メニュー'));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'メニュー' })).getByRole(
+        'button',
+        { name: 'ゲームをやめる' },
+      ),
+    );
+    fireEvent.click(
+      within(
+        screen.getByRole('dialog', { name: 'ゲームをやめますか？' }),
+      ).getByRole('button', { name: 'やめる' }),
+    );
+    expect(useGameStore.getState().page).toBe('title');
+    expect(useGameStore.getState().gameState).toBeNull();
+  });
+
+  it('メニューから遊び方も開ける', () => {
+    setScene({ hand: ['Copper'], phase: Phase.Buy, coins: 1 });
+    render(<GamePage />);
+    fireEvent.click(firstButton('メニュー'));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'メニュー' })).getByRole(
+        'button',
+        { name: '遊び方を見る' },
+      ),
+    );
+    expect(screen.getByRole('dialog', { name: '遊び方' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'メニュー' })).toBeNull();
+  });
+});

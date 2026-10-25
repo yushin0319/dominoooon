@@ -56,6 +56,8 @@ export interface CardDef {
   effects: CardEffect;
   vpValue?: number;
   vpCalculator?: (player: PlayerState) => number;
+  /** vpCalculator の説明（カードの説明・セットアップ画面に出す。庭園は効果も固定の点も無く、説明が空欄だった） */
+  vpText?: string;
 }
 
 export interface CardInstance {
@@ -126,6 +128,23 @@ export interface GameState {
   turnNumber: number;
   gameOver: boolean;
   log: string[];
+}
+
+// ===== App =====
+
+/** 画面（タイトル / ゲーム設定 / ゲーム / 結果）。保存データの確認にも使うので値の一覧から型を作る */
+export const PAGES = ['title', 'setup', 'game', 'result'] as const;
+export type Page = (typeof PAGES)[number];
+
+/** AI の戦略（お金重視 / お金重視＋鍛冶屋） */
+export const AI_STRATEGY_IDS = ['bigMoney', 'bigMoneySmithy'] as const;
+export type AIStrategy = (typeof AI_STRATEGY_IDS)[number];
+
+/** ゲームを始めたときの設定（「同じキングダムでもう一度」に使う） */
+export interface GameSetup {
+  /** キングダムのカード名（CARD_DEFS のキー） */
+  kingdom: string[];
+  aiStrategy: AIStrategy;
 }
 
 // ===== Utility Types =====

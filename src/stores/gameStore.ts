@@ -1,7 +1,9 @@
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { type AITurnStep, planAITurn } from '../ai/aiTurn';
 import { bigMoneyStrategy } from '../ai/bigMoney';
 import { bigMoneySmithyStrategy } from '../ai/bigMoneySmithy';
+import { getCardDef } from '../domain/card';
 import type { PendingEffectChoice } from '../domain/effect';
 import { resolvePendingEffect } from '../domain/effect';
 import { addLog, createGame, endTurn } from '../domain/game';
@@ -13,8 +15,21 @@ import {
 } from '../domain/turn';
 import { shouldAutoSkipActionPhase } from '../lib/turnFlow';
 import { getEffectText } from '../lib/utils';
-import type { CardDef, GameState, ShuffleFn } from '../types';
+import type {
+  AIStrategy,
+  CardDef,
+  GameSetup,
+  GameState,
+  Page,
+  ShuffleFn,
+} from '../types';
 import { Phase } from '../types';
+import {
+  createSaveStorage,
+  SAVE_KEY,
+  SAVE_VERSION,
+  type SavedGame,
+} from './gameSave';
 
 /**
  * Design Decision: Store Security
@@ -27,9 +42,6 @@ import { Phase } from '../types';
  * - If multiplayer is added in the future, server-side validation will be needed
  *   regardless of client-side protection
  */
-
-type Page = 'title' | 'setup' | 'game' | 'result';
-type AIStrategy = 'bigMoney' | 'bigMoneySmithy';
 
 /** 直前の購入（取り消せるのはこの 1 回だけ） */
 interface LastBuy {
@@ -79,12 +91,17 @@ interface GameStore {
   /** 段階ごとに見せている途中の AI のターン（見せていなければ null） */
   aiTurn: AITurnPlayback | null;
   aiStrategy: AIStrategy;
+  /** 前回ゲームを始めたときの設定（「同じキングダムでもう一度」に使う） */
+  lastSetup: GameSetup | null;
   shuffleFn: ShuffleFn;
 
+  /** タイトルへ（途中のゲームは捨てる。ゲーム中の「やめる」・結果画面の「タイトルに戻る」） */
   goToTitle: () => void;
   goToSetup: () => void;
   goToResult: () => void;
   startGame: (kingdom: CardDef[], ai: AIStrategy) => void;
+  /** 前回と同じキングダム・AI で新しいゲームを始める（前回の設定が無ければ何もしない） */
+  restartGame: () => void;
 
   playAction: (instanceId: string) => void;
   skipAction: () => void;
@@ -117,7 +134,64 @@ export function selectUndoableBuy(
     : null;
 }
 
-export const useGameStore = create<GameStore>((set, get) => {
+/**
+ * 見せている途中の AI のターン。今の状態が見せている段階のままのときだけ返す
+ * （ほかの経路で状態が変わっていたら、その段階はもう古い）
+ */
+function selectLivePlayback(
+  s: Pick<GameStore, 'gameState' | 'aiTurn'>,
+): AITurnPlayback | null {
+  const { gameState, aiTurn } = s;
+  return aiTurn && gameState === aiTurn.steps[aiTurn.index].state
+    ? aiTurn
+    : null;
+}
+
+/**
+ * 保存するもの（シャッフル関数・見せている途中の AI のターンは入れない）。
+ * AI のターンを見せている途中なら、ターンを最後まで進めた状態（スキップと同じ結果）を保存する。
+ * 見せている途中の状態を保存すると、読み直したときに AI がもう一度買ってしまう
+ */
+function toSavedGame(s: GameStore): SavedGame {
+  const undoable = selectUndoableBuy(s);
+  return {
+    page: s.page,
+    gameState: selectLivePlayback(s)?.final ?? s.gameState,
+    undo:
+      undoable && s.lastBuy
+        ? { before: s.lastBuy.before, cardName: undoable }
+        : null,
+    aiStrategy: s.aiStrategy,
+    lastSetup: s.lastSetup,
+  };
+}
+
+/**
+ * 保存データをストアに戻す。保存データは gameSave.ts で形を確かめてある（壊れていれば届かない）。
+ * 取り消せる購入は「買った直後の状態」を読み直した状態に結び直す
+ */
+function fromSavedGame(saved: SavedGame, current: GameStore): GameStore {
+  const { gameState, undo } = saved;
+  const lastBuy =
+    undo && gameState
+      ? { before: undo.before, after: gameState, cardName: undo.cardName }
+      : null;
+  return {
+    ...current,
+    page: saved.page,
+    gameState,
+    lastBuy,
+    aiTurn: null,
+    aiStrategy: saved.aiStrategy,
+    lastSetup: saved.lastSetup,
+  };
+}
+
+/** ストアの中身（途中保存の persist で包む前） */
+const createGameStore: StateCreator<
+  GameStore,
+  [['zustand/persist', unknown]]
+> = (set, get) => {
   /**
    * 購入以外の操作の結果を反映する。使えるアクションが無ければ購入フェーズへ自動で進め、
    * 取り消し用の購入の記録と、見せている途中の AI のターンは捨てる
@@ -136,11 +210,10 @@ export const useGameStore = create<GameStore>((set, get) => {
    * ほかの経路で状態が変わっていたら捨てる（古い段階・古い結果で上書きしないように）
    */
   const livePlayback = (): AITurnPlayback | null => {
-    const { gameState, aiTurn } = get();
-    if (!aiTurn) return null;
-    if (gameState === aiTurn.steps[aiTurn.index].state) return aiTurn;
-    set({ aiTurn: null });
-    return null;
+    const state = get();
+    const playback = selectLivePlayback(state);
+    if (!playback && state.aiTurn) set({ aiTurn: null });
+    return playback;
   };
 
   /** AI のターンを段階に分ける（何を使い・何を買うかは選んだ戦略のまま） */
@@ -159,17 +232,30 @@ export const useGameStore = create<GameStore>((set, get) => {
     lastBuy: null,
     aiTurn: null,
     aiStrategy: 'bigMoney',
+    lastSetup: null,
     shuffleFn: createShuffleFn(),
 
     goToTitle: () =>
       set({ page: 'title', gameState: null, lastBuy: null, aiTurn: null }),
-    goToSetup: () => set({ page: 'setup' }),
+    // 結果画面から設定を選び直すときも、終わったゲームは残さない
+    goToSetup: () =>
+      set({ page: 'setup', gameState: null, lastBuy: null, aiTurn: null }),
     goToResult: () => set({ page: 'result' }),
 
     startGame: (kingdom, ai) => {
       const { shuffleFn } = get();
       const gs = createGame(['あなた', 'AI'], kingdom, shuffleFn);
-      commit(gs, { page: 'game', aiStrategy: ai });
+      commit(gs, {
+        page: 'game',
+        aiStrategy: ai,
+        lastSetup: { kingdom: kingdom.map((c) => c.name), aiStrategy: ai },
+      });
+    },
+
+    restartGame: () => {
+      const { lastSetup, startGame } = get();
+      if (!lastSetup) return;
+      startGame(lastSetup.kingdom.map(getCardDef), lastSetup.aiStrategy);
     },
 
     playAction: (instanceId) => {
@@ -259,7 +345,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       const plan = planCurrentAITurn(gameState);
       set({
         gameState: plan.steps[0].state,
-        aiTurn: { steps: plan.steps, index: 0, final: plan.final },
+        aiTurn: {
+          steps: plan.steps,
+          index: 0,
+          // 人間の番に戻ったときの形（使えるアクションが無ければ購入フェーズ）にしておく。
+          // commit と同じ結果を途中保存もそのまま使える（読み直したあとに進め直さなくてよい）
+          final: autoAdvance(plan.final, get().shuffleFn),
+        },
       });
     },
 
@@ -296,4 +388,24 @@ export const useGameStore = create<GameStore>((set, get) => {
       commit(planCurrentAITurn(gameState).final);
     },
   };
-});
+};
+
+export const useGameStore = create<GameStore>()(
+  persist(createGameStore, {
+    // 途中保存（再読み込み・閉じても続きから）。何を保存し、どう戻すかは gameSave.ts / toSavedGame / fromSavedGame
+    name: SAVE_KEY,
+    version: SAVE_VERSION,
+    storage: createSaveStorage(),
+    partialize: toSavedGame,
+    // 今は版 1 だけ。知らない版（古い版・新しい版）のデータは移し替えずに捨て、タイトルから始める
+    migrate: (): SavedGame => ({
+      page: 'title',
+      gameState: null,
+      undo: null,
+      aiStrategy: 'bigMoney',
+      lastSetup: null,
+    }),
+    merge: (persisted, current) =>
+      persisted ? fromSavedGame(persisted as SavedGame, current) : current,
+  }),
+);

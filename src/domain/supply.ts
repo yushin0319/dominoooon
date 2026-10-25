@@ -14,6 +14,22 @@ import { CARD_DEFS } from './card';
  * - Consider immutability patterns (Immer) or readonly wrappers if needed
  */
 
+/** 基本のサプライ（どのゲームにもある財宝・勝利点・呪い）。ほかの山はキングダム */
+export const BASIC_SUPPLY: ReadonlySet<string> = new Set([
+  CARD.COPPER,
+  CARD.SILVER,
+  CARD.GOLD,
+  CARD.ESTATE,
+  CARD.DUCHY,
+  CARD.PROVINCE,
+  CARD.CURSE,
+]);
+
+/** キングダムの山か（基本のサプライでない山。庭園のような勝利点のキングダムも含む） */
+export function isKingdomPile(pile: SupplyPile): boolean {
+  return !BASIC_SUPPLY.has(pile.card.name);
+}
+
 /** Number of victory/curse cards based on player count */
 function victoryCount(numPlayers: number): number {
   return numPlayers === 2 ? 8 : 12;

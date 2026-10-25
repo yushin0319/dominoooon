@@ -160,6 +160,13 @@ const PENDING_EFFECT_HANDLERS: Record<
 
 // ===== Public API =====
 
+/** 選択待ちの種類として知っているものか（保存データの確認用。解決のしかたがある種類だけ） */
+export function isPendingEffectType(type: unknown): type is PendingEffectType {
+  return (
+    typeof type === 'string' && Object.hasOwn(PENDING_EFFECT_HANDLERS, type)
+  );
+}
+
 export function resolveCustomEffect(
   state: GameState,
   card: CardInstance,

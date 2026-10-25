@@ -16,6 +16,20 @@ describe('getEffectText: カードの効果の文（カード・説明・ログ�
     );
   });
 
+  it('庭園にも効果の文がある（セットアップ画面・説明で空欄だった）', () => {
+    expect(getEffectText(getCardDef('Gardens'))).toBe(
+      '自分のカード10枚につき1勝利点',
+    );
+  });
+
+  it('キングダムに選べるカードはどれも効果の文がある', () => {
+    const blank = Object.values(CARD_DEFS)
+      .filter((def) => def.cost > 0 || def.vpValue !== undefined)
+      .filter((def) => getEffectText(def) === '')
+      .map((def) => def.name);
+    expect(blank).toEqual([]);
+  });
+
   it('どのカードの効果にも英語が残っていない', () => {
     const english = Object.values(CARD_DEFS)
       .map((def) => getEffectText(def))

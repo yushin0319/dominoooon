@@ -39,5 +39,7 @@ export function getEffectText(def: CardDef): string {
   if (e.coins) parts.push(`+${e.coins} コイン`);
   if (e.custom) parts.push(customEffectText[e.custom] ?? '特殊効果');
   if (def.vpValue !== undefined) parts.push(`${def.vpValue} 勝利点`);
+  // 庭園のように持っているカードで勝利点が決まるカードの説明（カードの定義の vpText）
+  if (def.vpText) parts.push(def.vpText);
   return parts.join('、');
 }
