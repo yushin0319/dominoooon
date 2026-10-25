@@ -17,7 +17,7 @@ const customEffectText: Record<string, string> = {
   bureaucrat: '銀貨獲得、他者は勝利点をデッキ上に',
   militia: '他者は手札3枚まで捨てる',
   moneylender: '銅貨を廃棄して+3コイン',
-  poacher: '空サプライ1つにつき手札1枚捨てる',
+  poacher: '空の山の数だけ手札を捨てる',
   remodel: '手札1枚廃棄→コスト+2以下を獲得',
   throneRoom: 'アクション1枚を2回使用',
   bandit: '金貨獲得、他者の財宝を廃棄',

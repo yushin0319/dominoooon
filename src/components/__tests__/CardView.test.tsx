@@ -316,6 +316,52 @@ describe('CardView: 文字がバッジに隠れない', () => {
   });
 });
 
+describe('CardView: カードの絵', () => {
+  it('大きいカードにも小さいカードにも、そのカードの絵を出す', () => {
+    const { container, rerender } = render(
+      <CardView card={getCardDef('Throne Room')} />,
+    );
+    expect(container.querySelector('img')?.getAttribute('src')).toMatch(
+      /cards\/throne_room\.webp$/,
+    );
+    rerender(<CardView card={getCardDef('Throne Room')} small />);
+    expect(container.querySelector('img')?.getAttribute('src')).toMatch(
+      /cards\/throne_room\.webp$/,
+    );
+  });
+
+  it('絵は飾りとして扱う（名前は文字で出ているので、読み上げでは読まない）', () => {
+    const { container } = render(<CardView card={getCardDef('Village')} />);
+    expect(container.querySelector('img')).toHaveAttribute('alt', '');
+  });
+
+  it('絵が読み込めなかったときは、壊れた画像の印を出さない', () => {
+    const { container } = render(<CardView card={getCardDef('Village')} />);
+    const img = container.querySelector('img') as HTMLImageElement;
+    fireEvent.error(img);
+    expect(img.style.visibility).toBe('hidden');
+  });
+
+  it('大きいカードの絵は、効果の文を出した残りの高さに収める（効果の文が長いカードでも文字をはみ出させない）', () => {
+    const { container } = render(<CardView card={getCardDef('Poacher')} />);
+    const art = container.querySelector('img')?.parentElement as HTMLElement;
+    expect(art.className).toMatch(/flex-1/);
+    expect(art.className).toMatch(/min-h-0/);
+  });
+
+  it('大きいカードの種類は、下の帯（コストの丸の右）に出す（効果の文の上を空けて、絵に回す）', () => {
+    render(<CardView card={getCardDef('Militia')} />);
+    const type = screen.getByText('アタック').closest('div') as HTMLElement;
+    expect(type).toHaveTextContent('アクション / アタック');
+    expect(type.className).toMatch(/absolute/);
+    expect(type.className).toMatch(/bottom-2/);
+    // 効果の文の入れ物（絵と効果の文）には入れない
+    const body = screen.getByText(/他者は手札3枚まで捨てる/)
+      .parentElement as HTMLElement;
+    expect(body).not.toContainElement(type);
+  });
+});
+
 describe('CardView: キーボードで押す', () => {
   const original = { w: window.innerWidth, h: window.innerHeight };
   beforeEach(() => {

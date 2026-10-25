@@ -1,5 +1,6 @@
 import { Check, Shuffle } from 'lucide-react';
 import { Fragment, useEffect, useId, useMemo, useState } from 'react';
+import CardArt from '../components/CardArt';
 import { CARD_DEFS } from '../domain/card';
 import { getTextColor, typeNameJa } from '../lib/cardType';
 import {
@@ -72,9 +73,13 @@ function KingdomCardTile({
       )}
     >
       <div className="flex items-start gap-2 pr-6">
-        <span className="shrink-0 w-6 h-6 rounded-full border-2 border-slate-400 bg-slate-900 text-xs font-bold text-white flex items-center justify-center">
-          {def.cost}
-        </span>
+        {/* 絵の左下にコストの丸を重ねる（対戦画面のカードと同じ並び） */}
+        <div className="relative shrink-0">
+          <CardArt def={def} lazy className="w-12 h-12" />
+          <span className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full border-2 border-slate-400 bg-slate-900 text-xs font-bold text-white flex items-center justify-center">
+            {def.cost}
+          </span>
+        </div>
         <div className="min-w-0">
           <div className="text-sm font-bold leading-tight text-white">
             {def.nameJa}

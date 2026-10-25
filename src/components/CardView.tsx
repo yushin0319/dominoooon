@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import {
+  Fragment,
   memo,
   type RefObject,
   useEffect,
@@ -21,6 +22,7 @@ import {
 import { getTooltipPosition, type TooltipPosition } from '../lib/tooltip';
 import { cn, getEffectText } from '../lib/utils';
 import type { CardDef, CardInstance, CardType } from '../types';
+import CardArt from './CardArt';
 
 interface CardViewProps {
   card: CardInstance | CardDef;
@@ -462,12 +464,14 @@ const CardView = memo(function CardView({
           {def.nameJa}
         </div>
 
-        {/* Card Content。コストの丸（左下）に文字が重ならないよう、丸の分だけ下を空ける */}
+        {/* 小さいカードは名前の下を絵で埋める（コストの丸は絵の左下に重ねる） */}
+        {small && <CardArt def={def} className="flex-1 min-h-0 pt-1" />}
+
+        {/* Card Content。コストの丸（左下）に文字が重ならないよう、丸の分だけ下を空ける。
+            絵は効果の文を出した残りの高さに収める（文が長いカードは絵が小さくなり、文字ははみ出さない） */}
         {!small && (
           <div className="flex-1 min-h-0 px-2 pt-1 pb-10 flex flex-col justify-center gap-1">
-            <div className={cn('text-xs font-semibold', textColor)}>
-              {def.types.map(typeNameJa).join(' / ')}
-            </div>
+            <CardArt def={def} className="flex-1 min-h-0" />
             {effects && (
               <div className="text-xs text-white/80 leading-tight">
                 {effects}
@@ -488,6 +492,27 @@ const CardView = memo(function CardView({
         >
           {def.cost}
         </div>
+
+        {/* 種類（大きいカードの下の帯、コストの丸の右）。本文の上を空けて絵に回すため、空いていた帯に置く。
+            種類の名前の途中では折り返さない（「アクション / アタック」は「/」の所で 2 行になる） */}
+        {!small && (
+          <div
+            className={cn(
+              // 右の余白は 2px（「リアクション」12px × 6 文字が 1 行に収まる幅）
+              'absolute bottom-2 left-[42px] right-0.5 h-8 flex items-center text-xs font-semibold leading-tight',
+              textColor,
+            )}
+          >
+            <span>
+              {def.types.map((t, i) => (
+                <Fragment key={t}>
+                  {i > 0 && ' / '}
+                  <span className="whitespace-nowrap">{typeNameJa(t)}</span>
+                </Fragment>
+              ))}
+            </span>
+          </div>
+        )}
 
         {/* 残数バッジ（右上に絶対配置） */}
         {remaining !== undefined && (
