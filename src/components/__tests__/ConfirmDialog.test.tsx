@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ConfirmDialog from '../ConfirmDialog';
 
@@ -20,17 +21,43 @@ function renderDialog() {
 }
 
 describe('ConfirmDialog: 取り返しのつかない操作の前の確認', () => {
-  it('題名と説明を出し、確定ボタンにフォーカスする', () => {
+  it('題名をダイアログの名前に、説明をダイアログの説明にする', () => {
     renderDialog();
-    expect(
-      screen.getByRole('dialog', { name: 'まだ買えるカードがあります' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        '残り 3 コイン・購入 1 回で買えるカードがあります。このままターンを終えますか？',
-      ),
-    ).toBeVisible();
+    const dialog = screen.getByRole('dialog', {
+      name: 'まだ買えるカードがあります',
+    });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toHaveAccessibleDescription(
+      '残り 3 コイン・購入 1 回で買えるカードがあります。このままターンを終えますか？',
+    );
+  });
+
+  it('開いたときのフォーカスは安全な方（やめる）。Enter を続けて押しても進まない', () => {
+    renderDialog();
+    expect(screen.getByRole('button', { name: 'やめる' })).toHaveFocus();
+  });
+
+  it('ゲームをやめる確認でも、フォーカスは「続ける」（やめる＝確定に当てない）', () => {
+    render(
+      <ConfirmDialog
+        title="ゲームをやめますか？"
+        message="このゲームは終わりになり、続きから遊べなくなります。"
+        confirmLabel="やめる"
+        cancelLabel="続ける"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: '続ける' })).toHaveFocus();
+  });
+
+  it('Tab はダイアログの中で回る', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.tab();
     expect(screen.getByRole('button', { name: 'ターン終了' })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'やめる' })).toHaveFocus();
   });
 
   it('確定ボタンで onConfirm、「やめる」で onCancel', () => {
@@ -45,7 +72,10 @@ describe('ConfirmDialog: 取り返しのつかない操作の前の確認', () =
     const { onCancel } = renderDialog();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onCancel).toHaveBeenCalledTimes(1);
-    const backdrop = screen.getByRole('dialog').parentElement as HTMLElement;
+    // 外側の暗い幕（読み上げ・Tab の対象外のボタン）
+    const backdrop = document.querySelector(
+      'button[aria-hidden="true"]',
+    ) as HTMLElement;
     fireEvent.click(backdrop);
     expect(onCancel).toHaveBeenCalledTimes(2);
   });

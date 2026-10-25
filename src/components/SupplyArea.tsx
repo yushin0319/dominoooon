@@ -40,29 +40,16 @@ const SupplyPileItem = memo(function SupplyPileItem({
       ? pile.card.cost - maxCost
       : 0;
 
-  const handleKeyDown = buy
-    ? (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          buy();
-        }
-      }
-    : undefined;
-
   return (
-    // クリックは CardView の onClick で受ける（ここでも受けると 1 回のクリックで 2 回呼ばれる）。キーボード操作はここで受ける
-    <div
-      className="relative"
-      role={buy ? 'button' : undefined}
-      tabIndex={buy ? 0 : undefined}
-      onKeyDown={handleKeyDown}
-    >
+    // クリックもキーボード（Tab で移って Enter / Space）も CardView で受ける（ここでも受けると 1 回で 2 回呼ばれる）
+    <div className="relative">
       <CardView
         card={pile.card}
         small
         status={status}
         onClick={buy}
         remaining={pile.count}
+        label={`${pile.card.nameJa}を購入（コスト ${pile.card.cost}・残り ${pile.count} 枚）`}
       />
       {shortage > 0 && (
         <span className="sr-only">コイン不足（あと{shortage}）</span>
@@ -113,7 +100,8 @@ const SupplyArea = memo(function SupplyArea({
   const kingdom = useMemo(() => supply.filter(isKingdomPile), [supply]);
 
   return (
-    <div className="flex flex-col gap-5">
+    // data-supply: キーボードで遊んでいるときのフォーカスの移し先を探す目印（GamePage）
+    <div data-supply="" className="flex flex-col gap-5">
       {/* キングダムカード（PC では 5 枚 × 2 行、狭い画面では折り返す） */}
       <div className="flex flex-col items-center gap-3">
         {headerAction ? (

@@ -23,6 +23,20 @@ describe('見た目の決まり', () => {
     expect(findAll(/\bdark:[\w-[\]/.%]+/g)).toEqual([]);
   });
 
+  it('CSS の動き（animate-*・押したときの縮み active:scale-*）は motion-safe: を付けて、OS の「動きを減らす」設定では止める', () => {
+    // クラス名 1 つ分（空白・引用符で区切る）。CSS 変数の定義（--animate-fade-in）は除く
+    const unguarded = findAll(
+      /(?<=[\s"'`])(?!--)[\w:[\]-]*(?:animate-(?!none)[\w-]+|active:scale-[\w-]+)/g,
+    ).filter((hit) => !hit.split(': ')[1].startsWith('motion-safe:'));
+    expect(unguarded).toEqual([]);
+  });
+
+  it('ログ欄のなめらかなスクロールも、動きを減らす設定では切る', () => {
+    const smooth = findAll(/[^"'`]*\bscroll-smooth\b[^"'`]*/g);
+    expect(smooth.length).toBeGreaterThan(0);
+    for (const hit of smooth) expect(hit).toMatch(/motion-reduce:scroll-auto/);
+  });
+
   it('12px より小さい文字を使わない（text-[9px]〜text-[11px] だったラベルが読みにくかった）', () => {
     const tooSmall = findAll(/text-\[(\d+(?:\.\d+)?)px\]/g).filter((hit) => {
       const px = Number(hit.match(/text-\[(\d+(?:\.\d+)?)px\]/)?.[1]);

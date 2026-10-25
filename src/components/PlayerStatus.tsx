@@ -1,6 +1,5 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { memo, useId, useRef, useState } from 'react';
-import { useDialogKeyboard } from '../hooks/useDialogKeyboard';
+import { memo, useId, useState } from 'react';
 import {
   type CardKind,
   getPlayerStatus,
@@ -8,6 +7,7 @@ import {
 } from '../lib/playerStatus';
 import { cn } from '../lib/utils';
 import type { PlayerState } from '../types';
+import ModalShell from './ModalShell';
 
 const TITLE = '山札・捨て札・勝利点';
 
@@ -100,7 +100,7 @@ const PlayerStatus = memo(function PlayerStatus({
                       <ChevronDown
                         aria-hidden="true"
                         className={cn(
-                          'w-3.5 h-3.5 transition-transform',
+                          'w-3.5 h-3.5 transition-transform motion-reduce:transition-none',
                           isOpen && 'rotate-180',
                         )}
                       />
@@ -202,41 +202,23 @@ export function PlayerStatusDialog({
   players,
   onClose,
 }: PlayerStatusDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-  useDialogKeyboard(dialogRef, onClose);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* 外を押したら閉じる（読み上げ・Tab では「閉じる」ボタンを使う） */}
-      <button
-        type="button"
-        aria-hidden="true"
-        tabIndex={-1}
-        onClick={onClose}
-        className="absolute inset-0 w-full h-full bg-black/60 cursor-default"
-      />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="relative w-full max-w-sm p-4 bg-slate-800 border border-slate-600 rounded-lg shadow-xl"
-      >
-        <h2 id={titleId} className="mb-3 text-base font-bold text-slate-100">
-          {TITLE}
-        </h2>
-        <PlayerStatus players={players} />
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-11 px-4 text-sm font-medium text-slate-200 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
-          >
-            閉じる
-          </button>
-        </div>
+    <ModalShell
+      title={TITLE}
+      titleClassName="mb-3 text-base font-bold text-slate-100"
+      onClose={onClose}
+      className="w-full max-w-sm p-4 bg-slate-800 border border-slate-600 rounded-lg shadow-xl"
+    >
+      <PlayerStatus players={players} />
+      <div className="mt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="min-h-11 px-4 text-sm font-medium text-slate-200 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
+        >
+          閉じる
+        </button>
       </div>
-    </div>
+    </ModalShell>
   );
 }

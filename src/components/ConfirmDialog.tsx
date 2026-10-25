@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { useDialogKeyboard } from '../hooks/useDialogKeyboard';
+import { useId, useRef } from 'react';
+import ModalShell from './ModalShell';
 
 interface ConfirmDialogProps {
   title: string;
@@ -13,8 +13,9 @@ interface ConfirmDialogProps {
 }
 
 /**
- * 取り返しのつかない操作の前の確認（まだ使えるアクション・買えるコインが残っているのに、フェーズを進める / ターンを終えるとき）。
- * カードを使う・買うときの確認は出さない（毎回 2 タップになっていた。購入は直前の 1 回を取り消せる）
+ * 取り返しのつかない操作の前の確認（まだ使えるアクション・買えるコインが残っているのに、フェーズを進める / ターンを終えるとき、
+ * ゲームをやめるとき）。カードを使う・買うときの確認は出さない（毎回 2 タップになっていた。購入は直前の 1 回を取り消せる）。
+ * 開いたときのフォーカスは安全な方（やめる・続ける）。確定に当てると、Enter を続けて押しただけで取り返しのつかない操作が進む
  */
 export default function ConfirmDialog({
   title,
@@ -24,43 +25,39 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  // 開いたら確認ボタンへフォーカス、Esc でやめる、Tab はダイアログの中で回す
-  useDialogKeyboard(dialogRef, onCancel);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const messageId = useId();
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-      onClick={onCancel}
+    <ModalShell
+      title={title}
+      titleClassName="text-xl font-bold text-slate-100 mb-3"
+      onClose={onCancel}
+      descriptionId={messageId}
+      initialFocus={cancelRef}
+      className="bg-slate-800 border border-slate-600 rounded-lg p-6 max-w-md w-full shadow-xl"
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="bg-slate-800 border border-slate-600 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-xl font-bold text-slate-100 mb-3">{title}</h2>
-        <p className="text-sm text-slate-300 mb-6">{message}</p>
-        {/* ボタンは押しやすい高さ（44px） */}
-        <div className="flex gap-3 justify-end">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="min-h-11 px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
-          >
-            {confirmLabel}
-          </button>
-        </div>
+      <p id={messageId} className="text-sm text-slate-300 mb-6">
+        {message}
+      </p>
+      {/* ボタンは押しやすい高さ（44px） */}
+      <div className="flex gap-3 justify-end">
+        <button
+          ref={cancelRef}
+          type="button"
+          onClick={onCancel}
+          className="min-h-11 px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
+        >
+          {cancelLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="min-h-11 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors"
+        >
+          {confirmLabel}
+        </button>
       </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { createPortal } from 'react-dom';
 import type { CardStatus } from '../lib/cardStatus';
 import { getTextColor, typeNameJa } from '../lib/cardType';
+import { isKeyboardModality } from '../lib/inputModality';
 import {
   isHoverPointer,
   isLongPressCancelled,
@@ -31,10 +32,31 @@ interface CardViewProps {
   status?: CardStatus;
   /** 指でタップしたとき、押した処理と一緒に説明も出す（選択画面: 1 回目のタップで選んで説明、確定はボタン） */
   detailOnTap?: boolean;
+  /** 押せるときの読み上げの名前（何が起きるか: 「村をプレイ」「銀貨を購入（コスト 3・残り 40 枚）」） */
+  label?: string;
+  /** 押すと選ぶ / 外すカード（選択画面）。選んでいるかを読み上げで伝える（aria-pressed） */
+  toggle?: boolean;
+  /** このカードを押すキーボードの近道（手札の数字キー）。読み上げで伝える（aria-keyshortcuts） */
+  keyShortcut?: string;
+  /** キーボードでこのカードに移ってきた / 離れた（手札: 持ち上げて手前に出す） */
+  onKeyboardFocusChange?: (focused: boolean) => void;
 }
 
 function getDef(card: CardInstance | CardDef): CardDef {
   return 'def' in card ? card.def : card;
+}
+
+/**
+ * キーボードで移ってきたフォーカスか（:focus-visible。古いブラウザで使えなければキーボード扱い）。
+ * 最後の操作がマウス・指なら、プログラムで当てたフォーカス（選択画面を開いたとき等）でも説明は出さない
+ */
+function isKeyboardFocus(el: HTMLElement): boolean {
+  if (!isKeyboardModality()) return false;
+  try {
+    return el.matches(':focus-visible');
+  } catch {
+    return true;
+  }
 }
 
 function getTypeGradient(types: CardType[]): string {
@@ -172,6 +194,10 @@ const CardView = memo(function CardView({
   remaining,
   status,
   detailOnTap = false,
+  label,
+  toggle = false,
+  keyShortcut,
+  onKeyboardFocusChange,
 }: CardViewProps) {
   const def = getDef(card);
   const gradient = getTypeGradient(def.types);
@@ -180,8 +206,13 @@ const CardView = memo(function CardView({
   const effects = getEffectText(def);
   const tooltipId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  // hover = マウスのホバーで表示中 / pinned = 指のタップ・長押しで表示中（ほかの場所を押すまで出しておく）
-  const [tooltip, setTooltip] = useState<'hover' | 'pinned' | null>(null);
+  // hover = マウスのホバーで表示中 / pinned = 指のタップ・長押しで表示中（ほかの場所を押すまで出しておく） /
+  // focus = キーボードで移ってきて表示中（離れるまで出しておく）
+  const [tooltip, setTooltip] = useState<'hover' | 'pinned' | 'focus' | null>(
+    null,
+  );
+  // 説明の置き場所を測り直した回数（キーボードで移ると見える所までスクロールするので、そのたびに測り直す）
+  const [tooltipPlacement, setTooltipPlacement] = useState(0);
   // 直前に押した入力の種類（長押しで出る端末のメニューを、指のときだけ止めるため）
   const pointerTypeRef = useRef<string | null>(null);
   const pressRef = useRef<{ timer: number; x: number; y: number } | null>(null);
@@ -195,6 +226,17 @@ const CardView = memo(function CardView({
     }
   }
 
+  // 押せなくなったら（買った・使った・フェーズが変わった）キーボードで出した説明を閉じ、持ち上げもやめる。
+  // 押せなくなった要素からは、ブラウザが blur を出さずにフォーカスを外すことがあるため
+  const pressable = onClick !== undefined;
+  const onKeyboardFocusChangeRef = useRef(onKeyboardFocusChange);
+  onKeyboardFocusChangeRef.current = onKeyboardFocusChange;
+  useEffect(() => {
+    if (pressable) return;
+    setTooltip((t) => (t === 'focus' ? null : t));
+    onKeyboardFocusChangeRef.current?.(false);
+  }, [pressable]);
+
   // 外したときに長押しの待ちを止める（ref は描画で変わらないので依存なし）
   useEffect(
     () => () => {
@@ -203,11 +245,15 @@ const CardView = memo(function CardView({
     [],
   );
 
-  // 表示中の説明を閉じる条件: 指で出したものはほかの場所を押したとき、どちらもスクロール・画面サイズ変更のとき
+  // 表示中の説明を閉じる条件: 指で出したものはほかの場所を押したとき、マウス・指で出したものはスクロール・画面サイズ変更のとき。
+  // キーボードで出したものはスクロールでは閉じずに測り直す（移ったカードを見える所までスクロールした直後に消えてしまうため）
   useEffect(() => {
     if (!tooltip) return;
     const root = rootRef.current;
-    const close = () => setTooltip(null);
+    const close = () =>
+      tooltip === 'focus'
+        ? setTooltipPlacement((n) => n + 1)
+        : setTooltip(null);
     const onPointerDown = (e: PointerEvent) => {
       if (
         tooltip === 'pinned' &&
@@ -253,7 +299,7 @@ const CardView = memo(function CardView({
     suppressClickRef.current = false;
     if (isHoverPointer(e.pointerType)) {
       // クリックしたら説明は閉じる（選択画面・確認画面などの上に残さない）
-      setTooltip((t) => (t === 'hover' ? null : t));
+      setTooltip((t) => (t === 'hover' || t === 'focus' ? null : t));
       return;
     }
     // 指: 長押しで説明を出す
@@ -301,6 +347,39 @@ const CardView = memo(function CardView({
     }
   }
 
+  // キーボード: Enter / Space で押す（押しっぱなしの繰り返しでは押さない。買いすぎ・使いすぎを防ぐ）
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!onClick || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault();
+    if (!e.repeat) onClick();
+  }
+
+  // キーボードで移ってきたときだけ説明を出す（マウス・指で押してフォーカスが来たときは出さない: :focus-visible で見分ける）
+  function handleFocus(e: React.FocusEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget || !isKeyboardFocus(e.currentTarget)) {
+      return;
+    }
+    setTooltip((t) => t ?? 'focus');
+    onKeyboardFocusChange?.(true);
+  }
+
+  function handleBlur(e: React.FocusEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget) return;
+    setTooltip((t) => (t === 'focus' ? null : t));
+    onKeyboardFocusChange?.(false);
+  }
+
+  // 押せるときだけボタンにする（押せないカードは Tab で止まらず、読み上げでもボタンと言わない）
+  const buttonProps = onClick
+    ? {
+        role: 'button' as const,
+        tabIndex: 0,
+        'aria-label': label,
+        'aria-pressed': toggle ? Boolean(selected) : undefined,
+        'aria-keyshortcuts': keyShortcut,
+      }
+    : {};
+
   function handleContextMenu(e: React.MouseEvent) {
     // 長押しで出る端末のメニューを止める（指のときだけ）
     const type = pointerTypeRef.current;
@@ -308,11 +387,23 @@ const CardView = memo(function CardView({
   }
 
   return (
-    // 指の長押しで文字選択・端末のメニューが出ないようにする
+    // 指の長押しで文字選択・端末のメニューが出ないようにする。
+    // 押せるカードはキーボードでも選べるボタン（Tab で移る・Enter / Space で押す。フォーカスの枠は角を丸めてカードに沿わせる）。
+    // クリックもボタンにした要素で受ける（読み上げソフトがボタンを押すと、この要素にクリックが届くため）
     <div
       ref={rootRef}
       data-card-root=""
-      className="relative select-none [-webkit-touch-callout:none]"
+      {...buttonProps}
+      aria-describedby={tooltip ? tooltipId : undefined}
+      className={cn(
+        'relative select-none [-webkit-touch-callout:none]',
+        // フォーカスの枠は、選んだ印の黄色い枠（4px）の外に出す（重なって見えなくならないように）
+        onClick && 'rounded-lg focus-visible:outline-offset-[5px]',
+      )}
+      onClick={onClick}
+      onKeyDown={onClick ? handleKeyDown : undefined}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       onPointerDown={handlePointerDown}
@@ -322,12 +413,17 @@ const CardView = memo(function CardView({
       onClickCapture={handleClickCapture}
       onContextMenu={handleContextMenu}
     >
-      {tooltip && <CardTooltip def={def} anchorRef={rootRef} id={tooltipId} />}
+      {tooltip && (
+        <CardTooltip
+          key={tooltipPlacement}
+          def={def}
+          anchorRef={rootRef}
+          id={tooltipId}
+        />
+      )}
 
       <motion.div
-        onClick={onClick}
         data-status={status}
-        aria-describedby={tooltip ? tooltipId : undefined}
         whileHover={
           onClick
             ? {

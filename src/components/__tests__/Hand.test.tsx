@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCardDef } from '../../domain/card';
 import {
   EMPTY_HAND_ROW_HEIGHT,
   getHandLayout,
+  HOVER_LIFT,
   MIN_TOUCH_STRIP,
 } from '../../lib/handLayout';
 import type { CardInstance } from '../../types';
@@ -23,7 +25,7 @@ vi.mock('framer-motion', () => ({
       whileHover,
       ...rest
     }: Record<string, unknown>) => {
-      const a = animate as { rotate?: number } | undefined;
+      const a = animate as { rotate?: number; y?: number } | undefined;
       const h = whileHover as { zIndex?: number } | undefined;
       const props: Record<string, unknown> = {
         className,
@@ -32,6 +34,7 @@ vi.mock('framer-motion', () => ({
         'data-hand-card': rest['data-hand-card'],
         'data-status': rest['data-status'],
         'data-rotate': a?.rotate,
+        'data-y': a?.y,
         'data-hover': h ? 'lift' : undefined,
         'data-hover-z': h?.zIndex,
       };
@@ -223,5 +226,62 @@ describe('Hand: 手札が空のとき', () => {
     setViewportWidth(390);
     render(<Hand hand={copper(2)} emptyMessage={note} />);
     expect(screen.queryByText(note)).not.toBeInTheDocument();
+  });
+});
+
+describe('Hand: キーボードでプレイする', () => {
+  const originalWidth = window.innerWidth;
+  afterEach(() => setViewportWidth(originalWidth));
+  const hand = makeHand(['Copper', 'Village', 'Estate', 'Workshop']);
+
+  it('使えるカードだけが Tab で選べるボタン（名前は「◯◯をプレイ」、数字キーの近道も伝える）', async () => {
+    setViewportWidth(1366);
+    const user = userEvent.setup();
+    render(<Hand hand={hand} onPlay={() => {}} canPlay />);
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual([
+      '村をプレイ',
+      '工房をプレイ',
+    ]);
+    // 左から 2 枚目・4 枚目
+    expect(buttons.map((b) => b.getAttribute('aria-keyshortcuts'))).toEqual([
+      '2',
+      '4',
+    ]);
+    await user.tab();
+    expect(buttons[0]).toHaveFocus();
+    await user.tab();
+    expect(buttons[1]).toHaveFocus();
+  });
+
+  it('Enter で 1 回だけプレイする', async () => {
+    setViewportWidth(1366);
+    const user = userEvent.setup();
+    const onPlay = vi.fn();
+    render(<Hand hand={hand} onPlay={onPlay} canPlay />);
+    await user.tab();
+    await user.keyboard('{Enter}');
+    expect(onPlay).toHaveBeenCalledTimes(1);
+    expect(onPlay).toHaveBeenCalledWith('Village-1');
+  });
+
+  it('プレイできない場面では、どのカードも Tab で止まらない', () => {
+    setViewportWidth(1366);
+    render(<Hand hand={hand} />);
+    expect(screen.queryAllByRole('button')).toEqual([]);
+  });
+
+  it('キーボードで選んだカードは持ち上げて一番手前に出す（重なった隣のカードにフォーカスの枠が隠れない）', async () => {
+    setViewportWidth(1366);
+    const user = userEvent.setup();
+    render(<Hand hand={hand} onPlay={() => {}} canPlay />);
+    const before = handCards()[1];
+    const pose = getHandLayout(4, 1366).poses[1];
+    expect(Number(before.dataset.y)).toBe(pose.y);
+    await user.tab();
+    const card = handCards()[1];
+    expect(Number(card.dataset.y)).toBe(pose.y - HOVER_LIFT);
+    const zs = handCards().map((el) => Number(el.style.zIndex));
+    expect(zs[1]).toBeGreaterThan(Math.max(zs[0], zs[2], zs[3]));
   });
 });

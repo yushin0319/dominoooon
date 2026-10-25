@@ -1,8 +1,8 @@
 import { Maximize2 } from 'lucide-react';
-import { memo, type ReactNode, useEffect, useId, useRef } from 'react';
+import { memo, type ReactNode, useEffect, useRef } from 'react';
 import { parseTurnHeader } from '../domain/game';
-import { useDialogKeyboard } from '../hooks/useDialogKeyboard';
 import { cn } from '../lib/utils';
+import ModalShell from './ModalShell';
 
 const TITLE = 'ゲームログ';
 
@@ -88,7 +88,7 @@ const GameLog = memo(function GameLog({
     <div
       ref={boxRef}
       data-game-log=""
-      className="shrink-0 mx-2 mb-2 h-24 p-2 z-10 lg:absolute lg:mx-0 lg:mb-0 lg:bottom-3 lg:left-3 lg:z-30 lg:w-64 lg:h-48 lg:p-3 bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-600 shadow-xl overflow-y-auto scroll-smooth"
+      className="shrink-0 mx-2 mb-2 h-24 p-2 z-10 lg:absolute lg:mx-0 lg:mb-0 lg:bottom-3 lg:left-3 lg:z-30 lg:w-64 lg:h-48 lg:p-3 bg-slate-800/70 backdrop-blur-sm rounded-lg border border-slate-600 shadow-xl overflow-y-auto scroll-smooth motion-reduce:scroll-auto"
     >
       {/* 見出しはログ欄の上の余白（p-2 / lg:p-3）まで覆う。覆わないと、スクロールした行が見出しの上の余白に
           はみ出して見え、半透明の見出しの裏にも透けていた（AI のまとめの行が増えてスクロールしやすくなった） */}
@@ -125,10 +125,7 @@ interface GameLogDialogProps {
 
 /** 狭い画面用: ログを全部、大きく重ねて出す（外を押す・「閉じる」・Esc で閉じる）。開いたら一番新しい行を見せる */
 export function GameLogDialog({ log, onClose }: GameLogDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const titleId = useId();
-  useDialogKeyboard(dialogRef, onClose);
+  const listRef = useRef<HTMLElement>(null);
 
   const entryCount = log.length;
   useEffect(() => {
@@ -137,41 +134,31 @@ export function GameLogDialog({ log, onClose }: GameLogDialogProps) {
   }, [entryCount]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* 外を押したら閉じる（読み上げ・Tab では「閉じる」ボタンを使う） */}
-      <button
-        type="button"
-        aria-hidden="true"
-        tabIndex={-1}
-        onClick={onClose}
-        className="absolute inset-0 w-full h-full bg-black/60 cursor-default"
-      />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="relative w-full max-w-md max-h-full flex flex-col p-4 bg-slate-800 border border-slate-600 rounded-lg shadow-xl"
+    <ModalShell
+      title={TITLE}
+      titleClassName="mb-3 text-base font-bold text-slate-100"
+      onClose={onClose}
+      className="w-full max-w-md max-h-full flex flex-col p-4 bg-slate-800 border border-slate-600 rounded-lg shadow-xl"
+    >
+      {/* キーボードでも読み進められるよう Tab で選べる欄にする（選んで矢印キー・PageDown でスクロール） */}
+      <section
+        ref={listRef}
+        aria-label="ゲームログの一覧"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: スクロールする欄をキーボードでスクロールできるようにする（WCAG 2.1.1。axe の scrollable-region-focusable と同じ考え方）
+        tabIndex={0}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
-        <h2 id={titleId} className="mb-3 text-base font-bold text-slate-100">
-          {TITLE}
-        </h2>
-        <div
-          ref={listRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        <LogEntries log={log} large />
+      </section>
+      <div className="mt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="min-h-11 px-4 text-sm font-medium text-slate-200 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
         >
-          <LogEntries log={log} large />
-        </div>
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-11 px-4 text-sm font-medium text-slate-200 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 transition-colors"
-          >
-            閉じる
-          </button>
-        </div>
+          閉じる
+        </button>
       </div>
-    </div>
+    </ModalShell>
   );
 }
