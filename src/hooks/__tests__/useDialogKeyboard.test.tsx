@@ -27,6 +27,34 @@ function Dialog({
   );
 }
 
+function DialogWithInitialFocus() {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  return (
+    <Dialog onClose={() => {}} options={{ initialFocus: cancelRef }}>
+      <button ref={cancelRef} type="button">
+        やめる
+      </button>
+      <button type="button">ターン終了</button>
+    </Dialog>
+  );
+}
+
+function PageWithDialog() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>
+        開く
+      </button>
+      {open && (
+        <Dialog onClose={() => setOpen(false)}>
+          <button type="button">閉じる</button>
+        </Dialog>
+      )}
+    </>
+  );
+}
+
 describe('useDialogKeyboard: 開いたときのフォーカス', () => {
   it('既定は最後の押せるボタン（押せないボタンは飛ばす）', () => {
     render(
@@ -54,18 +82,7 @@ describe('useDialogKeyboard: 開いたときのフォーカス', () => {
   });
 
   it('initialFocus に要素を渡せば、その要素（確認の「やめる」）', () => {
-    function WithRef() {
-      const cancelRef = useRef<HTMLButtonElement>(null);
-      return (
-        <Dialog onClose={() => {}} options={{ initialFocus: cancelRef }}>
-          <button ref={cancelRef} type="button">
-            やめる
-          </button>
-          <button type="button">ターン終了</button>
-        </Dialog>
-      );
-    }
-    render(<WithRef />);
+    render(<DialogWithInitialFocus />);
     expect(screen.getByRole('button', { name: 'やめる' })).toHaveFocus();
   });
 });
@@ -136,22 +153,7 @@ describe('useDialogKeyboard: Esc と閉じたあと', () => {
 
   it('閉じたら、開く前にフォーカスがあった所へ戻す', async () => {
     const user = userEvent.setup();
-    function Page() {
-      const [open, setOpen] = useState(false);
-      return (
-        <>
-          <button type="button" onClick={() => setOpen(true)}>
-            開く
-          </button>
-          {open && (
-            <Dialog onClose={() => setOpen(false)}>
-              <button type="button">閉じる</button>
-            </Dialog>
-          )}
-        </>
-      );
-    }
-    render(<Page />);
+    render(<PageWithDialog />);
     await user.click(screen.getByRole('button', { name: '開く' }));
     expect(screen.getByRole('button', { name: '閉じる' })).toHaveFocus();
     await user.keyboard('{Escape}');
